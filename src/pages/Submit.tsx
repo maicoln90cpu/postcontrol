@@ -390,7 +390,7 @@ const Submit = () => {
                     <img
                       src={selectedEventData.event_image_url}
                       alt={selectedEventData.title}
-                      className="w-60 h-60 object-cover rounded-lg border shadow-sm"
+                      className="w-100 h-100 object-cover rounded-lg border shadow-sm"
                     />
                   </div>
                 )}
