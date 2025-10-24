@@ -63,12 +63,15 @@ export type Database = {
           event_date: string | null
           event_image_url: string | null
           id: string
+          internal_notes: string | null
           is_active: boolean
           location: string | null
           numero_de_vagas: number | null
+          require_instagram_link: boolean | null
           required_posts: number | null
           required_sales: number | null
           setor: string | null
+          target_gender: string[] | null
           title: string
           updated_at: string
         }
@@ -79,12 +82,15 @@ export type Database = {
           event_date?: string | null
           event_image_url?: string | null
           id?: string
+          internal_notes?: string | null
           is_active?: boolean
           location?: string | null
           numero_de_vagas?: number | null
+          require_instagram_link?: boolean | null
           required_posts?: number | null
           required_sales?: number | null
           setor?: string | null
+          target_gender?: string[] | null
           title: string
           updated_at?: string
         }
@@ -95,12 +101,15 @@ export type Database = {
           event_date?: string | null
           event_image_url?: string | null
           id?: string
+          internal_notes?: string | null
           is_active?: boolean
           location?: string | null
           numero_de_vagas?: number | null
+          require_instagram_link?: boolean | null
           required_posts?: number | null
           required_sales?: number | null
           setor?: string | null
+          target_gender?: string[] | null
           title?: string
           updated_at?: string
         }

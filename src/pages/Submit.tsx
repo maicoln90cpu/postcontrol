@@ -33,11 +33,13 @@ interface Post {
 interface Event {
   id: string;
   title: string;
+  description: string | null;
   event_date: string | null;
   location: string | null;
   setor: string | null;
   numero_de_vagas: number | null;
   event_image_url: string | null;
+  require_instagram_link: boolean;
 }
 
 interface EventRequirement {
@@ -57,7 +59,17 @@ const submitFormSchema = z.object({
     .string()
     .trim()
     .regex(/^\(?(\d{2})\)?\s?(\d{4,5})-?(\d{4})$/, "Formato de telefone inválido. Use: (00) 00000-0000"),
+  instagramLink: z.string().optional(),
 });
+
+const instagramLinkSchema = z
+  .string()
+  .trim()
+  .min(1, "Link do Instagram é obrigatório")
+  .refine(
+    (val) => val.includes("instagram.com/") || val.startsWith("@"),
+    "Formato inválido. Use: https://instagram.com/usuario ou @usuario"
+  );
 
 const Submit = () => {
   const { toast } = useToast();
@@ -73,6 +85,7 @@ const Submit = () => {
   const [hasExistingPhone, setHasExistingPhone] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState("");
   const [selectedPost, setSelectedPost] = useState("");
+  const [instagramLink, setInstagramLink] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [requirements, setRequirements] = useState<EventRequirement[]>([]);
@@ -98,7 +111,7 @@ const Submit = () => {
   const loadEvents = async () => {
     const { data, error } = await sb
       .from("events")
-      .select("id, title, event_date, location, setor, numero_de_vagas, event_image_url")
+      .select("id, title, description, event_date, location, setor, numero_de_vagas, event_image_url, require_instagram_link")
       .eq("is_active", true)
       .order("event_date", { ascending: true });
 
@@ -196,7 +209,7 @@ const Submit = () => {
 
     // Validate form inputs
     try {
-      submitFormSchema.parse({ name, email, instagram, phone });
+      submitFormSchema.parse({ name, email, instagram, phone, instagramLink });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -205,6 +218,23 @@ const Submit = () => {
           variant: "destructive",
         });
         return;
+      }
+    }
+
+    // Validate Instagram link if required
+    const currentEvent = events.find(e => e.id === selectedEvent);
+    if (currentEvent?.require_instagram_link) {
+      try {
+        instagramLinkSchema.parse(instagramLink);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({
+            title: "Link do Instagram inválido",
+            description: error.errors[0].message,
+            variant: "destructive",
+          });
+          return;
+        }
       }
     }
 
@@ -394,6 +424,13 @@ const Submit = () => {
                     />
                   </div>
                 )}
+                
+                {selectedEventData.description && (
+                  <div className="bg-background/50 rounded-lg p-3 mb-3">
+                    <p className="text-sm whitespace-pre-wrap">{selectedEventData.description}</p>
+                  </div>
+                )}
+                
                 <div className="space-y-2 text-sm">
                   {selectedEventData.location && (
                     <div className="flex items-start gap-2">
@@ -525,6 +562,23 @@ const Submit = () => {
                 </p>
               )}
             </div>
+
+            {selectedEventData?.require_instagram_link && (
+              <div className="space-y-2">
+                <Label htmlFor="instagramLink">Link do Instagram *</Label>
+                <Input
+                  id="instagramLink"
+                  placeholder="https://instagram.com/seuusuario ou @seuusuario"
+                  value={instagramLink}
+                  onChange={(e) => setInstagramLink(e.target.value)}
+                  required={selectedEventData.require_instagram_link}
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Insira o link completo do seu perfil ou seu @ do Instagram
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="screenshot">Print da Postagem *</Label>

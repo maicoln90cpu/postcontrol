@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { sb } from "@/lib/supabaseSafe";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Lock } from "lucide-react";
 
 interface EventDialogProps {
   open: boolean;
@@ -37,6 +38,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
   const [eventImage, setEventImage] = useState<File | null>(null);
   const [eventImageUrl, setEventImageUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [targetGender, setTargetGender] = useState<string[]>([]);
+  const [requireInstagramLink, setRequireInstagramLink] = useState(false);
+  const [internalNotes, setInternalNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -51,6 +55,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setNumeroDeVagas(event.numero_de_vagas ? String(event.numero_de_vagas) : "");
         setEventImageUrl(event.event_image_url || "");
         setIsActive(event.is_active ?? true);
+        setTargetGender(event.target_gender || []);
+        setRequireInstagramLink(event.require_instagram_link || false);
+        setInternalNotes(event.internal_notes || "");
 
         // Load requirements
         const { data: reqData } = await sb
@@ -75,6 +82,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setEventImage(null);
         setEventImageUrl("");
         setIsActive(true);
+        setTargetGender([]);
+        setRequireInstagramLink(false);
+        setInternalNotes("");
       }
     };
 
@@ -144,6 +154,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             numero_de_vagas: numeroDeVagas ? parseInt(numeroDeVagas) : null,
             event_image_url: imageUrl || null,
             is_active: isActive,
+            target_gender: targetGender,
+            require_instagram_link: requireInstagramLink,
+            internal_notes: internalNotes,
           })
           .eq('id', event.id);
 
@@ -166,6 +179,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             numero_de_vagas: numeroDeVagas ? parseInt(numeroDeVagas) : null,
             event_image_url: imageUrl || null,
             is_active: isActive,
+            target_gender: targetGender,
+            require_instagram_link: requireInstagramLink,
+            internal_notes: internalNotes,
             created_by: user.id,
           })
           .select()
@@ -378,6 +394,99 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
               disabled={loading}
               rows={4}
             />
+            <p className="text-xs text-muted-foreground">
+              Esta descrição será exibida para os usuários no formulário de envio
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Gênero Alvo (Opcional)</Label>
+            <div className="flex flex-col gap-3 p-4 border rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="feminino"
+                  checked={targetGender.includes("Feminino")}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setTargetGender([...targetGender, "Feminino"]);
+                    } else {
+                      setTargetGender(targetGender.filter(g => g !== "Feminino"));
+                    }
+                  }}
+                  disabled={loading}
+                />
+                <Label htmlFor="feminino" className="cursor-pointer font-normal">
+                  Feminino
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="masculino"
+                  checked={targetGender.includes("Masculino")}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setTargetGender([...targetGender, "Masculino"]);
+                    } else {
+                      setTargetGender(targetGender.filter(g => g !== "Masculino"));
+                    }
+                  }}
+                  disabled={loading}
+                />
+                <Label htmlFor="masculino" className="cursor-pointer font-normal">
+                  Masculino
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="lgbtq"
+                  checked={targetGender.includes("LGBTQ+")}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setTargetGender([...targetGender, "LGBTQ+"]);
+                    } else {
+                      setTargetGender(targetGender.filter(g => g !== "LGBTQ+"));
+                    }
+                  }}
+                  disabled={loading}
+                />
+                <Label htmlFor="lgbtq" className="cursor-pointer font-normal">
+                  LGBTQ+
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="require_instagram_link">Link do Instagram</Label>
+            <div className="flex items-center gap-3 p-4 border rounded-lg">
+              <Checkbox
+                id="require_instagram_link"
+                checked={requireInstagramLink}
+                onCheckedChange={(checked) => setRequireInstagramLink(checked as boolean)}
+                disabled={loading}
+              />
+              <Label htmlFor="require_instagram_link" className="cursor-pointer font-normal">
+                Solicitar link do perfil do Instagram no formulário de envio
+              </Label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="internal_notes">Informações Internas</Label>
+              <Lock className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Textarea
+              id="internal_notes"
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              placeholder="Notas visíveis apenas para administradores"
+              disabled={loading}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              🔒 Estas informações são privadas e nunca serão exibidas para os usuários
+            </p>
           </div>
 
           <div className="space-y-2">
