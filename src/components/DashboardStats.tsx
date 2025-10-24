@@ -335,7 +335,19 @@ export const DashboardStats = () => {
 
       {/* Estatísticas por Evento */}
       <div>
-        <h3 className="text-xl font-semibold mb-4">📊 Estatísticas por Evento</h3>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <h3 className="text-xl font-semibold">📊 Estatísticas por Evento</h3>
+          <div className="flex gap-2">
+            <Button onClick={exportEventStatsToExcel} variant="outline" size="sm" className="flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4" />
+              Excel
+            </Button>
+            <Button onClick={exportEventStatsToPDF} variant="outline" size="sm" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              PDF
+            </Button>
+          </div>
+        </div>
         <div className="grid gap-4">
           {eventStats.map((stat) => (
             <Card key={stat.event_id} className="p-6">
