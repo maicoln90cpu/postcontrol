@@ -2,19 +2,37 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { sb } from "@/lib/supabaseSafe";
-import { Trophy, Users, Target, TrendingUp, FileSpreadsheet, FileText } from "lucide-react";
+import { Trophy, Users, Target, TrendingUp, FileSpreadsheet, FileText, AlertTriangle, CheckCircle, Clock, Award, BarChart3, PieChart, Calendar } from "lucide-react";
+import { BarChart, Bar, PieChart as RePieChart, Pie, LineChart, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from "sonner";
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface EventStats {
   event_id: string;
   event_title: string;
+  event_date: string | null;
+  event_location: string | null;
+  event_sector: string | null;
+  total_vacancies: number | null;
+  is_active: boolean;
+  required_posts: number | null;
+  required_sales: number | null;
+  target_gender: string[];
   total_users: number;
   total_submissions: number;
+  approved_submissions: number;
+  pending_submissions: number;
+  rejected_submissions: number;
   total_posts_available: number;
+  conversion_rate: number;
+  approval_rate: number;
+  avg_posts_per_user: number;
 }
 
 interface UserStats {
@@ -29,13 +47,27 @@ interface UserStats {
   completion_percentage: number;
 }
 
+interface TimelineData {
+  date: string;
+  submissions: number;
+}
+
+interface GenderDistribution {
+  gender: string;
+  count: number;
+}
+
 export const DashboardStats = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("all");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
   const [userStats, setUserStats] = useState<UserStats[]>([]);
+  const [timelineData, setTimelineData] = useState<TimelineData[]>([]);
+  const [genderData, setGenderData] = useState<GenderDistribution[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const COLORS = ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'];
 
   useEffect(() => {
     loadEvents();
@@ -77,19 +109,74 @@ export const DashboardStats = () => {
       ? "Todos os Eventos" 
       : events.find(e => e.id === selectedEventId)?.title || "Evento";
 
-    const worksheet = XLSX.utils.json_to_sheet(
+    const workbook = XLSX.utils.book_new();
+    
+    // Aba 1: Estatísticas Gerais do Evento
+    const eventSheet = XLSX.utils.json_to_sheet(
       eventStats.map(stat => ({
         'Evento': stat.event_title,
-        'Participantes': stat.total_users,
-        'Submissões': stat.total_submissions,
-        'Posts Disponíveis': stat.total_posts_available
+        'Data do Evento': stat.event_date ? format(parseISO(stat.event_date), "dd/MM/yyyy", { locale: ptBR }) : 'N/A',
+        'Local': stat.event_location || 'N/A',
+        'Setor': stat.event_sector || 'N/A',
+        'Vagas': stat.total_vacancies || 'N/A',
+        'Status': stat.is_active ? 'Ativo' : 'Inativo',
+        'Posts Requisitados': stat.required_posts || 'N/A',
+        'Vendas Requisitadas': stat.required_sales || 'N/A',
+        'Gênero Alvo': stat.target_gender.join(', ') || 'Todos',
+        'Participantes Únicos': stat.total_users,
+        'Total de Submissões': stat.total_submissions,
+        'Posts Aprovados': stat.approved_submissions,
+        'Posts Pendentes': stat.pending_submissions,
+        'Posts Rejeitados': stat.rejected_submissions,
+        'Posts Disponíveis': stat.total_posts_available,
+        'Taxa de Conversão (%)': stat.conversion_rate.toFixed(1),
+        'Taxa de Aprovação (%)': stat.approval_rate.toFixed(1),
+        'Média Posts/Usuário': stat.avg_posts_per_user.toFixed(1)
       }))
     );
+    XLSX.utils.book_append_sheet(workbook, eventSheet, 'Estatísticas do Evento');
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Estatísticas por Evento');
-    XLSX.writeFile(workbook, `Estatisticas_Evento_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success("Relatório Excel exportado com sucesso!");
+    // Aba 2: Ranking de Usuários
+    const top10 = [...userStats].sort((a, b) => b.approved_submissions - a.approved_submissions).slice(0, 10);
+    const userSheet = XLSX.utils.json_to_sheet(
+      top10.map((stat, index) => ({
+        'Posição': index + 1,
+        'Nome': stat.user_name,
+        'Email': stat.user_email,
+        'Instagram': stat.user_instagram,
+        'Eventos': stat.events_participated,
+        'Posts Aprovados': stat.approved_submissions,
+        'Total de Submissões': stat.total_submissions,
+        'Posts Disponíveis': stat.total_posts_available,
+        'Conclusão (%)': stat.completion_percentage
+      }))
+    );
+    XLSX.utils.book_append_sheet(workbook, userSheet, 'Top 10 Usuários');
+
+    // Aba 3: Linha do Tempo
+    if (timelineData.length > 0) {
+      const timelineSheet = XLSX.utils.json_to_sheet(
+        timelineData.map(t => ({
+          'Data': t.date,
+          'Submissões': t.submissions
+        }))
+      );
+      XLSX.utils.book_append_sheet(workbook, timelineSheet, 'Linha do Tempo');
+    }
+
+    // Aba 4: Distribuição por Gênero
+    if (genderData.length > 0) {
+      const genderSheet = XLSX.utils.json_to_sheet(
+        genderData.map(g => ({
+          'Gênero': g.gender,
+          'Quantidade': g.count
+        }))
+      );
+      XLSX.utils.book_append_sheet(workbook, genderSheet, 'Distribuição Gênero');
+    }
+
+    XLSX.writeFile(workbook, `Relatorio_Completo_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success("Relatório Excel completo exportado com sucesso!");
   };
 
   const exportEventStatsToPDF = () => {
@@ -98,32 +185,128 @@ export const DashboardStats = () => {
       : events.find(e => e.id === selectedEventId)?.title || "Evento";
 
     const doc = new jsPDF();
+    let yPos = 20;
     
-    doc.setFontSize(18);
-    doc.text(`Estatísticas por Evento - ${eventName}`, 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
+    // Cabeçalho
+    doc.setFontSize(20);
+    doc.setTextColor(139, 92, 246);
+    doc.text(`Relatório Completo - ${eventName}`, 14, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Data de Geração: ${new Date().toLocaleDateString('pt-BR')}`, 14, yPos);
+    yPos += 15;
+
+    // Tabela 1: Dados Essenciais do Evento
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('📋 Dados Essenciais do Evento', 14, yPos);
+    yPos += 5;
 
     autoTable(doc, {
-      startY: 35,
-      head: [['Evento', 'Participantes', 'Submissões', 'Posts Disponíveis']],
+      startY: yPos,
+      head: [['Evento', 'Data', 'Local', 'Vagas', 'Status', 'Gênero Alvo']],
       body: eventStats.map(stat => [
         stat.event_title,
-        stat.total_users.toString(),
-        stat.total_submissions.toString(),
-        stat.total_posts_available.toString()
+        stat.event_date ? format(parseISO(stat.event_date), "dd/MM/yyyy") : 'N/A',
+        stat.event_location || 'N/A',
+        stat.total_vacancies?.toString() || 'N/A',
+        stat.is_active ? 'Ativo' : 'Inativo',
+        stat.target_gender.join(', ') || 'Todos'
       ]),
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [168, 85, 247] }
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [139, 92, 246] },
+      margin: { left: 14, right: 14 }
     });
 
-    doc.save(`Estatisticas_Evento_${eventName}_${new Date().toISOString().split('T')[0]}.pdf`);
-    toast.success("Relatório PDF exportado com sucesso!");
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Tabela 2: Métricas de Participação
+    doc.setFontSize(14);
+    doc.text('📊 Métricas de Participação', 14, yPos);
+    yPos += 5;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Participantes', 'Submissões', 'Aprovados', 'Pendentes', 'Rejeitados', 'Taxa Aprovação']],
+      body: eventStats.map(stat => [
+        stat.total_users.toString(),
+        stat.total_submissions.toString(),
+        stat.approved_submissions.toString(),
+        stat.pending_submissions.toString(),
+        stat.rejected_submissions.toString(),
+        `${stat.approval_rate.toFixed(1)}%`
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [139, 92, 246] },
+      margin: { left: 14, right: 14 }
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Tabela 3: Top 10 Usuários
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.text('🏆 Top 10 Usuários', 14, yPos);
+    yPos += 5;
+
+    const top10 = [...userStats].sort((a, b) => b.approved_submissions - a.approved_submissions).slice(0, 10);
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Pos', 'Nome', 'Email', 'Aprovados', 'Conclusão']],
+      body: top10.map((stat, index) => [
+        (index + 1).toString(),
+        stat.user_name,
+        stat.user_email,
+        stat.approved_submissions.toString(),
+        `${stat.completion_percentage}%`
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [139, 92, 246] },
+      margin: { left: 14, right: 14 }
+    });
+
+    // Alertas
+    const alerts = userStats.filter(u => u.completion_percentage > 100);
+    if (alerts.length > 0) {
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+      
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setTextColor(239, 68, 68);
+      doc.text('⚠️ Alertas de Atenção', 14, yPos);
+      doc.setTextColor(0, 0, 0);
+      yPos += 5;
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Alerta', 'Detalhes']],
+        body: [
+          ['Usuários com >100% conclusão', `${alerts.length} usuário(s) identificado(s)`]
+        ],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [239, 68, 68] },
+        margin: { left: 14, right: 14 }
+      });
+    }
+
+    doc.save(`Relatorio_Completo_${eventName}_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success("Relatório PDF completo exportado com sucesso!");
   };
 
   const loadAllStats = async () => {
     // Estatísticas por evento
-    let query = sb.from('events').select('id, title, is_active');
+    let query = sb.from('events').select('*');
     
     if (activeFilter === "active") {
       query = query.eq('is_active', true);
@@ -134,6 +317,8 @@ export const DashboardStats = () => {
     const { data: eventsData } = await query;
 
     const eventStatsData: EventStats[] = [];
+    const allSubmissionsDates: { date: string; count: number }[] = [];
+    const allGenderData: Map<string, number> = new Map();
 
     for (const event of eventsData || []) {
       const { data: postsData } = await sb
@@ -145,21 +330,81 @@ export const DashboardStats = () => {
       
       const { data: submissionsData } = await sb
         .from('submissions')
-        .select('user_id')
+        .select('user_id, status, submitted_at')
         .in('post_id', postIds);
 
       const uniqueUsers = new Set((submissionsData || []).map((s: any) => s.user_id));
+      
+      const approvedCount = (submissionsData || []).filter((s: any) => s.status === 'approved').length;
+      const pendingCount = (submissionsData || []).filter((s: any) => s.status === 'pending').length;
+      const rejectedCount = (submissionsData || []).filter((s: any) => s.status === 'rejected').length;
+      
+      const conversionRate = event.numero_de_vagas ? (uniqueUsers.size / event.numero_de_vagas) * 100 : 0;
+      const approvalRate = (submissionsData || []).length > 0 ? (approvedCount / (submissionsData || []).length) * 100 : 0;
+      const avgPostsPerUser = uniqueUsers.size > 0 ? (submissionsData || []).length / uniqueUsers.size : 0;
+
+      // Coletar dados de timeline
+      (submissionsData || []).forEach((s: any) => {
+        if (s.submitted_at) {
+          const date = format(parseISO(s.submitted_at), 'dd/MM', { locale: ptBR });
+          const existing = allSubmissionsDates.find(d => d.date === date);
+          if (existing) {
+            existing.count++;
+          } else {
+            allSubmissionsDates.push({ date, count: 1 });
+          }
+        }
+      });
+
+      // Coletar dados de gênero
+      if (event.target_gender && Array.isArray(event.target_gender)) {
+        event.target_gender.forEach((g: string) => {
+          allGenderData.set(g, (allGenderData.get(g) || 0) + uniqueUsers.size);
+        });
+      }
 
       eventStatsData.push({
         event_id: event.id,
         event_title: event.title,
+        event_date: event.event_date,
+        event_location: event.location,
+        event_sector: event.setor,
+        total_vacancies: event.numero_de_vagas,
+        is_active: event.is_active,
+        required_posts: event.required_posts,
+        required_sales: event.required_sales,
+        target_gender: event.target_gender || [],
         total_users: uniqueUsers.size,
         total_submissions: (submissionsData || []).length,
+        approved_submissions: approvedCount,
+        pending_submissions: pendingCount,
+        rejected_submissions: rejectedCount,
         total_posts_available: (postsData || []).length,
+        conversion_rate: conversionRate,
+        approval_rate: approvalRate,
+        avg_posts_per_user: avgPostsPerUser
       });
     }
 
     setEventStats(eventStatsData);
+    
+    // Processar timeline
+    const sortedTimeline = allSubmissionsDates
+      .sort((a, b) => {
+        const [dayA, monthA] = a.date.split('/').map(Number);
+        const [dayB, monthB] = b.date.split('/').map(Number);
+        return (monthA * 100 + dayA) - (monthB * 100 + dayB);
+      })
+      .slice(-14); // Últimos 14 dias
+    
+    setTimelineData(sortedTimeline.map(d => ({ date: d.date, submissions: d.count })));
+
+    // Processar gênero
+    const genderArray: GenderDistribution[] = Array.from(allGenderData.entries()).map(([gender, count]) => ({
+      gender,
+      count
+    }));
+    setGenderData(genderArray);
 
     // Estatísticas por usuário
     const { data: profilesData } = await sb
@@ -234,19 +479,76 @@ export const DashboardStats = () => {
     
     const { data: submissionsData } = await sb
       .from('submissions')
-      .select('user_id')
+      .select('user_id, status, submitted_at')
       .in('post_id', postIds);
 
     const uniqueUsers = new Set((submissionsData || []).map((s: any) => s.user_id));
+    
+    const approvedCount = (submissionsData || []).filter((s: any) => s.status === 'approved').length;
+    const pendingCount = (submissionsData || []).filter((s: any) => s.status === 'pending').length;
+    const rejectedCount = (submissionsData || []).filter((s: any) => s.status === 'rejected').length;
+    
+    const conversionRate = event.numero_de_vagas ? (uniqueUsers.size / event.numero_de_vagas) * 100 : 0;
+    const approvalRate = (submissionsData || []).length > 0 ? (approvedCount / (submissionsData || []).length) * 100 : 0;
+    const avgPostsPerUser = uniqueUsers.size > 0 ? (submissionsData || []).length / uniqueUsers.size : 0;
+
+    // Timeline data
+    const submissionsDates: { date: string; count: number }[] = [];
+    (submissionsData || []).forEach((s: any) => {
+      if (s.submitted_at) {
+        const date = format(parseISO(s.submitted_at), 'dd/MM', { locale: ptBR });
+        const existing = submissionsDates.find(d => d.date === date);
+        if (existing) {
+          existing.count++;
+        } else {
+          submissionsDates.push({ date, count: 1 });
+        }
+      }
+    });
+
+    const sortedTimeline = submissionsDates
+      .sort((a, b) => {
+        const [dayA, monthA] = a.date.split('/').map(Number);
+        const [dayB, monthB] = b.date.split('/').map(Number);
+        return (monthA * 100 + dayA) - (monthB * 100 + dayB);
+      })
+      .slice(-14);
+
+    setTimelineData(sortedTimeline.map(d => ({ date: d.date, submissions: d.count })));
+
+    // Gender data
+    if (event.target_gender && Array.isArray(event.target_gender)) {
+      const genderArray = event.target_gender.map((g: string) => ({
+        gender: g,
+        count: uniqueUsers.size
+      }));
+      setGenderData(genderArray);
+    } else {
+      setGenderData([]);
+    }
 
     const eventTitle = event && event.title ? event.title : '';
 
     setEventStats([{
       event_id: eventId,
       event_title: eventTitle,
+      event_date: event.event_date,
+      event_location: event.location,
+      event_sector: event.setor,
+      total_vacancies: event.numero_de_vagas,
+      is_active: event.is_active,
+      required_posts: event.required_posts,
+      required_sales: event.required_sales,
+      target_gender: event.target_gender || [],
       total_users: uniqueUsers.size,
       total_submissions: (submissionsData || []).length,
+      approved_submissions: approvedCount,
+      pending_submissions: pendingCount,
+      rejected_submissions: rejectedCount,
       total_posts_available: (postsData || []).length,
+      conversion_rate: conversionRate,
+      approval_rate: approvalRate,
+      avg_posts_per_user: avgPostsPerUser
     }]);
 
     // Usuários específicos do evento
@@ -294,18 +596,29 @@ export const DashboardStats = () => {
     );
   }
 
+  const statusData = eventStats.length > 0 ? [
+    { name: 'Aprovados', value: eventStats[0].approved_submissions, color: '#10b981' },
+    { name: 'Pendentes', value: eventStats[0].pending_submissions, color: '#f59e0b' },
+    { name: 'Rejeitados', value: eventStats[0].rejected_submissions, color: '#ef4444' }
+  ] : [];
+
+  const top10Users = [...userStats].sort((a, b) => b.approved_submissions - a.approved_submissions).slice(0, 10);
+  const perfectUsers = userStats.filter(u => u.completion_percentage === 100);
+  const alertUsers = userStats.filter(u => u.completion_percentage > 100);
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-2xl font-bold">Dashboard de Desempenho</h2>
+        <h2 className="text-2xl font-bold">📊 Dashboard de Desempenho Completo</h2>
         <div className="flex flex-wrap gap-2">
           <Button onClick={exportEventStatsToExcel} variant="outline" className="flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4" />
-            Excel
+            Excel Completo
           </Button>
           <Button onClick={exportEventStatsToPDF} variant="outline" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
-            PDF
+            PDF Completo
           </Button>
           <Select value={activeFilter} onValueChange={setActiveFilter}>
             <SelectTrigger className="w-[180px]">
@@ -333,119 +646,406 @@ export const DashboardStats = () => {
         </div>
       </div>
 
-      {/* Estatísticas por Evento */}
-      <div>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-          <h3 className="text-xl font-semibold">📊 Estatísticas por Evento</h3>
-          <div className="flex gap-2">
-            <Button onClick={exportEventStatsToExcel} variant="outline" size="sm" className="flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4" />
-              Excel
-            </Button>
-            <Button onClick={exportEventStatsToPDF} variant="outline" size="sm" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              PDF
-            </Button>
-          </div>
-        </div>
-        <div className="grid gap-4">
-          {eventStats.map((stat) => (
-            <Card key={stat.event_id} className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h4 className="text-lg font-bold">{stat.event_title}</h4>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Participantes</p>
-                    <p className="text-2xl font-bold">{stat.total_users}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-secondary rounded-lg flex items-center justify-center">
-                    <Target className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Submissões</p>
-                    <p className="text-2xl font-bold">{stat.total_submissions}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-accent to-primary rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Posts Disponíveis</p>
-                    <p className="text-2xl font-bold">{stat.total_posts_available}</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="charts">Gráficos</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="ranking">Ranking</TabsTrigger>
+          <TabsTrigger value="alerts">Alertas</TabsTrigger>
+        </TabsList>
 
-      {/* Estatísticas por Usuário */}
-      <div>
-        <h3 className="text-xl font-semibold mb-4">👥 Desempenho por Usuário</h3>
-        <div className="grid gap-4">
-          {userStats.length === 0 ? (
-            <Card className="p-6 text-center text-muted-foreground">
-              Nenhum usuário com submissões ainda
-            </Card>
-          ) : (
-            userStats
-              .sort((a, b) => b.completion_percentage - a.completion_percentage)
-              .map((stat) => (
-                <Card key={stat.user_id} className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h4 className="text-lg font-bold">{stat.user_name}</h4>
-                      <p className="text-sm text-muted-foreground">{stat.user_email}</p>
-                      {stat.user_instagram && (
-                        <p className="text-sm font-medium text-primary">@{stat.user_instagram}</p>
-                      )}
+        {/* Visão Geral */}
+        <TabsContent value="overview" className="space-y-6">
+          {eventStats.map((stat) => (
+            <div key={stat.event_id} className="space-y-4">
+              {/* Dados Essenciais */}
+              <Card className="p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  Dados Essenciais do Evento
+                </h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nome do Evento</p>
+                    <p className="text-lg font-bold">{stat.event_title}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Data</p>
+                    <p className="text-lg font-bold">
+                      {stat.event_date ? format(parseISO(stat.event_date), "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Local</p>
+                    <p className="text-lg font-bold">{stat.event_location || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Setor</p>
+                    <p className="text-lg font-bold">{stat.event_sector || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Vagas Disponíveis</p>
+                    <p className="text-lg font-bold">{stat.total_vacancies || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className={`text-lg font-bold ${stat.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                      {stat.is_active ? '✓ Ativo' : '✗ Inativo'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Posts Requisitados</p>
+                    <p className="text-lg font-bold">{stat.required_posts || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Gênero Alvo</p>
+                    <p className="text-lg font-bold">{stat.target_gender.join(', ') || 'Todos'}</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Métricas de Participação */}
+              <Card className="p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  Métricas de Participação
+                </h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
+                      <Users className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2">
-                        <Trophy className="w-5 h-5 text-accent" />
-                        <span className="text-2xl font-bold">{stat.completion_percentage}%</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Conclusão</p>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Participantes Únicos</p>
+                      <p className="text-2xl font-bold">{stat.total_users}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-secondary rounded-lg flex items-center justify-center">
+                      <Target className="w-6 h-6 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Eventos Participados</p>
-                      <p className="text-xl font-bold">{stat.events_participated}</p>
+                      <p className="text-sm text-muted-foreground">Total de Submissões</p>
+                      <p className="text-2xl font-bold">{stat.total_submissions}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-white" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Posts Aprovados</p>
-                      <p className="text-xl font-bold">{stat.approved_submissions}</p>
+                      <p className="text-2xl font-bold text-green-600">{stat.approved_submissions}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-amber-500 rounded-lg flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Posts Disponíveis</p>
-                      <p className="text-xl font-bold">{stat.total_posts_available}</p>
+                      <p className="text-sm text-muted-foreground">Posts Pendentes</p>
+                      <p className="text-2xl font-bold text-amber-600">{stat.pending_submissions}</p>
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div 
-                        className="bg-gradient-primary h-2 rounded-full transition-all" 
-                        style={{ width: `${stat.completion_percentage}%` }}
-                      ></div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Posts Rejeitados</p>
+                      <p className="text-2xl font-bold text-red-600">{stat.rejected_submissions}</p>
                     </div>
                   </div>
-                </Card>
-              ))
-          )}
-        </div>
-      </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-accent to-primary rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Taxa de Conversão</p>
+                      <p className="text-2xl font-bold">{stat.conversion_rate.toFixed(1)}%</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Award className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Taxa de Aprovação</p>
+                      <p className="text-2xl font-bold text-blue-600">{stat.approval_rate.toFixed(1)}%</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <Trophy className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Média Posts/Usuário</p>
+                      <p className="text-2xl font-bold">{stat.avg_posts_per_user.toFixed(1)}</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ))}
+        </TabsContent>
+
+        {/* Gráficos */}
+        <TabsContent value="charts" className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Gráfico de Status */}
+            <Card className="p-6">
+              <h3 className="text-lg font-bold mb-4">Posts por Status</h3>
+              {statusData.length > 0 && statusData.some(d => d.value > 0) ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <RePieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </RePieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  Sem dados de submissões ainda
+                </div>
+              )}
+            </Card>
+
+            {/* Gráfico de Gênero */}
+            <Card className="p-6">
+              <h3 className="text-lg font-bold mb-4">Distribuição por Gênero</h3>
+              {genderData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <RePieChart>
+                    <Pie
+                      data={genderData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ gender, count }) => `${gender}: ${count}`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="count"
+                    >
+                      {genderData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </RePieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  Sem dados demográficos disponíveis
+                </div>
+              )}
+            </Card>
+
+            {/* Gráfico de Barras - Top 10 */}
+            <Card className="p-6 md:col-span-2">
+              <h3 className="text-lg font-bold mb-4">Top 10 Usuários por Posts Aprovados</h3>
+              {top10Users.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={top10Users}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="user_name" angle={-45} textAnchor="end" height={100} />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="approved_submissions" name="Posts Aprovados" fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  Sem dados de usuários ainda
+                </div>
+              )}
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Timeline */}
+        <TabsContent value="timeline" className="space-y-6">
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4">Evolução de Submissões (Últimos 14 Dias)</h3>
+            {timelineData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={timelineData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="submissions" 
+                    name="Submissões" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2}
+                    dot={{ fill: '#8b5cf6', r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                Sem dados de timeline disponíveis
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* Ranking */}
+        <TabsContent value="ranking" className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Top 10 */}
+            <Card className="p-6">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500" />
+                Top 10 Participantes
+              </h3>
+              <div className="space-y-3">
+                {top10Users.map((user, index) => (
+                  <div key={user.user_id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                      index === 0 ? 'bg-amber-500 text-white' :
+                      index === 1 ? 'bg-gray-400 text-white' :
+                      index === 2 ? 'bg-orange-600 text-white' :
+                      'bg-muted text-foreground'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold">{user.user_name}</p>
+                      <p className="text-sm text-muted-foreground">{user.user_email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-primary">{user.approved_submissions}</p>
+                      <p className="text-xs text-muted-foreground">aprovados</p>
+                    </div>
+                  </div>
+                ))}
+                {top10Users.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Sem dados de usuários ainda
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* 100% de Conclusão */}
+            <Card className="p-6">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                Usuários com 100% de Conclusão
+              </h3>
+              <div className="space-y-3">
+                {perfectUsers.map((user) => (
+                  <div key={user.user_id} className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                    <CheckCircle className="w-6 h-6 text-green-500" />
+                    <div className="flex-1">
+                      <p className="font-semibold">{user.user_name}</p>
+                      <p className="text-sm text-muted-foreground">{user.user_email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-green-600">{user.approved_submissions}/{user.total_posts_available}</p>
+                      <p className="text-xs text-muted-foreground">posts</p>
+                    </div>
+                  </div>
+                ))}
+                {perfectUsers.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum usuário com 100% ainda
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Alertas */}
+        <TabsContent value="alerts" className="space-y-6">
+          <Card className="p-6">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Indicadores de Alerta
+            </h3>
+            
+            {/* Usuários com mais de 100% */}
+            {alertUsers.length > 0 && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <h4 className="font-semibold text-red-700 dark:text-red-400 mb-3">
+                  ⚠️ Usuários com mais de 100% de conclusão ({alertUsers.length})
+                </h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Possível erro de aprovação ou configuração de posts
+                </p>
+                <div className="space-y-2">
+                  {alertUsers.map((user) => (
+                    <div key={user.user_id} className="flex items-center justify-between p-2 bg-white dark:bg-background rounded">
+                      <div>
+                        <p className="font-medium">{user.user_name}</p>
+                        <p className="text-sm text-muted-foreground">{user.user_email}</p>
+                      </div>
+                      <p className="text-lg font-bold text-red-600">
+                        {user.completion_percentage}%
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Taxa de Rejeição Alta */}
+            {eventStats.map((stat) => {
+              const rejectionRate = stat.total_submissions > 0 
+                ? (stat.rejected_submissions / stat.total_submissions) * 100 
+                : 0;
+              
+              if (rejectionRate > 30) {
+                return (
+                  <div key={stat.event_id} className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <h4 className="font-semibold text-amber-700 dark:text-amber-400 mb-2">
+                      ⚠️ Alta taxa de rejeição detectada
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Evento: <span className="font-medium">{stat.event_title}</span>
+                    </p>
+                    <p className="text-sm">
+                      Taxa de rejeição: <span className="font-bold text-amber-600">{rejectionRate.toFixed(1)}%</span>
+                      {' '}({stat.rejected_submissions} de {stat.total_submissions} submissões)
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })}
+
+            {alertUsers.length === 0 && eventStats.every(stat => 
+              stat.total_submissions === 0 || (stat.rejected_submissions / stat.total_submissions) * 100 <= 30
+            ) && (
+              <div className="text-center py-12">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-lg font-semibold text-green-600">Tudo certo!</p>
+                <p className="text-sm text-muted-foreground">Nenhum alerta detectado no momento</p>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
