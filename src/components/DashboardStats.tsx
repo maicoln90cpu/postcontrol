@@ -24,6 +24,7 @@ interface UserStats {
   user_instagram: string;
   events_participated: number;
   total_submissions: number;
+  approved_submissions: number;
   total_posts_available: number;
   completion_percentage: number;
 }
@@ -170,7 +171,7 @@ export const DashboardStats = () => {
     for (const profile of profilesData || []) {
       const { data: userSubmissions } = await sb
         .from('submissions')
-        .select('post_id, posts(event_id)')
+        .select('post_id, status, posts(event_id)')
         .eq('user_id', profile.id);
 
       const eventsParticipated = new Set(
@@ -195,8 +196,10 @@ export const DashboardStats = () => {
         totalPostsAvailable = count || 0;
       }
 
+      const approvedSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'approved').length;
+
       const completionPercentage = totalPostsAvailable > 0 
-        ? Math.round(((userSubmissions || []).length / totalPostsAvailable) * 100)
+        ? Math.round((approvedSubmissions / totalPostsAvailable) * 100)
         : 0;
 
       userStatsData.push({
@@ -206,6 +209,7 @@ export const DashboardStats = () => {
         user_instagram: profile.instagram || 'Sem Instagram',
         events_participated: eventsParticipated,
         total_submissions: (userSubmissions || []).length,
+        approved_submissions: approvedSubmissions,
         total_posts_available: totalPostsAvailable,
         completion_percentage: completionPercentage,
       });
@@ -256,12 +260,14 @@ export const DashboardStats = () => {
     for (const profile of profilesData || []) {
       const { data: userSubmissions } = await sb
         .from('submissions')
-        .select('id')
+        .select('id, status')
         .in('post_id', postIds)
         .eq('user_id', profile.id);
 
+      const approvedSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'approved').length;
+
       const completionPercentage = (postsData || []).length > 0
-        ? Math.round(((userSubmissions || []).length / (postsData || []).length) * 100)
+        ? Math.round((approvedSubmissions / (postsData || []).length) * 100)
         : 0;
 
       userStatsData.push({
@@ -271,6 +277,7 @@ export const DashboardStats = () => {
         user_instagram: profile.instagram || 'Sem Instagram',
         events_participated: 1,
         total_submissions: (userSubmissions || []).length,
+        approved_submissions: approvedSubmissions,
         total_posts_available: (postsData || []).length,
         completion_percentage: completionPercentage,
       });
@@ -406,8 +413,8 @@ export const DashboardStats = () => {
                       <p className="text-xl font-bold">{stat.events_participated}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Posts Enviados</p>
-                      <p className="text-xl font-bold">{stat.total_submissions}</p>
+                      <p className="text-sm text-muted-foreground">Posts Aprovados</p>
+                      <p className="text-xl font-bold">{stat.approved_submissions}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Posts Disponíveis</p>
