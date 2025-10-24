@@ -1,0 +1,648 @@
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
+import { EventDialog } from "@/components/EventDialog";
+import { PostDialog } from "@/components/PostDialog";
+import { DashboardStats } from "@/components/DashboardStats";
+import { UserPerformance } from "@/components/UserPerformance";
+import { UserManagement } from "@/components/UserManagement";
+import { supabase } from "@/integrations/supabase/client";
+import { sb } from "@/lib/supabaseSafe";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+
+const Admin = () => {
+  const { user, isAdmin, signOut, loading } = useAuth();
+  const navigate = useNavigate();
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [postDialogOpen, setPostDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [submissionEventFilter, setSubmissionEventFilter] = useState<string>("all");
+  const [submissionPostFilter, setSubmissionPostFilter] = useState<string>("all");
+  const [submissionStatusFilter, setSubmissionStatusFilter] = useState<string>("all");
+  const [postEventFilter, setPostEventFilter] = useState<string>("all");
+  const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      navigate('/auth');
+    }
+  }, [user, isAdmin, loading, navigate]);
+
+  useEffect(() => {
+    if (user && isAdmin) {
+      loadData();
+    }
+  }, [user, isAdmin]);
+
+  const loadData = async () => {
+    const { data: eventsData } = await sb
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    const { data: postsData } = await sb
+      .from('posts')
+      .select('*, events(title)')
+      .order('created_at', { ascending: false });
+    
+    const { data: submissionsData } = await sb
+      .from('submissions')
+      .select(`
+        *,
+        posts(post_number, deadline, event_id, events(title, id))
+      `)
+      .order('submitted_at', { ascending: false });
+
+    // Buscar perfis em lote (admins têm permissão para ver todos)
+    const userIds = Array.from(new Set((submissionsData || []).map((s: any) => s.user_id)));
+    let profilesById: Record<string, any> = {};
+    if (userIds.length) {
+      const { data: profilesData } = await sb
+        .from('profiles')
+        .select('id, full_name, email, instagram')
+        .in('id', userIds);
+      (profilesData || []).forEach((p: any) => { profilesById[p.id] = p; });
+    }
+
+    // Contar postagens por usuário
+    const countsById: Record<string, number> = {};
+    await Promise.all(userIds.map(async (uid: string) => {
+      const { count } = await sb
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', uid);
+      countsById[uid as string] = count || 0;
+    }));
+
+    const submissionsWithExtras = (submissionsData || []).map((s: any) => ({
+      ...s,
+      profiles: profilesById[s.user_id] || null,
+      total_submissions: countsById[s.user_id] || 0,
+    }));
+
+    setEvents(eventsData || []);
+    setPosts(postsData || []);
+    setSubmissions(submissionsWithExtras);
+    setSelectedSubmissions(new Set());
+  };
+
+  const handleApproveSubmission = async (submissionId: string) => {
+    const { error } = await sb
+      .from('submissions')
+      .update({
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        approved_by: user?.id
+      })
+      .eq('id', submissionId);
+
+    if (error) {
+      toast.error("Erro ao aprovar submissão");
+      console.error(error);
+    } else {
+      toast.success("Submissão aprovada com sucesso");
+      await loadData();
+    }
+  };
+
+  const handleRejectSubmission = async (submissionId: string) => {
+    const { error } = await sb
+      .from('submissions')
+      .update({
+        status: 'rejected',
+        approved_at: new Date().toISOString(),
+        approved_by: user?.id
+      })
+      .eq('id', submissionId);
+
+    if (error) {
+      toast.error("Erro ao rejeitar submissão");
+      console.error(error);
+    } else {
+      toast.success("Submissão rejeitada");
+      await loadData();
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    const ids = Array.from(selectedSubmissions);
+    if (ids.length === 0) {
+      toast.error("Selecione pelo menos uma submissão");
+      return;
+    }
+
+    const { error } = await sb
+      .from('submissions')
+      .update({
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        approved_by: user?.id
+      })
+      .in('id', ids);
+
+    if (error) {
+      toast.error("Erro ao aprovar submissões em massa");
+      console.error(error);
+    } else {
+      toast.success(`${ids.length} submissões aprovadas com sucesso`);
+      await loadData();
+    }
+  };
+
+  const toggleSubmissionSelection = (submissionId: string) => {
+    const newSet = new Set(selectedSubmissions);
+    if (newSet.has(submissionId)) {
+      newSet.delete(submissionId);
+    } else {
+      newSet.add(submissionId);
+    }
+    setSelectedSubmissions(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    const filtered = getFilteredSubmissions();
+    if (selectedSubmissions.size === filtered.length) {
+      setSelectedSubmissions(new Set());
+    } else {
+      setSelectedSubmissions(new Set(filtered.map((s: any) => s.id)));
+    }
+  };
+
+  const getFilteredSubmissions = () => {
+    return submissions.filter((s: any) => {
+      const eventMatch = submissionEventFilter === "all" || s.posts?.events?.id === submissionEventFilter;
+      const postMatch = submissionPostFilter === "all" || s.posts?.post_number?.toString() === submissionPostFilter;
+      const statusMatch = submissionStatusFilter === "all" || s.status === submissionStatusFilter;
+      return eventMatch && postMatch && statusMatch;
+    });
+  };
+
+  const getAvailablePostNumbers = () => {
+    const filtered = submissions.filter((s: any) => 
+      submissionEventFilter === "all" || s.posts?.events?.id === submissionEventFilter
+    );
+    const postNumbers = new Set(filtered.map((s: any) => s.posts?.post_number).filter(Boolean));
+    return Array.from(postNumbers).sort((a, b) => a - b);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
+      {/* Header */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Controle de Postagem - Admin
+            </h1>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Link to="/submit" className="flex-1 sm:flex-initial">
+                <Button variant="outline" className="w-full sm:w-auto">
+                  <Send className="mr-2 h-4 w-4" />
+                  Enviar Postagem
+                </Button>
+              </Link>
+              <Button variant="outline" onClick={signOut} className="flex-1 sm:flex-initial">Sair</Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Stats */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Eventos Ativos</p>
+                <p className="text-2xl font-bold">{events.length}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-secondary rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Postagens</p>
+                <p className="text-2xl font-bold">{posts.length}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-accent to-primary rounded-lg flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Submissões</p>
+                <p className="text-2xl font-bold">{submissions.length}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <Tabs defaultValue="events" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            <TabsTrigger value="events">Eventos</TabsTrigger>
+            <TabsTrigger value="posts">Postagens</TabsTrigger>
+            <TabsTrigger value="submissions">Submissões</TabsTrigger>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="events" className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h2 className="text-2xl font-bold">Gerenciar Eventos</h2>
+              <Button className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
+                setSelectedEvent(null);
+                setEventDialogOpen(true);
+              }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Evento
+              </Button>
+            </div>
+
+            <Card className="p-6">
+              {events.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Nenhum evento cadastrado ainda
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {events.map((event) => (
+                    <Card key={event.id} className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg">{event.title}</h3>
+                          {event.event_date && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              📅 {new Date(event.event_date).toLocaleString('pt-BR')}
+                            </p>
+                          )}
+                          {event.location && (
+                            <p className="text-sm text-muted-foreground">📍 {event.location}</p>
+                          )}
+                          <p className="text-sm text-muted-foreground mt-1">
+                            📊 Requisitos: {event.required_posts} posts, {event.required_sales} vendas
+                          </p>
+                          {event.description && (
+                            <p className="text-muted-foreground mt-2">{event.description}</p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedEvent(event);
+                            setEventDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="posts" className="space-y-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <h2 className="text-2xl font-bold">Gerenciar Postagens</h2>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Select value={postEventFilter} onValueChange={setPostEventFilter}>
+                    <SelectTrigger className="w-full sm:w-64">
+                      <SelectValue placeholder="Filtrar por evento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os eventos</SelectItem>
+                      {events.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
+                    setSelectedPost(null);
+                    setPostDialogOpen(true);
+                  }}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Postagem
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Card className="p-6">
+              {posts.filter((p) => postEventFilter === "all" || p.event_id === postEventFilter).length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  {postEventFilter === "all" ? "Nenhuma postagem cadastrada ainda" : "Nenhuma postagem para este evento"}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {posts.filter((p) => postEventFilter === "all" || p.event_id === postEventFilter).map((post) => (
+                    <Card key={post.id} className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold">Postagem #{post.post_number}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Evento: {post.events?.title}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Prazo: {new Date(post.deadline).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPost(post);
+                            setPostDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="submissions" className="space-y-6">
+            <div className="flex flex-col gap-4">
+              <h2 className="text-2xl font-bold">Submissões de Usuários</h2>
+              
+              {/* Filtros e ações */}
+              <div className="flex flex-col gap-3">
+                {selectedSubmissions.size > 0 && (
+                  <Button onClick={handleBulkApprove} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto">
+                    <CheckCheck className="mr-2 h-4 w-4" />
+                    Aprovar {selectedSubmissions.size}
+                  </Button>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Select value={submissionEventFilter} onValueChange={(v) => {
+                    setSubmissionEventFilter(v);
+                    setSubmissionPostFilter("all");
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filtrar por evento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os eventos</SelectItem>
+                      {events.map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={submissionPostFilter} onValueChange={setSubmissionPostFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Número da postagem" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os números</SelectItem>
+                      {getAvailablePostNumbers().map((num) => (
+                        <SelectItem key={num} value={num.toString()}>
+                          Postagem #{num}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={submissionStatusFilter} onValueChange={setSubmissionStatusFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="pending">Aguardando aprovação</SelectItem>
+                      <SelectItem value="approved">Aprovados</SelectItem>
+                      <SelectItem value="rejected">Reprovados</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <Card className="p-6">
+              {getFilteredSubmissions().length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Nenhuma submissão encontrada com os filtros selecionados
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-4 border-b">
+                    <Checkbox
+                      checked={selectedSubmissions.size === getFilteredSubmissions().length && getFilteredSubmissions().length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Selecionar todos ({getFilteredSubmissions().length})
+                    </span>
+                  </div>
+                  {getFilteredSubmissions().map((submission: any) => (
+                    <Card key={submission.id} className="p-4 sm:p-6">
+                      <div className="space-y-4">
+                        {/* Layout Mobile e Desktop */}
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                          {/* Checkbox de seleção */}
+                          <div className="flex items-start pt-2 order-1 sm:order-1">
+                            <Checkbox
+                              checked={selectedSubmissions.has(submission.id)}
+                              onCheckedChange={() => toggleSubmissionSelection(submission.id)}
+                            />
+                          </div>
+
+                          {/* Screenshot */}
+                          <div className="w-full sm:w-48 h-64 sm:h-48 flex-shrink-0 order-2 sm:order-2">
+                            <img 
+                              src={submission.screenshot_url} 
+                              alt="Screenshot da postagem"
+                              className="w-full h-full object-cover rounded-lg border"
+                            />
+                          </div>
+
+                          {/* Informações do usuário */}
+                          <div className="flex-1 space-y-3 order-3 sm:order-3">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                              <div>
+                                <h3 className="font-bold text-lg">
+                                  {submission.profiles?.full_name || 'Nome não disponível'}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {submission.profiles?.email || 'Email não disponível'}
+                                </p>
+                                {submission.profiles?.instagram && (
+                                  <p className="text-sm font-medium text-primary mt-1">
+                                    @{submission.profiles.instagram}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="sm:text-right">
+                                <p className="text-sm font-medium">
+                                  Postagem #{submission.posts?.post_number}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {submission.posts?.events?.title}
+                                </p>
+                                <div className="mt-2">
+                                  {submission.status === 'pending' && (
+                                    <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-500">
+                                      Aguardando
+                                    </span>
+                                  )}
+                                  {submission.status === 'approved' && (
+                                    <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-500">
+                                      Aprovado
+                                    </span>
+                                  )}
+                                  {submission.status === 'rejected' && (
+                                    <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-500">
+                                      Rejeitado
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="border-t pt-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground">Data de Envio:</p>
+                                  <p className="font-medium">
+                                    {new Date(submission.submitted_at).toLocaleString('pt-BR')}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Prazo da Postagem:</p>
+                                  <p className="font-medium">
+                                    {submission.posts?.deadline 
+                                      ? new Date(submission.posts.deadline).toLocaleString('pt-BR')
+                                      : 'N/A'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Total de Postagens:</p>
+                                  <p className="font-medium text-primary">
+                                    {submission.total_submissions} postagem{submission.total_submissions !== 1 ? 's' : ''}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {submission.status === 'pending' && (
+                              <div className="border-t pt-3 flex flex-col sm:flex-row gap-2">
+                                <Button 
+                                  size="sm" 
+                                  className="bg-green-500 hover:bg-green-600 w-full sm:w-auto"
+                                  onClick={() => handleApproveSubmission(submission.id)}
+                                >
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Aprovar
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  className="w-full sm:w-auto"
+                                  onClick={() => handleRejectSubmission(submission.id)}
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Rejeitar
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="dashboard" className="space-y-6">
+            <Tabs defaultValue="events-stats" className="space-y-6">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="events-stats">Estatísticas por Evento</TabsTrigger>
+                <TabsTrigger value="user-performance">Desempenho por Usuário</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="events-stats">
+                <DashboardStats />
+              </TabsContent>
+
+              <TabsContent value="user-performance">
+                <UserPerformance />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <EventDialog 
+        open={eventDialogOpen} 
+        onOpenChange={(open) => {
+          setEventDialogOpen(open);
+          if (!open) setSelectedEvent(null);
+        }}
+        onEventCreated={loadData}
+        event={selectedEvent}
+      />
+      <PostDialog 
+        open={postDialogOpen} 
+        onOpenChange={(open) => {
+          setPostDialogOpen(open);
+          if (!open) setSelectedPost(null);
+        }}
+        onPostCreated={loadData}
+        post={selectedPost}
+      />
+    </div>
+  );
+};
+
+export default Admin;

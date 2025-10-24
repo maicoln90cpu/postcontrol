@@ -1,0 +1,380 @@
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { sb } from "@/lib/supabaseSafe";
+import { Trophy, Users, Target, TrendingUp, FileSpreadsheet, FileText } from "lucide-react";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { toast } from "sonner";
+
+interface UserStats {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  user_instagram: string;
+  user_phone: string;
+  events_participated: number;
+  total_submissions: number;
+  approved_submissions: number;
+  pending_submissions: number;
+  rejected_submissions: number;
+  total_posts_available: number;
+  completion_percentage: number;
+}
+
+export const UserPerformance = () => {
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("all");
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [userStats, setUserStats] = useState<UserStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchName, setSearchName] = useState("");
+  const [searchPhone, setSearchPhone] = useState("");
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  useEffect(() => {
+    if (selectedEventId) {
+      loadStats();
+    }
+  }, [selectedEventId, activeFilter]);
+
+  const loadEvents = async () => {
+    const { data } = await sb
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    setEvents(data || []);
+    if (data && data.length > 0) {
+      setSelectedEventId("all");
+    }
+  };
+
+  const loadStats = async () => {
+    setLoading(true);
+    try {
+      if (selectedEventId === "all") {
+        await loadAllStats();
+      } else {
+        await loadEventSpecificStats(selectedEventId);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportToExcel = () => {
+    const eventName = selectedEventId === "all" 
+      ? "Todos os Eventos" 
+      : events.find(e => e.id === selectedEventId)?.title || "Evento";
+
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredStats.map(stat => ({
+        'Nome': stat.user_name,
+        'Email': stat.user_email,
+        'Instagram': stat.user_instagram,
+        'Telefone': stat.user_phone,
+        'Eventos Participados': stat.events_participated,
+        'Total Submissões': stat.total_submissions,
+        'Aprovados': stat.approved_submissions,
+        'Pendentes': stat.pending_submissions,
+        'Rejeitados': stat.rejected_submissions,
+        'Posts Disponíveis': stat.total_posts_available,
+        'Conclusão (%)': stat.completion_percentage
+      }))
+    );
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Estatísticas');
+    XLSX.writeFile(workbook, `Relatorio_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success("Relatório Excel exportado com sucesso!");
+  };
+
+  const exportToPDF = () => {
+    const eventName = selectedEventId === "all" 
+      ? "Todos os Eventos" 
+      : events.find(e => e.id === selectedEventId)?.title || "Evento";
+
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text(`Relatório de Desempenho - ${eventName}`, 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
+
+    // Tabela
+    autoTable(doc, {
+      startY: 35,
+      head: [['Nome', 'Email', 'Instagram', 'Aprovados', 'Pendentes', 'Conclusão (%)']],
+      body: filteredStats.map(stat => [
+        stat.user_name,
+        stat.user_email,
+        stat.user_instagram,
+        stat.approved_submissions.toString(),
+        stat.pending_submissions.toString(),
+        `${stat.completion_percentage}%`
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [168, 85, 247] }
+    });
+
+    doc.save(`Relatorio_${eventName}_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success("Relatório PDF exportado com sucesso!");
+  };
+
+  const loadAllStats = async () => {
+    const { data: profilesData } = await sb
+      .from('profiles')
+      .select('id, full_name, email, instagram, phone');
+
+    const userStatsData: UserStats[] = [];
+
+    for (const profile of profilesData || []) {
+      const { data: userSubmissions } = await sb
+        .from('submissions')
+        .select('post_id, status, posts(event_id)')
+        .eq('user_id', profile.id);
+
+      const eventsParticipated = new Set(
+        (userSubmissions || [])
+          .map((s: any) => s.posts?.event_id)
+          .filter(Boolean)
+      ).size;
+
+      const eventIds = Array.from(new Set(
+        (userSubmissions || [])
+          .map((s: any) => s.posts?.event_id)
+          .filter(Boolean)
+      ));
+
+      let totalPostsAvailable = 0;
+      if (eventIds.length > 0) {
+        const { count } = await sb
+          .from('posts')
+          .select('*', { count: 'exact', head: true })
+          .in('event_id', eventIds);
+        totalPostsAvailable = count || 0;
+      }
+
+      const approvedSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'approved').length;
+      const pendingSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'pending').length;
+      const rejectedSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'rejected').length;
+
+      const completionPercentage = totalPostsAvailable > 0 
+        ? Math.round((approvedSubmissions / totalPostsAvailable) * 100)
+        : 0;
+
+      userStatsData.push({
+        user_id: profile.id,
+        user_name: profile.full_name || 'Sem nome',
+        user_email: profile.email || 'Sem email',
+        user_instagram: profile.instagram || 'Sem Instagram',
+        user_phone: profile.phone || 'Sem telefone',
+        events_participated: eventsParticipated,
+        total_submissions: (userSubmissions || []).length,
+        approved_submissions: approvedSubmissions,
+        pending_submissions: pendingSubmissions,
+        rejected_submissions: rejectedSubmissions,
+        total_posts_available: totalPostsAvailable,
+        completion_percentage: completionPercentage,
+      });
+    }
+
+    setUserStats(userStatsData.filter(u => u.total_submissions > 0));
+  };
+
+  const loadEventSpecificStats = async (eventId: string) => {
+    const { data: postsData } = await sb
+      .from('posts')
+      .select('id')
+      .eq('event_id', eventId);
+
+    const postIds = (postsData || []).map((p: any) => p.id);
+    
+    const { data: submissionsData } = await sb
+      .from('submissions')
+      .select('user_id')
+      .in('post_id', postIds);
+
+    const uniqueUsers = new Set((submissionsData || []).map((s: any) => s.user_id));
+
+    const { data: profilesData } = await sb
+      .from('profiles')
+      .select('id, full_name, email, instagram, phone')
+      .in('id', Array.from(uniqueUsers));
+
+    const userStatsData: UserStats[] = [];
+
+    for (const profile of profilesData || []) {
+      const { data: userSubmissions } = await sb
+        .from('submissions')
+        .select('id, status')
+        .in('post_id', postIds)
+        .eq('user_id', profile.id);
+
+      const approvedSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'approved').length;
+      const pendingSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'pending').length;
+      const rejectedSubmissions = (userSubmissions || []).filter((s: any) => s.status === 'rejected').length;
+
+      const completionPercentage = (postsData || []).length > 0
+        ? Math.round((approvedSubmissions / (postsData || []).length) * 100)
+        : 0;
+
+      userStatsData.push({
+        user_id: profile.id,
+        user_name: profile.full_name || 'Sem nome',
+        user_email: profile.email || 'Sem email',
+        user_instagram: profile.instagram || 'Sem Instagram',
+        user_phone: profile.phone || 'Sem telefone',
+        events_participated: 1,
+        total_submissions: (userSubmissions || []).length,
+        approved_submissions: approvedSubmissions,
+        pending_submissions: pendingSubmissions,
+        rejected_submissions: rejectedSubmissions,
+        total_posts_available: (postsData || []).length,
+        completion_percentage: completionPercentage,
+      });
+    }
+
+    setUserStats(userStatsData);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const filteredStats = userStats.filter((stat) => {
+    const matchesName = stat.user_name.toLowerCase().includes(searchName.toLowerCase());
+    const matchesPhone = stat.user_phone.toLowerCase().includes(searchPhone.toLowerCase());
+    return matchesName && matchesPhone;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h2 className="text-2xl font-bold">Desempenho por Usuário</h2>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4" />
+              Excel
+            </Button>
+            <Button onClick={exportToPDF} variant="outline" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              PDF
+            </Button>
+            <Select value={activeFilter} onValueChange={setActiveFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="active">Somente ativos</SelectItem>
+                <SelectItem value="inactive">Somente inativos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+              <SelectTrigger className="w-[240px]">
+                <SelectValue placeholder="Selecione um evento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Eventos</SelectItem>
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.title} {!event.is_active && '(Inativo)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <Input 
+            placeholder="Filtrar por nome..." 
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            className="max-w-xs"
+          />
+          <Input 
+            placeholder="Filtrar por telefone..." 
+            value={searchPhone}
+            onChange={(e) => setSearchPhone(e.target.value)}
+            className="max-w-xs"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        {filteredStats.length === 0 ? (
+          <Card className="p-6 text-center text-muted-foreground">
+            {userStats.length === 0 ? "Nenhum usuário com submissões ainda" : "Nenhum usuário encontrado com os filtros aplicados"}
+          </Card>
+        ) : (
+          filteredStats
+            .sort((a, b) => b.completion_percentage - a.completion_percentage)
+            .map((stat) => (
+              <Card key={stat.user_id} className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-bold">{stat.user_name}</h4>
+                    <p className="text-sm text-muted-foreground">{stat.user_email}</p>
+                    {stat.user_instagram && (
+                      <p className="text-sm font-medium text-primary">@{stat.user_instagram}</p>
+                    )}
+                    {stat.user_phone && (
+                      <p className="text-sm text-muted-foreground">📱 {stat.user_phone}</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-accent" />
+                      <span className="text-2xl font-bold">{stat.completion_percentage}%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Conclusão</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Eventos</p>
+                    <p className="text-xl font-bold">{stat.events_participated}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Aprovados</p>
+                    <p className="text-xl font-bold text-green-500">{stat.approved_submissions}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Pendentes</p>
+                    <p className="text-xl font-bold text-yellow-500">{stat.pending_submissions}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Rejeitados</p>
+                    <p className="text-xl font-bold text-red-500">{stat.rejected_submissions}</p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-gradient-primary h-2 rounded-full transition-all" 
+                      style={{ width: `${stat.completion_percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </Card>
+            ))
+        )}
+      </div>
+    </div>
+  );
+};
