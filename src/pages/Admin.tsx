@@ -117,49 +117,57 @@ const Admin = () => {
 
   const handleApproveSubmission = async (submissionId: string) => {
     try {
-      const { error } = await supabase
+      console.log('Aprovando submissão:', submissionId);
+      const { data, error } = await supabase
         .from('submissions')
         .update({
           status: 'approved',
           approved_at: new Date().toISOString(),
           approved_by: user?.id
         })
-        .eq('id', submissionId);
+        .eq('id', submissionId)
+        .select();
+
+      console.log('Resultado da aprovação:', { data, error });
 
       if (error) {
         toast.error("Erro ao aprovar submissão");
-        console.error(error);
+        console.error('Erro detalhado:', error);
       } else {
         toast.success("Submissão aprovada com sucesso");
         await loadData();
       }
     } catch (error) {
       toast.error("Erro ao aprovar submissão");
-      console.error(error);
+      console.error('Exception:', error);
     }
   };
 
   const handleRejectSubmission = async (submissionId: string) => {
     try {
-      const { error } = await supabase
+      console.log('Rejeitando submissão:', submissionId);
+      const { data, error } = await supabase
         .from('submissions')
         .update({
           status: 'rejected',
           approved_at: new Date().toISOString(),
           approved_by: user?.id
         })
-        .eq('id', submissionId);
+        .eq('id', submissionId)
+        .select();
+
+      console.log('Resultado da rejeição:', { data, error });
 
       if (error) {
         toast.error("Erro ao rejeitar submissão");
-        console.error(error);
+        console.error('Erro detalhado:', error);
       } else {
         toast.success("Submissão rejeitada");
         await loadData();
       }
     } catch (error) {
       toast.error("Erro ao rejeitar submissão");
-      console.error(error);
+      console.error('Exception:', error);
     }
   };
 
