@@ -242,7 +242,7 @@ const Home = () => {
             </div>
             
             <div className="text-center mb-8">
-              <Badge className="mb-4 bg-green-500/10 text-green-500 border-green-500/20 text-sm px-4 py-2">
+              <Badge className="mb-4 bg-green-100 text-green-800 border-green-300 text-sm px-4 py-2">
                 <Clock className="w-4 h-4 mr-2 inline" />
                 Experimente GRÁTIS por 7 dias
               </Badge>
@@ -260,7 +260,7 @@ const Home = () => {
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg font-semibold text-green-600">7 dias de teste grátis - Sem cartão de crédito</span>
+                <span className="text-lg font-semibold text-green-800">7 dias de teste grátis - Sem cartão de crédito</span>
               </div>
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
