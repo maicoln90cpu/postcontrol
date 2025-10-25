@@ -37,7 +37,7 @@ const Home = () => {
             Dashboard completo • Aprovação em massa • Controle total • Relatórios automáticos
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
             {user ? (
               <>
                 <Link to="/dashboard">
