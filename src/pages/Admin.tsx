@@ -660,7 +660,6 @@ const Admin = () => {
                   </Select>
                 </div>
               </div>
-            </div>
             
             <Card className="p-6">
               {getFilteredSubmissions().length === 0 ? (
@@ -825,8 +824,9 @@ const Admin = () => {
                 </div>
               )}
             </Card>
-            </>
-            )}
+                </>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
