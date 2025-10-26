@@ -11,9 +11,11 @@ import { BarChart, Bar, PieChart as RePieChart, Pie, LineChart, Line, Cell, XAxi
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { toast } from "sonner";
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import Papa from 'papaparse';
 
 interface EventStats {
   event_id: string;
@@ -125,6 +127,7 @@ export const DashboardStats = () => {
       : events.find(e => e.id === selectedEventId)?.title || "Evento";
 
     const workbook = XLSX.utils.book_new();
+    workbook.Workbook = { Views: [{ RTL: false }] };
     
     // Aba 1: Dados Essenciais do Evento (se selecionado)
     if (selectedSections.essentialData || selectedSections.participationMetrics) {
@@ -217,15 +220,21 @@ export const DashboardStats = () => {
       XLSX.utils.book_append_sheet(workbook, alertSheet, 'Alertas');
     }
 
-    XLSX.writeFile(workbook, `Relatorio_Completo_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Relatorio_Completo_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`, { 
+      bookType: 'xlsx', 
+      type: 'binary', 
+      compression: true 
+    });
     toast.success("Relatório Excel completo exportado com sucesso!");
     setShowExportDialog(false);
   };
 
-  const exportEventStatsToPDF = () => {
+  const exportEventStatsToPDF = async () => {
     const eventName = selectedEventId === "all" 
       ? "Todos os Eventos" 
       : events.find(e => e.id === selectedEventId)?.title || "Evento";
+
+    toast.info("Gerando PDF com gráficos...");
 
     const doc = new jsPDF();
     let yPos = 20;
@@ -351,6 +360,53 @@ export const DashboardStats = () => {
       yPos = (doc as any).lastAutoTable.finalY + 15;
     }
 
+    // Capturar e adicionar gráficos
+    if (selectedSections.statusChart) {
+      const statusChartElement = document.getElementById('status-chart');
+      if (statusChartElement) {
+        if (yPos > 180) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(14);
+        doc.text('📊 Gráfico de Status', 14, yPos);
+        yPos += 5;
+
+        try {
+          const canvas = await html2canvas(statusChartElement, { scale: 2 });
+          const imgData = canvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', 14, yPos, 180, 100);
+          yPos += 110;
+        } catch (error) {
+          console.error('Erro ao capturar gráfico:', error);
+        }
+      }
+    }
+
+    if (selectedSections.genderChart && genderData.length > 0) {
+      const genderChartElement = document.getElementById('gender-chart');
+      if (genderChartElement) {
+        if (yPos > 180) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(14);
+        doc.text('👥 Distribuição por Gênero', 14, yPos);
+        yPos += 5;
+
+        try {
+          const canvas = await html2canvas(genderChartElement, { scale: 2 });
+          const imgData = canvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', 14, yPos, 180, 100);
+          yPos += 110;
+        } catch (error) {
+          console.error('Erro ao capturar gráfico:', error);
+        }
+      }
+    }
+
     // Alertas (se selecionado)
     if (selectedSections.alerts) {
       const alerts = userStats.filter(u => u.completion_percentage > 100);
@@ -420,11 +476,11 @@ export const DashboardStats = () => {
     });
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (exportType === 'excel') {
       exportEventStatsToExcel();
     } else {
-      exportEventStatsToPDF();
+      await exportEventStatsToPDF();
     }
   };
 
@@ -1075,8 +1131,9 @@ export const DashboardStats = () => {
             <Card className="p-6">
               <h3 className="text-lg font-bold mb-4">Posts por Status</h3>
               {statusData.length > 0 && statusData.some(d => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <RePieChart>
+                <div id="status-chart">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RePieChart>
                     <Pie
                       data={statusData}
                       cx="50%"
@@ -1093,8 +1150,9 @@ export const DashboardStats = () => {
                     </Pie>
                     <Tooltip />
                     <Legend />
-                  </RePieChart>
-                </ResponsiveContainer>
+                    </RePieChart>
+                  </ResponsiveContainer>
+                </div>
               ) : (
                 <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                   Sem dados de submissões ainda
@@ -1106,8 +1164,9 @@ export const DashboardStats = () => {
             <Card className="p-6">
               <h3 className="text-lg font-bold mb-4">Distribuição por Gênero</h3>
               {genderData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <RePieChart>
+                <div id="gender-chart">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RePieChart>
                     <Pie
                       data={genderData}
                       cx="50%"

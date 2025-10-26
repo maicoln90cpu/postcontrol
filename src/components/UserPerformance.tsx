@@ -91,8 +91,13 @@ export const UserPerformance = () => {
     );
 
     const workbook = XLSX.utils.book_new();
+    workbook.Workbook = { Views: [{ RTL: false }] };
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Estatísticas');
-    XLSX.writeFile(workbook, `Relatorio_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Relatorio_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`, {
+      bookType: 'xlsx',
+      type: 'binary',
+      compression: true
+    });
     toast.success("Relatório Excel exportado com sucesso!");
   };
 
@@ -103,16 +108,19 @@ export const UserPerformance = () => {
 
     const doc = new jsPDF();
     
+    // Configurar fonte para UTF-8
+    doc.setFont("helvetica");
+    
     // Título
     doc.setFontSize(18);
-    doc.text(`Relatório de Desempenho - ${eventName}`, 14, 20);
+    doc.text(`Relatorio de Desempenho - ${eventName}`, 14, 20);
     doc.setFontSize(11);
     doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
 
     // Tabela
     autoTable(doc, {
       startY: 35,
-      head: [['Nome', 'Email', 'Instagram', 'Aprovados', 'Pendentes', 'Conclusão (%)']],
+      head: [['Nome', 'Email', 'Instagram', 'Aprovados', 'Pendentes', 'Conclusao (%)']],
       body: filteredStats.map(stat => [
         stat.user_name,
         stat.user_email,
@@ -121,7 +129,7 @@ export const UserPerformance = () => {
         stat.pending_submissions.toString(),
         `${stat.completion_percentage}%`
       ]),
-      styles: { fontSize: 9 },
+      styles: { fontSize: 9, font: 'helvetica' },
       headStyles: { fillColor: [168, 85, 247] }
     });
 

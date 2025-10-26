@@ -124,19 +124,42 @@ const Submit = () => {
   };
 
   const loadPostsForEvent = async (eventId: string) => {
-    const { data, error } = await sb
-      .from("posts")
-      .select("id, post_number, deadline, event_id")
-      .eq("event_id", eventId)
-      .gte("deadline", new Date().toISOString())
-      .order("post_number", { ascending: true });
+    // 1. Buscar submissões já enviadas pelo usuário para este evento
+    const { data: userSubmissions } = await sb
+      .from('submissions')
+      .select('post_id')
+      .eq('user_id', user?.id)
+      .in('post_id', sb.from('posts').select('id').eq('event_id', eventId));
+    
+    const submittedPostIds = (userSubmissions || []).map((s: any) => s.post_id);
+    
+    // 2. Buscar próxima postagem disponível (não enviada, deadline futuro)
+    let query = sb
+      .from('posts')
+      .select('id, post_number, deadline, event_id')
+      .eq('event_id', eventId)
+      .gte('deadline', new Date().toISOString())
+      .order('deadline', { ascending: true }) // Ordenar por data mais próxima
+      .limit(1); // Apenas 1 resultado
+    
+    // Excluir posts já enviados
+    if (submittedPostIds.length > 0) {
+      query = query.not('id', 'in', `(${submittedPostIds.join(',')})`);
+    }
+    
+    const { data, error } = await query;
 
     if (error) {
-      console.error("Error loading posts:", error);
+      console.error('Error loading posts:', error);
       return;
     }
 
     setPosts(data || []);
+    
+    // Auto-selecionar se houver apenas 1 post
+    if (data && data.length === 1) {
+      setSelectedPost(data[0].id);
+    }
   };
 
   const loadRequirementsForEvent = async (eventId: string) => {
@@ -457,30 +480,22 @@ const Submit = () => {
             {selectedEvent && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="post">Postagem Disponível *</Label>
-                  <Select
-                    value={selectedPost}
-                    onValueChange={setSelectedPost}
-                    required
-                    disabled={isSubmitting || posts.length === 0}
-                  >
-                    <SelectTrigger id="post">
-                      <SelectValue
-                        placeholder={posts.length === 0 ? "Nenhuma postagem disponível" : "Selecione a postagem"}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {posts.map((post) => (
-                        <SelectItem key={post.id} value={post.id}>
-                          Postagem #{post.post_number} (Prazo: {new Date(post.deadline).toLocaleDateString("pt-BR")})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {posts.length === 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      Não há postagens disponíveis para este evento no momento
-                    </p>
+                  {posts.length > 0 ? (
+                    <div className="bg-primary/10 border border-primary rounded-lg p-4">
+                      <p className="font-semibold text-primary mb-2">📌 Postagem Atual Disponível:</p>
+                      <p className="text-sm">
+                        Postagem #{posts[0].post_number} - Prazo: {new Date(posts[0].deadline).toLocaleDateString("pt-BR")} às {new Date(posts[0].deadline).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Após enviar, a próxima postagem será liberada automaticamente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-muted/50 border border-border rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Não há postagens disponíveis para este evento no momento ou você já completou todas as postagens! 🎉
+                      </p>
+                    </div>
                   )}
                 </div>
 

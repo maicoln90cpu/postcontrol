@@ -55,33 +55,26 @@ export const CSVImportExport = ({ onImportComplete }: CSVImportExportProps) => {
           return;
         }
 
-        // Note: Isso não criará contas de autenticação, apenas perfis
-        // Para criar contas completas, seria necessário usar Supabase Admin API
-        toast.info(`Processando ${validUsers.length} usuários...`);
+        toast.info(`Importando ${validUsers.length} usuários...`);
 
-        let successCount = 0;
-        let errorCount = 0;
+        const { data, error } = await supabase.functions.invoke('import-users', {
+          body: { users: validUsers }
+        });
 
-        for (const user of validUsers) {
-          // Aqui você precisaria usar a API Admin do Supabase para criar usuários
-          // Por enquanto, apenas mostramos a intenção
-          // const { error } = await supabase.auth.admin.createUser({
-          //   email: user.email,
-          //   password: 'temporary_password',
-          //   user_metadata: {
-          //     full_name: user.full_name,
-          //     instagram: user.instagram,
-          //     phone: user.phone,
-          //   }
-          // });
-
-          // if (error) errorCount++;
-          // else successCount++;
+        if (error) {
+          toast.error("Erro ao importar usuários");
+          console.error(error);
+          return;
         }
 
-        toast.info(
-          "Importação de CSV requer acesso Admin API. Entre em contato com o suporte para habilitar esta funcionalidade."
-        );
+        if (data) {
+          toast.success(`✅ ${data.success.length} usuários importados com sucesso!`);
+          
+          if (data.errors.length > 0) {
+            toast.warning(`⚠️ ${data.errors.length} erros durante a importação`);
+            console.error('Erros:', data.errors);
+          }
+        }
 
         if (fileInputRef.current) {
           fileInputRef.current.value = "";

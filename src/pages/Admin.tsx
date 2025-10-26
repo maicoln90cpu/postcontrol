@@ -46,6 +46,9 @@ const Admin = () => {
   const [rejectionTemplate, setRejectionTemplate] = useState("");
   const [kanbanView, setKanbanView] = useState(false);
   const [auditLogSubmissionId, setAuditLogSubmissionId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(30);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -265,13 +268,55 @@ const Admin = () => {
   };
 
   const toggleSelectAll = () => {
-    const filtered = getFilteredSubmissions();
-    if (selectedSubmissions.size === filtered.length) {
+    const paginated = getPaginatedSubmissions();
+    if (selectedSubmissions.size === paginated.length && paginated.length > 0) {
       setSelectedSubmissions(new Set());
     } else {
-      setSelectedSubmissions(new Set(filtered.map((s: any) => s.id)));
+      setSelectedSubmissions(new Set(paginated.map((s: any) => s.id)));
     }
   };
+
+  const getFilteredSubmissions = () => {
+    let filtered = submissions;
+
+    // Filtro de evento
+    if (submissionEventFilter !== "all") {
+      filtered = filtered.filter((s: any) => s.posts?.events?.id === submissionEventFilter);
+    }
+
+    // Filtro de número da postagem
+    if (submissionPostFilter !== "all") {
+      filtered = filtered.filter((s: any) => s.posts?.post_number?.toString() === submissionPostFilter);
+    }
+
+    // Filtro de status
+    if (submissionStatusFilter !== "all") {
+      filtered = filtered.filter((s: any) => s.status === submissionStatusFilter);
+    }
+
+    // Filtro de busca (nome, email, Instagram)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter((s: any) => {
+        const profile = s.profiles || {};
+        return (
+          profile.full_name?.toLowerCase().includes(search) ||
+          profile.email?.toLowerCase().includes(search) ||
+          profile.instagram?.toLowerCase().includes(search)
+        );
+      });
+    }
+
+    return filtered;
+  };
+
+  const getPaginatedSubmissions = () => {
+    const filtered = getFilteredSubmissions();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(startIndex, startIndex + itemsPerPage);
+  };
+
+  const totalPages = Math.ceil(getFilteredSubmissions().length / itemsPerPage);
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
@@ -617,6 +662,33 @@ const Admin = () => {
                     Aprovar {selectedSubmissions.size}
                   </Button>
                 )}
+                
+                {/* Busca e paginação */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <Input
+                    placeholder="Buscar por nome, email ou Instagram..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1); // Reset para página 1 ao buscar
+                    }}
+                    className="max-w-sm"
+                  />
+                  <Select value={itemsPerPage.toString()} onValueChange={(v) => {
+                    setItemsPerPage(Number(v));
+                    setCurrentPage(1);
+                  }}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 por página</SelectItem>
+                      <SelectItem value="30">30 por página</SelectItem>
+                      <SelectItem value="50">50 por página</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Select value={submissionEventFilter} onValueChange={(v) => {
                     setSubmissionEventFilter(v);
@@ -667,17 +739,18 @@ const Admin = () => {
                   Nenhuma submissão encontrada com os filtros selecionados
                 </p>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 pb-4 border-b">
-                    <Checkbox
-                      checked={selectedSubmissions.size === getFilteredSubmissions().length && getFilteredSubmissions().length > 0}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      Selecionar todos ({getFilteredSubmissions().length})
-                    </span>
-                  </div>
-                  {getFilteredSubmissions().map((submission: any) => (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-4 border-b">
+                      <Checkbox
+                        checked={selectedSubmissions.size === getPaginatedSubmissions().length && getPaginatedSubmissions().length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        Selecionar todos desta página ({getPaginatedSubmissions().length})
+                      </span>
+                    </div>
+                    {getPaginatedSubmissions().map((submission: any) => (
                     <Card key={submission.id} className="p-4 sm:p-6">
                       <div className="space-y-4">
                         {/* Layout Mobile e Desktop */}
@@ -822,6 +895,60 @@ const Admin = () => {
                     </Card>
                   ))}
                 </div>
+                
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, getFilteredSubmissions().length)} de {getFilteredSubmissions().length} submissões
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        Anterior
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(pageNum)}
+                              className="w-10"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
               )}
             </Card>
                 </>
