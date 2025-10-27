@@ -57,20 +57,30 @@ serve(async (req) => {
 
     // Chamar Lovable AI para previsão
     const prompt = `
-Analise os dados de progresso do usuário neste evento:
-- Total de posts necessários: ${totalPosts}
-- Posts aprovados: ${approvedPosts}
+Você é um consultor de marketing especializado em eventos e gestão de influencers.
+
+Analise os dados do evento e forneça insights acionáveis:
+
+EVENTO: ${event.title}
+META: ${totalPosts} posts até ${event.event_date}
+
+DADOS ATUAIS:
+- Posts aprovados: ${approvedPosts}/${totalPosts}
 - Posts pendentes: ${pendingPosts}
-- Dias restantes até próximo deadline: ${daysRemaining}
+- Dias restantes: ${daysRemaining}
 
-Com base nisso, calcule:
-1. Probabilidade (0-100%) de atingir a meta de 100% de conclusão
-2. Sugestões práticas para melhorar as chances (max 3 sugestões curtas)
+FORNEÇA:
+1. Probabilidade de sucesso (0-100%)
+2. 3 riscos específicos identificados
+3. 3 recomendações práticas e acionáveis
+4. 1 insight surpreendente baseado nos dados
 
-Responda em formato JSON:
+Responda em JSON:
 {
-  "probability": 75,
-  "suggestions": ["Envie os posts pendentes hoje", "Revise os requisitos", "Agende posts para os próximos dias"]
+  "probability": 85,
+  "risks": ["Risco 1", "Risco 2", "Risco 3"],
+  "recommendations": ["Ação 1", "Ação 2", "Ação 3"],
+  "insight": "Insight surpreendente"
 }
 `;
 

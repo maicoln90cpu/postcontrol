@@ -38,6 +38,44 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_approval_rules: {
+        Row: {
+          auto_approve_after_x_approvals: number | null
+          created_at: string | null
+          enabled: boolean | null
+          event_id: string | null
+          id: string
+          trusted_users: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_approve_after_x_approvals?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          event_id?: string | null
+          id?: string
+          trusted_users?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_approve_after_x_approvals?: number | null
+          created_at?: string | null
+          enabled?: boolean | null
+          event_id?: string | null
+          id?: string
+          trusted_users?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_approval_rules_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_faqs: {
         Row: {
           answer: string
@@ -219,6 +257,36 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           created_at: string
@@ -317,6 +385,27 @@ export type Database = {
           id?: string
           user_id?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      rejection_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          title?: string
         }
         Relationships: []
       }

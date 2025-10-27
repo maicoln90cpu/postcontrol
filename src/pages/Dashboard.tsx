@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TutorialGuide } from "@/components/TutorialGuide";
 import { BadgeDisplay } from "@/components/BadgeDisplay";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { motion } from "framer-motion";
+import { NotificationBell } from "@/components/NotificationBell";
+import { AIInsights } from "@/components/AIInsights";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Submission {
   id: string;
@@ -209,6 +211,7 @@ const Dashboard = () => {
             </Link>
           </div>
           <div className="flex items-center gap-4">
+            {user && <NotificationBell userId={user.id} />}
             <ThemeToggle />
             {isAdmin && (
               <Link to="/admin">
@@ -244,6 +247,50 @@ const Dashboard = () => {
 
         {/* Badges */}
         <BadgeDisplay />
+
+        {/* Barra de progresso para próximo badge */}
+        {user && (() => {
+          const approvedCount = submissions.filter(s => s.status === 'approved').length;
+          const milestones = [
+            { count: 5, name: 'Bronze', emoji: '🥉' },
+            { count: 10, name: 'Prata', emoji: '🥈' },
+            { count: 25, name: 'Ouro', emoji: '🥇' },
+            { count: 50, name: 'Diamante', emoji: '💎' },
+            { count: 100, name: 'Lenda', emoji: '🏆' }
+          ];
+          
+          const next = milestones.find(m => approvedCount < m.count);
+          
+          if (next) {
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="p-4 bg-gradient-secondary text-white mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold">Próximo Badge: {next.emoji} {next.name}</span>
+                    <span className="text-sm">
+                      {approvedCount}/{next.count}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(approvedCount / next.count) * 100}
+                    className="h-2"
+                  />
+                </Card>
+              </motion.div>
+            );
+          }
+          return null;
+        })()}
+
+        {/* AI Insights */}
+        {user && eventStats.length > 0 && (
+          <div className="mt-6">
+            <AIInsights eventId={eventStats[0].eventId} userId={user.id} />
+          </div>
+        )}
 
         {/* Estatísticas Gerais */}
         <div id="stats-section" className="grid md:grid-cols-3 gap-6 mb-8 mt-8">
@@ -370,53 +417,64 @@ const Dashboard = () => {
               </Card>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {submissions
-                  .filter((submission) => {
-                    if (selectedHistoryEvent === "all") return true;
-                    return submission.posts?.event_id === selectedHistoryEvent;
-                  })
-                  .map((submission) => (
-                  <Card key={submission.id} className="overflow-hidden hover:shadow-glow transition-all">
-                    <img 
-                      src={submission.screenshot_url} 
-                      alt="Screenshot da postagem"
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-bold">
-                        {submission.posts?.events?.title || 'Evento'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Post #{submission.posts?.post_number}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Enviado em {new Date(submission.submitted_at).toLocaleDateString('pt-BR')} às {new Date(submission.submitted_at).toLocaleTimeString('pt-BR')}
-                      </p>
-                      {submission.status === 'pending' && (
-                        <Badge variant="outline" className="w-full justify-center bg-yellow-500/20 text-yellow-500 border-yellow-500">
-                          Aguardando Aprovação
-                        </Badge>
-                      )}
-                      {submission.status === 'approved' && (
-                        <Badge variant="outline" className="w-full justify-center bg-green-500/20 text-green-500 border-green-500">
-                          Aprovado
-                        </Badge>
-                      )}
-                       {submission.status === 'rejected' && (
-                        <div className="space-y-2">
-                          <Badge variant="outline" className="w-full justify-center bg-red-500/20 text-red-500 border-red-500">
-                            Rejeitado
-                          </Badge>
-                          {submission.rejection_reason && (
-                            <div className="bg-red-500/10 border border-red-500/30 rounded p-2 text-xs text-red-500">
-                              <strong>Motivo:</strong> {submission.rejection_reason}
+                <AnimatePresence>
+                  {submissions
+                    .filter((submission) => {
+                      if (selectedHistoryEvent === "all") return true;
+                      return submission.posts?.event_id === selectedHistoryEvent;
+                    })
+                    .map((submission, index) => (
+                    <motion.div
+                      key={submission.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="overflow-hidden hover:shadow-glow transition-all">
+                        <img 
+                          src={submission.screenshot_url} 
+                          alt="Screenshot da postagem"
+                          loading="lazy"
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="p-4 space-y-2">
+                          <h3 className="font-bold">
+                            {submission.posts?.events?.title || 'Evento'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Post #{submission.posts?.post_number}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Enviado em {new Date(submission.submitted_at).toLocaleDateString('pt-BR')} às {new Date(submission.submitted_at).toLocaleTimeString('pt-BR')}
+                          </p>
+                          {submission.status === 'pending' && (
+                            <Badge variant="outline" className="w-full justify-center bg-yellow-500/20 text-yellow-500 border-yellow-500">
+                              Aguardando Aprovação
+                            </Badge>
+                          )}
+                          {submission.status === 'approved' && (
+                            <Badge variant="outline" className="w-full justify-center bg-green-500/20 text-green-500 border-green-500">
+                              Aprovado
+                            </Badge>
+                          )}
+                          {submission.status === 'rejected' && (
+                            <div className="space-y-2">
+                              <Badge variant="outline" className="w-full justify-center bg-red-500/20 text-red-500 border-red-500">
+                                Rejeitado
+                              </Badge>
+                              {submission.rejection_reason && (
+                                <div className="bg-red-500/10 border border-red-500/30 rounded p-2 text-xs text-red-500">
+                                  <strong>Motivo:</strong> {submission.rejection_reason}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </Card>
-                ))}
+                      </Card>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </TabsContent>

@@ -20,24 +20,63 @@ const BADGE_CONFIG = {
     label: "Primeira Aprovação",
     color: "bg-yellow-500",
     emoji: "🥇",
+    description: "Primeira aprovação"
   },
   streak_5: {
     icon: Flame,
     label: "Streak de 5 Posts",
     color: "bg-orange-500",
     emoji: "🔥",
+    description: "5 posts seguidos"
   },
   event_100: {
     icon: Rocket,
     label: "100% Conclusão",
     color: "bg-green-500",
     emoji: "🚀",
+    description: "100% de um evento"
   },
   top_10: {
     icon: Star,
     label: "Top 10 Colaborador",
     color: "bg-purple-500",
     emoji: "⭐",
+    description: "Top 10"
+  },
+  bronze_tier: {
+    icon: Trophy,
+    label: "Bronze",
+    color: "bg-orange-700",
+    emoji: "🥉",
+    description: "5 aprovações"
+  },
+  silver_tier: {
+    icon: Trophy,
+    label: "Prata",
+    color: "bg-gray-400",
+    emoji: "🥈",
+    description: "10 aprovações"
+  },
+  gold_tier: {
+    icon: Trophy,
+    label: "Ouro",
+    color: "bg-yellow-500",
+    emoji: "🥇",
+    description: "25 aprovações"
+  },
+  diamond_tier: {
+    icon: Trophy,
+    label: "Diamante",
+    color: "bg-blue-500",
+    emoji: "💎",
+    description: "50 aprovações"
+  },
+  legend_tier: {
+    icon: Trophy,
+    label: "Lenda",
+    color: "bg-purple-600",
+    emoji: "🏆",
+    description: "100 aprovações"
   },
 };
 

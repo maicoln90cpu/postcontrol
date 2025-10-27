@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 const Admin = () => {
   const { user, isAdmin, signOut, loading } = useAuth();
@@ -49,6 +50,17 @@ const Admin = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(30);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [rejectionTemplatesFromDB, setRejectionTemplatesFromDB] = useState<any[]>([]);
+
+  // Debounce para busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -59,8 +71,14 @@ const Admin = () => {
   useEffect(() => {
     if (user && isAdmin) {
       loadData();
+      loadRejectionTemplates();
     }
   }, [user, isAdmin]);
+
+  const loadRejectionTemplates = async () => {
+    const { data } = await sb.from('rejection_templates').select('*').order('title');
+    setRejectionTemplatesFromDB(data || []);
+  };
 
   const loadData = async () => {
     const { data: eventsData } = await sb
@@ -150,6 +168,14 @@ const Admin = () => {
         console.error('Erro detalhado:', error);
       } else {
         toast.success("Submissão aprovada com sucesso");
+        
+        // Confetti ao aprovar
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        
         await loadData();
       }
     } catch (error) {
@@ -294,9 +320,9 @@ const Admin = () => {
       filtered = filtered.filter((s: any) => s.status === submissionStatusFilter);
     }
 
-    // Filtro de busca (nome, email, Instagram)
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
+    // Filtro de busca (nome, email, Instagram) - usando debounced search
+    if (debouncedSearch) {
+      const search = debouncedSearch.toLowerCase();
       filtered = filtered.filter((s: any) => {
         const profile = s.profiles || {};
         return (
@@ -1010,21 +1036,22 @@ const Admin = () => {
                 value={rejectionTemplate} 
                 onValueChange={(value) => {
                   setRejectionTemplate(value);
-                  const template = rejectionTemplates.find(t => t.value === value);
-                  if (template && value !== "outro") {
-                    setRejectionReason(template.label);
+                  const template = rejectionTemplatesFromDB.find(t => t.id === value);
+                  if (template) {
+                    setRejectionReason(template.message);
                   } else {
                     setRejectionReason("");
                   }
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um motivo" />
+                  <SelectValue placeholder="Selecione um template (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {rejectionTemplates.map((template) => (
-                    <SelectItem key={template.value} value={template.value}>
-                      {template.label}
+                  <SelectItem value="">Template customizado</SelectItem>
+                  {rejectionTemplatesFromDB.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.title}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1032,13 +1059,14 @@ const Admin = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reason">Motivo Detalhado (opcional)</Label>
+              <Label htmlFor="reason">Motivo da Rejeição</Label>
               <Textarea
                 id="reason"
                 placeholder="Descreva o motivo da rejeição..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={4}
+                className="min-h-24"
               />
             </div>
           </div>
