@@ -124,23 +124,38 @@ const Submit = () => {
   };
 
   const loadPostsForEvent = async (eventId: string) => {
-    // 1. Buscar submissões já enviadas pelo usuário para este evento
+    if (!user) return;
+    
+    // 1. Buscar IDs dos posts do evento
+    const { data: eventPosts } = await sb
+      .from('posts')
+      .select('id')
+      .eq('event_id', eventId);
+    
+    const eventPostIds = (eventPosts || []).map((p: any) => p.id);
+    
+    if (eventPostIds.length === 0) {
+      setPosts([]);
+      return;
+    }
+    
+    // 2. Buscar submissões já enviadas pelo usuário
     const { data: userSubmissions } = await sb
       .from('submissions')
       .select('post_id')
-      .eq('user_id', user?.id)
-      .in('post_id', sb.from('posts').select('id').eq('event_id', eventId));
+      .eq('user_id', user.id)
+      .in('post_id', eventPostIds);
     
     const submittedPostIds = (userSubmissions || []).map((s: any) => s.post_id);
     
-    // 2. Buscar próxima postagem disponível (não enviada, deadline futuro)
+    // 3. Buscar próxima postagem disponível (não enviada, deadline futuro)
     let query = sb
       .from('posts')
       .select('id, post_number, deadline, event_id')
       .eq('event_id', eventId)
       .gte('deadline', new Date().toISOString())
-      .order('deadline', { ascending: true }) // Ordenar por data mais próxima
-      .limit(1); // Apenas 1 resultado
+      .order('deadline', { ascending: true })
+      .limit(1);
     
     // Excluir posts já enviados
     if (submittedPostIds.length > 0) {
@@ -151,6 +166,11 @@ const Submit = () => {
 
     if (error) {
       console.error('Error loading posts:', error);
+      toast({
+        title: "Erro ao carregar posts",
+        description: "Não foi possível carregar as postagens disponíveis.",
+        variant: "destructive",
+      });
       return;
     }
 
