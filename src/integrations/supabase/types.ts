@@ -409,6 +409,44 @@ export type Database = {
         }
         Relationships: []
       }
+      submission_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          submission_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          submission_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          submission_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_comments_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_logs: {
         Row: {
           changed_at: string
@@ -485,6 +523,8 @@ export type Database = {
           approved_by: string | null
           created_at: string
           id: string
+          instagram_verified: boolean | null
+          instagram_verified_at: string | null
           post_id: string
           rejection_reason: string | null
           screenshot_url: string
@@ -497,6 +537,8 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           id?: string
+          instagram_verified?: boolean | null
+          instagram_verified_at?: string | null
           post_id: string
           rejection_reason?: string | null
           screenshot_url: string
@@ -509,6 +551,8 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           id?: string
+          instagram_verified?: boolean | null
+          instagram_verified_at?: string | null
           post_id?: string
           rejection_reason?: string | null
           screenshot_url?: string

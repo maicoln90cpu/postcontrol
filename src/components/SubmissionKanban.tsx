@@ -1,4 +1,4 @@
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, DragOverEvent, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from "@dnd-kit/core";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,9 +30,94 @@ interface SubmissionKanbanProps {
   userId: string | undefined;
 }
 
+const DraggableSubmissionCard = ({ submission }: { submission: Submission }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: submission.id,
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <Card className={`p-3 cursor-move hover:shadow-md transition-all ${isDragging ? 'opacity-50' : ''}`}>
+        <div className="space-y-2">
+          <div className="aspect-video bg-muted rounded overflow-hidden">
+            <img
+              src={submission.screenshot_url}
+              alt="Screenshot"
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-sm">
+              <User className="h-3 w-3 text-muted-foreground" />
+              <span className="font-medium truncate">{submission.profiles?.full_name}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span className="truncate">{submission.posts?.events?.title}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>Post #{submission.posts?.post_number}</span>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const DroppableColumn = ({ 
+  id, 
+  title, 
+  color, 
+  count, 
+  children 
+}: { 
+  id: string; 
+  title: string; 
+  color: string; 
+  count: number; 
+  children: React.ReactNode;
+}) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: id,
+  });
+
+  return (
+    <Card
+      ref={setNodeRef}
+      className={`p-4 ${color} border-2 transition-all ${isOver ? 'ring-2 ring-primary' : ''}`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-bold text-lg">{title}</h3>
+        <Badge variant="secondary">{count}</Badge>
+      </div>
+
+      <ScrollArea className="h-[600px] pr-4">
+        <div className="space-y-3">
+          {children}
+        </div>
+      </ScrollArea>
+    </Card>
+  );
+};
+
 export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKanbanProps) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggingSubmission, setDraggingSubmission] = useState<Submission | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const columns = {
     pending: { title: "Pendente", status: "pending", color: "bg-yellow-500/10 border-yellow-500/30" },
@@ -82,37 +167,9 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
     }
   };
 
-  const SubmissionCard = ({ submission }: { submission: Submission }) => (
-    <Card className="p-3 cursor-move hover:shadow-md transition-all">
-      <div className="space-y-2">
-        <div className="aspect-video bg-muted rounded overflow-hidden">
-          <img
-            src={submission.screenshot_url}
-            alt="Screenshot"
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-3 w-3 text-muted-foreground" />
-            <span className="font-medium truncate">{submission.profiles?.full_name}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            <span className="truncate">{submission.posts?.events?.title}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            <span>Post #{submission.posts?.post_number}</span>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-
   return (
     <DndContext
+      sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -122,73 +179,44 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
           const columnSubmissions = getSubmissionsByStatus(column.status);
           
           return (
-            <Card
+            <DroppableColumn
               key={key}
               id={column.status}
-              className={`p-4 ${column.color} border-2`}
-              data-status={column.status}
+              title={column.title}
+              color={column.color}
+              count={columnSubmissions.length}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">{column.title}</h3>
-                <Badge variant="secondary">{columnSubmissions.length}</Badge>
-              </div>
-
-              <ScrollArea className="h-[600px] pr-4">
-                <div className="space-y-3">
-                  {columnSubmissions.map((submission) => (
-                    <div
-                      key={submission.id}
-                      id={submission.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", submission.id);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                      }}
-                      onDrop={async (e) => {
-                        e.preventDefault();
-                        const draggedId = e.dataTransfer.getData("text/plain");
-                        
-                        const submission = submissions.find((s) => s.id === draggedId);
-                        if (!submission || submission.status === column.status) return;
-
-                        // Atualizar status no banco
-                        const { error } = await sb
-                          .from('submissions')
-                          .update({
-                            status: column.status,
-                            approved_at: new Date().toISOString(),
-                            approved_by: userId,
-                          })
-                          .eq('id', draggedId);
-
-                        if (error) {
-                          console.error('Error updating status:', error);
-                          toast.error("Erro ao atualizar status");
-                        } else {
-                          toast.success(`Status atualizado para ${column.status === 'approved' ? 'aprovado' : column.status === 'rejected' ? 'rejeitado' : 'pendente'}`);
-                          onUpdate();
-                        }
-                      }}
-                    >
-                      <SubmissionCard submission={submission} />
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </Card>
+              {columnSubmissions.map((submission) => (
+                <DraggableSubmissionCard 
+                  key={submission.id}
+                  submission={submission}
+                />
+              ))}
+            </DroppableColumn>
           );
         })}
       </div>
 
       <DragOverlay>
         {activeId && draggingSubmission ? (
-          <div className="opacity-50">
-            <SubmissionCard submission={draggingSubmission} />
-          </div>
+          <Card className="p-3 shadow-lg rotate-3">
+            <div className="space-y-2">
+              <div className="aspect-video bg-muted rounded overflow-hidden">
+                <img
+                  src={draggingSubmission.screenshot_url}
+                  alt="Screenshot"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium truncate">{draggingSubmission.profiles?.full_name}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
         ) : null}
       </DragOverlay>
     </DndContext>

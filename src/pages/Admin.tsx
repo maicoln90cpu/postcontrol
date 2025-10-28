@@ -13,6 +13,7 @@ import { UserManagement } from "@/components/UserManagement";
 import { AdminSettings } from "@/components/AdminSettings";
 import { SubmissionKanban } from "@/components/SubmissionKanban";
 import { SubmissionAuditLog } from "@/components/SubmissionAuditLog";
+import { SubmissionComments } from "@/components/SubmissionComments";
 import { supabase } from "@/integrations/supabase/client";
 import { sb } from "@/lib/supabaseSafe";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,6 +53,9 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [rejectionTemplatesFromDB, setRejectionTemplatesFromDB] = useState<any[]>([]);
+  const [dateFilterStart, setDateFilterStart] = useState<string>("");
+  const [dateFilterEnd, setDateFilterEnd] = useState<string>("");
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
   // Debounce para busca
   useEffect(() => {
@@ -330,6 +334,25 @@ const Admin = () => {
           profile.email?.toLowerCase().includes(search) ||
           profile.instagram?.toLowerCase().includes(search)
         );
+      });
+    }
+
+    // Filtro de data inicial
+    if (dateFilterStart) {
+      filtered = filtered.filter((s: any) => {
+        const submitDate = new Date(s.submitted_at);
+        const startDate = new Date(dateFilterStart);
+        return submitDate >= startDate;
+      });
+    }
+
+    // Filtro de data final
+    if (dateFilterEnd) {
+      filtered = filtered.filter((s: any) => {
+        const submitDate = new Date(s.submitted_at);
+        const endDate = new Date(dateFilterEnd);
+        endDate.setHours(23, 59, 59, 999); // Incluir todo o dia final
+        return submitDate <= endDate;
       });
     }
 
@@ -705,6 +728,47 @@ const Admin = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Filtros por data */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1">
+                    <Label className="text-sm mb-1">Data Inicial</Label>
+                    <Input
+                      type="date"
+                      value={dateFilterStart}
+                      onChange={(e) => {
+                        setDateFilterStart(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-sm mb-1">Data Final</Label>
+                    <Input
+                      type="date"
+                      value={dateFilterEnd}
+                      onChange={(e) => {
+                        setDateFilterEnd(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                  {(dateFilterStart || dateFilterEnd) && (
+                    <div className="flex items-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDateFilterStart("");
+                          setDateFilterEnd("");
+                          setCurrentPage(1);
+                        }}
+                      >
+                        Limpar Datas
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Select value={submissionEventFilter} onValueChange={(v) => {
@@ -907,6 +971,33 @@ const Admin = () => {
                               </div>
                             )}
                           </div>
+                        </div>
+
+                        {/* Seção de Comentários */}
+                        <div className="border-t pt-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newExpanded = new Set(expandedComments);
+                              if (newExpanded.has(submission.id)) {
+                                newExpanded.delete(submission.id);
+                              } else {
+                                newExpanded.add(submission.id);
+                              }
+                              setExpandedComments(newExpanded);
+                            }}
+                            className="mb-3"
+                          >
+                            {expandedComments.has(submission.id) ? "Ocultar" : "Mostrar"} Comentários
+                          </Button>
+                          
+                          {expandedComments.has(submission.id) && (
+                            <SubmissionComments 
+                              submissionId={submission.id}
+                              onCommentAdded={loadData}
+                            />
+                          )}
                         </div>
                       </div>
                     </Card>
