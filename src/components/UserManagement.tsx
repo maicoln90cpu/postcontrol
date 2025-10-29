@@ -32,22 +32,61 @@ export const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false);
 
   useEffect(() => {
-    loadUsers();
+    checkAdminStatus();
   }, []);
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+
+    // Check if master admin
+    const { data: masterCheck } = await sb
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'master_admin')
+      .maybeSingle();
+    
+    setIsMasterAdmin(!!masterCheck);
+
+    // If not master admin, get their agency_id
+    if (!masterCheck) {
+      const { data: profileData } = await sb
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      setCurrentAgencyId(profileData?.agency_id || null);
+      console.log('👤 Agency Admin - loading users for agency:', profileData?.agency_id);
+    } else {
+      console.log('👑 Master Admin - loading all users');
+    }
+
+    loadUsers();
+  };
 
   const loadUsers = async () => {
     setLoading(true);
-    const { data, error } = await sb
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    
+    let query = sb.from('profiles').select('*');
+    
+    // Agency admins only see their own agency's users
+    if (!isMasterAdmin && currentAgencyId) {
+      query = query.eq('agency_id', currentAgencyId);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       toast.error("Erro ao carregar usuários");
       console.error(error);
     } else {
+      console.log(`📊 Loaded ${data?.length || 0} users`);
       setUsers(data || []);
     }
     setLoading(false);

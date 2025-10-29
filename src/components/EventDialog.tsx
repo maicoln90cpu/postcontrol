@@ -109,6 +109,17 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         return;
       }
 
+      // Get user's agency_id from profile
+      const { data: profileData } = await sb
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const userAgencyId = profileData?.agency_id;
+
+      console.log('👤 User creating event:', { userId: user.id, agencyId: userAgencyId });
+
       let imageUrl = eventImageUrl;
 
       if (eventImage) {
@@ -183,11 +194,16 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             require_instagram_link: requireInstagramLink,
             internal_notes: internalNotes,
             created_by: user.id,
+            agency_id: userAgencyId,
           })
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error creating event:', error);
+          throw error;
+        }
+        console.log('✅ Event created successfully:', newEvent);
         eventId = newEvent.id;
       }
 

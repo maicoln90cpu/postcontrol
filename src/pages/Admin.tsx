@@ -85,11 +85,47 @@ const Admin = () => {
   }, [isAgencyAdmin, isMasterAdmin]);
 
   useEffect(() => {
-    if (user && isAgencyAdmin) {
+    if (user && (isAgencyAdmin || isMasterAdmin)) {
+      loadCurrentAgency();
       loadData();
       loadRejectionTemplates();
     }
-  }, [user, isAgencyAdmin, currentAgency]);
+  }, [user, isAgencyAdmin, isMasterAdmin]);
+
+  const loadCurrentAgency = async () => {
+    if (!user) return;
+
+    // If master admin and viewing specific agency, use query param
+    const urlParams = new URLSearchParams(window.location.search);
+    const agencySlug = urlParams.get('agency');
+    
+    if (agencySlug) {
+      const { data } = await sb
+        .from('agencies')
+        .select('*')
+        .eq('slug', agencySlug)
+        .maybeSingle();
+      
+      console.log('🏢 Loaded agency from URL:', data);
+      setCurrentAgency(data);
+      return;
+    }
+
+    // If agency admin, load their own agency
+    if (isAgencyAdmin && !isMasterAdmin) {
+      const { data: profileData } = await sb
+        .from('profiles')
+        .select('agency_id, agencies(*)')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      console.log('🏢 Agency admin profile:', profileData);
+      
+      if (profileData?.agencies) {
+        setCurrentAgency(profileData.agencies);
+      }
+    }
+  };
 
   const loadAgencyBySlug = async (slug: string) => {
     const { data } = await sb
@@ -107,21 +143,45 @@ const Admin = () => {
   };
 
   const loadData = async () => {
-    // Build agency filter if viewing specific agency
-    const agencyFilter = currentAgency?.id ? { agency_id: currentAgency.id } : {};
-    const { data: eventsData } = await sb
-      .from('events')
-      .select('*')
-      .match(agencyFilter)
-      .order('created_at', { ascending: false });
+    if (!user) return;
+
+    let agencyIdFilter = null;
+
+    // Determine which agency's data to load
+    if (isMasterAdmin && !currentAgency) {
+      // Master admin without specific agency = see all data
+      agencyIdFilter = null;
+    } else if (currentAgency) {
+      // Viewing specific agency (master admin or agency admin)
+      agencyIdFilter = currentAgency.id;
+    } else if (isAgencyAdmin) {
+      // Agency admin - load their own agency
+      const { data: profileData } = await sb
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      agencyIdFilter = profileData?.agency_id;
+    }
+
+    console.log('📊 Loading data with agency filter:', agencyIdFilter);
+
+    // Load events
+    let eventsQuery = sb.from('events').select('*');
+    if (agencyIdFilter) {
+      eventsQuery = eventsQuery.eq('agency_id', agencyIdFilter);
+    }
+    const { data: eventsData } = await eventsQuery.order('created_at', { ascending: false });
     
-    const { data: postsData } = await sb
-      .from('posts')
-      .select('*, events(title)')
-      .match(agencyFilter)
-      .order('created_at', { ascending: false });
+    // Load posts
+    let postsQuery = sb.from('posts').select('*, events(title)');
+    if (agencyIdFilter) {
+      postsQuery = postsQuery.eq('agency_id', agencyIdFilter);
+    }
+    const { data: postsData } = await postsQuery.order('created_at', { ascending: false });
     
-    // For submissions, filter via posts.agency_id
+    // Load submissions via posts.agency_id
     let submissionsQuery = sb
       .from('submissions')
       .select(`
@@ -129,8 +189,8 @@ const Admin = () => {
         posts!inner(post_number, deadline, event_id, agency_id, events(title, id))
       `);
     
-    if (currentAgency?.id) {
-      submissionsQuery = submissionsQuery.eq('posts.agency_id', currentAgency.id);
+    if (agencyIdFilter) {
+      submissionsQuery = submissionsQuery.eq('posts.agency_id', agencyIdFilter);
     }
     
     const { data: submissionsData } = await submissionsQuery
