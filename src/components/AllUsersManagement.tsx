@@ -71,8 +71,10 @@ export const AllUsersManagement = () => {
   }, []);
 
   const loadData = async () => {
+    console.log('🔄 Carregando usuários...');
+    
     // Load users with roles
-    const { data: usersData } = await sb
+    const { data: usersData, error } = await sb
       .from('profiles')
       .select(`
         *,
@@ -80,12 +82,16 @@ export const AllUsersManagement = () => {
       `)
       .order('created_at', { ascending: false });
 
+    console.log('📊 Usuários carregados:', usersData?.length, 'Error:', error);
+
     if (usersData) {
       // Transform data to include roles array
       const usersWithRoles = usersData.map((user: any) => ({
         ...user,
         roles: user.user_roles?.map((ur: any) => ur.role) || []
       }));
+      
+      console.log('✅ Usuários com roles:', usersWithRoles.length);
       
       setUsers(usersWithRoles);
 
@@ -95,7 +101,7 @@ export const AllUsersManagement = () => {
         usersWithRoles.map(async (user) => {
           const { count } = await sb
             .from('submissions')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', user.id);
           counts[user.id] = count || 0;
         })

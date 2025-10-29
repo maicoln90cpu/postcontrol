@@ -68,11 +68,11 @@ const Admin = () => {
   }, [searchTerm]);
 
   useEffect(() => {
-    if (!loading && (!user || !isAgencyAdmin)) {
+    if (!loading && (!user || (!isAgencyAdmin && !isMasterAdmin))) {
       navigate('/dashboard');
       toast.error("Acesso negado. Você não tem permissão para acessar esta página.");
     }
-  }, [user, isAgencyAdmin, loading, navigate]);
+  }, [user, isAgencyAdmin, isMasterAdmin, loading, navigate]);
 
   useEffect(() => {
     // Detect agency from URL query param

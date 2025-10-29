@@ -35,13 +35,27 @@ export default function AgencySignup() {
       return;
     }
 
+    console.log('🔍 Buscando agência com slug:', slug);
+
     const { data, error } = await sb
       .from('agencies')
       .select('*')
       .eq('slug', slug)
       .maybeSingle();
 
-    if (error || !data) {
+    console.log('📊 Resultado da busca:', { data, error });
+
+    if (error) {
+      console.error('❌ Erro ao buscar agência:', error);
+      toast({
+        title: "Erro ao buscar agência",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+
+    if (!data) {
+      console.warn('⚠️ Agência não encontrada para slug:', slug);
       toast({
         title: "Agência não encontrada",
         description: "Esta agência não existe ou foi removida.",
