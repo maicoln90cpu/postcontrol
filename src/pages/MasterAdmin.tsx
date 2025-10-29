@@ -40,6 +40,7 @@ import { FinancialReports } from "@/components/FinancialReports";
 import { EditAgencyDialog } from "@/components/EditAgencyDialog";
 import { AgencyAdminCard } from "@/components/AgencyAdminCard";
 import { AllUsersManagement } from "@/components/AllUsersManagement";
+import { AdminSettings } from "@/components/AdminSettings";
 
 interface Agency {
   id: string;
@@ -209,13 +210,19 @@ const MasterAdmin = () => {
       }, 0);
   };
 
-  const getFullAgencyUrl = (slug: string) => {
-    const baseDomain = window.location.origin;
+  const getFullAgencyUrl = async (slug: string) => {
+    const { data } = await sb
+      .from('admin_settings')
+      .select('setting_value')
+      .eq('setting_key', 'custom_domain')
+      .maybeSingle();
+    
+    const baseDomain = data?.setting_value || window.location.origin;
     return `${baseDomain}/agency/${slug}`;
   };
 
-  const handleCopyAgencyLink = (slug: string) => {
-    const url = getFullAgencyUrl(slug);
+  const handleCopyAgencyLink = async (slug: string) => {
+    const url = await getFullAgencyUrl(slug);
     navigator.clipboard.writeText(url);
     toast({
       title: "Link Copiado!",
@@ -309,11 +316,12 @@ const MasterAdmin = () => {
 
         {/* Tabs com diferentes áreas */}
         <Tabs defaultValue="agencies" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="agencies">Agências e Administradores</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="reports">Relatórios</TabsTrigger>
+            <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="agencies" className="space-y-6">
@@ -330,6 +338,10 @@ const MasterAdmin = () => {
 
           <TabsContent value="reports">
             <FinancialReports />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <AdminSettings />
           </TabsContent>
         </Tabs>
       </div>

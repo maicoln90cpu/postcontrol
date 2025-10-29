@@ -17,18 +17,11 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
-import { UserPlus, Building2, Link as LinkIcon, Edit, Trash2, ExternalLink, Copy } from "lucide-react";
+import { UserPlus, Building2, Link as LinkIcon, Copy } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
 import { useToast } from "@/hooks/use-toast";
 import { EditAdminDialog } from "./EditAdminDialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { AgencyAdminCard } from "./AgencyAdminCard";
 
 interface Plan {
   plan_key: string;
@@ -50,14 +43,37 @@ interface AdminData {
   created_at: string;
 }
 
+interface Agency {
+  id: string;
+  name: string;
+  slug: string;
+  subscription_plan: string;
+  subscription_status: string;
+  max_influencers: number;
+  max_events: number;
+  owner_id?: string;
+  created_at: string;
+  admin?: AdminData;
+  plan?: Plan;
+  stats?: {
+    totalInfluencers: number;
+    totalEvents: number;
+    totalSubmissions: number;
+  };
+  fullUrl?: string; // Add this to store computed URL
+}
+
 export const AdminManager = () => {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [admins, setAdmins] = useState<AdminData[]>([]);
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'trial' | 'suspended'>('all');
   const [selectedAdmin, setSelectedAdmin] = useState<AdminData | null>(null);
   const [inviteLink, setInviteLink] = useState("");
+  const [customDomain, setCustomDomain] = useState<string>("");
   const [newAdmin, setNewAdmin] = useState({
     email: "",
     agencyName: "",
@@ -68,7 +84,24 @@ export const AdminManager = () => {
   useEffect(() => {
     loadPlans();
     loadAdmins();
+    loadCustomDomain();
   }, []);
+
+  useEffect(() => {
+    if (customDomain) {
+      loadAgencies();
+    }
+  }, [customDomain]);
+
+  const loadCustomDomain = async () => {
+    const { data } = await sb
+      .from('admin_settings')
+      .select('setting_value')
+      .eq('setting_key', 'custom_domain')
+      .maybeSingle();
+    
+    setCustomDomain(data?.setting_value || window.location.origin);
+  };
 
   const loadPlans = async () => {
     const { data } = await sb
@@ -120,6 +153,47 @@ export const AdminManager = () => {
       );
 
       setAdmins(adminsWithAgencies);
+    }
+  };
+
+  const loadAgencies = async () => {
+    const { data: agenciesData } = await sb
+      .from('agencies')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (agenciesData) {
+      const enrichedAgencies = await Promise.all(
+        agenciesData.map(async (agency: any) => {
+          const [adminData, planData, influencersCount, eventsCount, submissionsCount] = await Promise.all([
+            sb.from('profiles').select('*').eq('id', agency.owner_id).maybeSingle(),
+            sb.from('subscription_plans').select('*').eq('plan_key', agency.subscription_plan).maybeSingle(),
+            sb.from('profiles').select('id', { count: 'exact', head: true }).eq('agency_id', agency.id),
+            sb.from('events').select('id', { count: 'exact', head: true }).eq('agency_id', agency.id),
+            sb.from('submissions')
+              .select('id', { count: 'exact', head: true })
+              .in('post_id', 
+                (await sb.from('posts').select('id').eq('agency_id', agency.id)).data?.map(p => p.id) || []
+              )
+          ]);
+
+          const fullUrl = `${customDomain}/agency/${agency.slug}`;
+
+          return {
+            ...agency,
+            admin: adminData.data,
+            plan: planData.data,
+            stats: {
+              totalInfluencers: influencersCount.count || 0,
+              totalEvents: eventsCount.count || 0,
+              totalSubmissions: submissionsCount.count || 0
+            },
+            fullUrl
+          };
+        })
+      );
+
+      setAgencies(enrichedAgencies);
     }
   };
 
@@ -176,6 +250,7 @@ export const AdminManager = () => {
       });
 
       await loadAdmins();
+      await loadAgencies();
       setDialogOpen(false);
       setNewAdmin({ email: "", agencyName: "", agencySlug: "", plan: "basic" });
     } catch (error: any) {
@@ -270,6 +345,7 @@ export const AdminManager = () => {
       });
       
       await loadAdmins();
+      await loadAgencies();
     } catch (error: any) {
       toast({
         title: "Erro ao excluir agência",
@@ -278,6 +354,31 @@ export const AdminManager = () => {
       });
     }
   };
+
+  const getFullAgencyUrl = async (slug: string) => {
+    const { data } = await sb
+      .from('admin_settings')
+      .select('setting_value')
+      .eq('setting_key', 'custom_domain')
+      .maybeSingle();
+    
+    const baseDomain = data?.setting_value || window.location.origin;
+    return `${baseDomain}/agency/${slug}`;
+  };
+
+  const handleCopyAgencyLink = async (slug: string) => {
+    const url = await getFullAgencyUrl(slug);
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link copiado!",
+      description: "Link de cadastro da agência copiado.",
+    });
+  };
+
+  const filteredAgencies = agencies.filter(agency => {
+    if (statusFilter === 'all') return true;
+    return agency.subscription_status === statusFilter;
+  });
 
   const getAgencyForAdmin = (userId: string) => {
     const admin = admins.find(a => a.user_id === userId);
@@ -290,12 +391,44 @@ export const AdminManager = () => {
         <div>
           <h2 className="text-2xl font-bold">Agências e Administradores</h2>
           <p className="text-muted-foreground mt-1">
-            Gerencie agências e seus administradores
+            Gerencie todas as agências cadastradas
           </p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="bg-gradient-primary">
           <UserPlus className="mr-2 h-4 w-4" />
           Nova Agência + Admin
+        </Button>
+      </div>
+
+      {/* Filtros de Status */}
+      <div className="flex gap-2 mb-4">
+        <Button 
+          variant={statusFilter === 'all' ? 'default' : 'outline'}
+          onClick={() => setStatusFilter('all')}
+          size="sm"
+        >
+          Todas ({agencies.length})
+        </Button>
+        <Button 
+          variant={statusFilter === 'active' ? 'default' : 'outline'}
+          onClick={() => setStatusFilter('active')}
+          size="sm"
+        >
+          Ativas ({agencies.filter(a => a.subscription_status === 'active').length})
+        </Button>
+        <Button 
+          variant={statusFilter === 'trial' ? 'default' : 'outline'}
+          onClick={() => setStatusFilter('trial')}
+          size="sm"
+        >
+          Trial ({agencies.filter(a => a.subscription_status === 'trial').length})
+        </Button>
+        <Button 
+          variant={statusFilter === 'suspended' ? 'default' : 'outline'}
+          onClick={() => setStatusFilter('suspended')}
+          size="sm"
+        >
+          Suspensas ({agencies.filter(a => a.subscription_status === 'suspended').length})
         </Button>
       </div>
 
@@ -316,82 +449,39 @@ export const AdminManager = () => {
         </Card>
       )}
 
-      <Card className="p-6">
-        {admins.length === 0 ? (
+      {/* Grid de Agências */}
+      {filteredAgencies.length === 0 ? (
+        <Card className="p-8">
           <div className="text-center py-8">
             <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhum admin cadastrado</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {statusFilter === 'all' ? 'Nenhuma agência cadastrada' : `Nenhuma agência ${statusFilter === 'active' ? 'ativa' : statusFilter === 'trial' ? 'em trial' : 'suspensa'}`}
+            </h3>
             <p className="text-muted-foreground mb-4">
-              Crie uma nova agência e convide o primeiro administrador
+              {statusFilter === 'all' ? 'Crie uma nova agência e convide o primeiro administrador' : 'Ajuste os filtros para ver outras agências'}
             </p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Agência</TableHead>
-                  <TableHead>Cadastro</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {admins.map((admin) => (
-                  <TableRow key={admin.user_id}>
-                    <TableCell className="font-medium">{admin.full_name}</TableCell>
-                    <TableCell>{admin.email}</TableCell>
-                    <TableCell>{admin.phone || '-'}</TableCell>
-                    <TableCell>
-                      {admin.agency_name ? (
-                        <div>
-                          <div className="font-medium">{admin.agency_name}</div>
-                          <div className="text-xs text-muted-foreground">/{admin.agency_slug}</div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">Sem agência</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{new Date(admin.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedAdmin(admin);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        {admin.agency_slug && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(`/admin?agency=${admin.agency_slug}`, '_blank')}
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteAdmin(admin.user_id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {filteredAgencies.map((agency) => (
+            <AgencyAdminCard
+              key={agency.id}
+              agency={agency}
+              admin={agency.admin || null}
+              planDetails={agency.plan || null}
+              stats={agency.stats}
+              fullUrl={agency.fullUrl || ''}
+              onEdit={() => {
+                // TODO: Abrir EditAgencyDialog
+              }}
+              onDelete={() => handleDeleteAgency(agency.id, agency.name)}
+              onViewDashboard={() => window.open(`/admin?agency=${agency.slug}`, '_blank')}
+              onCopyLink={() => handleCopyAgencyLink(agency.slug)}
+            />
+          ))}
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">

@@ -3,12 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Phone, Save } from "lucide-react";
+import { Phone, Save, Globe } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
 import { toast } from "sonner";
 
 export const AdminSettings = () => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -16,19 +17,22 @@ export const AdminSettings = () => {
   }, []);
 
   const loadSettings = async () => {
-    const { data, error } = await sb
+    const { data: settings, error } = await sb
       .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'whatsapp_number')
-      .single();
+      .select('setting_key, setting_value')
+      .in('setting_key', ['whatsapp_number', 'custom_domain']);
 
     if (error) {
       console.error('Error loading settings:', error);
       return;
     }
 
-    if (data) {
-      setWhatsappNumber(data.setting_value || '');
+    if (settings) {
+      const whatsapp = settings.find(s => s.setting_key === 'whatsapp_number');
+      const domain = settings.find(s => s.setting_key === 'custom_domain');
+      
+      setWhatsappNumber(whatsapp?.setting_value || '');
+      setCustomDomain(domain?.setting_value || '');
     }
   };
 
@@ -37,22 +41,46 @@ export const AdminSettings = () => {
     
     // Validar formato do número
     const cleanNumber = whatsappNumber.replace(/\D/g, '');
-    if (cleanNumber.length < 10 || cleanNumber.length > 11) {
+    if (whatsappNumber && (cleanNumber.length < 10 || cleanNumber.length > 11)) {
       toast.error("Número de telefone inválido. Use o formato: (00) 00000-0000");
       setLoading(false);
       return;
     }
 
-    const { error } = await sb
-      .from('admin_settings')
-      .update({ setting_value: whatsappNumber })
-      .eq('setting_key', 'whatsapp_number');
+    // Validar URL customizada
+    if (customDomain && !customDomain.startsWith('http')) {
+      toast.error("URL deve começar com http:// ou https://");
+      setLoading(false);
+      return;
+    }
 
-    if (error) {
+    try {
+      // Atualizar whatsapp
+      if (whatsappNumber) {
+        await sb
+          .from('admin_settings')
+          .upsert({ 
+            setting_key: 'whatsapp_number', 
+            setting_value: whatsappNumber,
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'setting_key' });
+      }
+
+      // Atualizar custom domain
+      if (customDomain) {
+        await sb
+          .from('admin_settings')
+          .upsert({ 
+            setting_key: 'custom_domain', 
+            setting_value: customDomain.replace(/\/$/, ''), // Remove trailing slash
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'setting_key' });
+      }
+
+      toast.success("Configurações salvas com sucesso!");
+    } catch (error: any) {
       console.error('Error saving settings:', error);
       toast.error("Erro ao salvar configurações");
-    } else {
-      toast.success("Configurações salvas com sucesso!");
     }
 
     setLoading(false);
@@ -61,17 +89,36 @@ export const AdminSettings = () => {
   return (
     <Card className="p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Configurações do Admin</h2>
+        <h2 className="text-2xl font-bold mb-2">⚙️ Configurações do Sistema</h2>
         <p className="text-muted-foreground text-sm">
-          Configure as informações de contato que serão exibidas para os usuários
+          Configure as informações globais da plataforma
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="customDomain">
+            <Globe className="inline mr-2 h-4 w-4" />
+            URL Base para Links de Agência
+          </Label>
+          <Input
+            id="customDomain"
+            placeholder="https://seudominio.com.br"
+            value={customDomain}
+            onChange={(e) => setCustomDomain(e.target.value)}
+            disabled={loading}
+          />
+          <p className="text-xs text-muted-foreground">
+            Esta URL será usada para gerar links de convite das agências.
+            <br />
+            <strong>Exemplo:</strong> {customDomain || 'https://seudominio.com.br'}/agency/nome-agencia
+          </p>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="whatsapp">
             <Phone className="inline mr-2 h-4 w-4" />
-            Número do WhatsApp
+            Número do WhatsApp (Opcional)
           </Label>
           <Input
             id="whatsapp"
