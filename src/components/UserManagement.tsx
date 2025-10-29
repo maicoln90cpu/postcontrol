@@ -33,11 +33,18 @@ export const UserManagement = () => {
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
-  const [isMasterAdmin, setIsMasterAdmin] = useState(false);
+  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     checkAdminStatus();
   }, []);
+
+  // Carregar usuários apenas quando isMasterAdmin e currentAgencyId estiverem definidos
+  useEffect(() => {
+    if (isMasterAdmin !== null && (isMasterAdmin || currentAgencyId)) {
+      loadUsers();
+    }
+  }, [isMasterAdmin, currentAgencyId]);
 
   const checkAdminStatus = async () => {
     const { data: { user } } = await sb.auth.getUser();
@@ -53,21 +60,20 @@ export const UserManagement = () => {
     
     setIsMasterAdmin(!!masterCheck);
 
-    // If not master admin, get their agency_id
+    // Se não for master admin, buscar agência onde é owner
     if (!masterCheck) {
-      const { data: profileData } = await sb
-        .from('profiles')
-        .select('agency_id')
-        .eq('id', user.id)
+      const { data: agencyData } = await sb
+        .from('agencies')
+        .select('id')
+        .eq('owner_id', user.id)
         .maybeSingle();
       
-      setCurrentAgencyId(profileData?.agency_id || null);
-      console.log('👤 Agency Admin - loading users for agency:', profileData?.agency_id);
+      setCurrentAgencyId(agencyData?.id || null);
+      console.log('👤 Agency Admin - agência:', agencyData?.id);
     } else {
-      console.log('👑 Master Admin - loading all users');
+      console.log('👑 Master Admin');
     }
-
-    loadUsers();
+    // Não chamar loadUsers() aqui - será chamado pelo useEffect
   };
 
   const loadUsers = async () => {
@@ -86,23 +92,37 @@ export const UserManagement = () => {
         console.log(`📊 Loaded ${data?.length || 0} users (master admin)`);
         setUsers(data || []);
       } else if (currentAgencyId) {
-        // Agency admin vê apenas usuários da sua agência através de user_agencies
-        console.log('👤 Agency Admin - carregando usuários da agência:', currentAgencyId);
+        // Agency admin vê apenas usuários que fizeram submissões em eventos da sua agência
+        console.log('👤 Agency Admin - carregando usuários com submissões da agência:', currentAgencyId);
         
         const { data, error } = await sb
-          .from('user_agencies')
+          .from('submissions')
           .select(`
             user_id,
-            profiles!inner(*)
+            profiles!inner(*),
+            posts!inner(
+              event_id,
+              events!inner(
+                agency_id
+              )
+            )
           `)
-          .eq('agency_id', currentAgencyId);
+          .eq('posts.events.agency_id', currentAgencyId);
 
         if (error) throw error;
         
-        // Extrair profiles do resultado
-        const userProfiles = (data || []).map((ua: any) => ua.profiles);
-        console.log(`📊 Loaded ${userProfiles.length} users for agency ${currentAgencyId}`);
-        setUsers(userProfiles);
+        // Remover duplicatas (mesmo usuário pode ter múltiplas submissões)
+        const uniqueUsers = Array.from(
+          new Map(
+            (data || []).map((item: any) => [
+              item.profiles.id,
+              item.profiles
+            ])
+          ).values()
+        ) as Profile[];
+        
+        console.log(`📊 Loaded ${uniqueUsers.length} users for agency ${currentAgencyId}`);
+        setUsers(uniqueUsers);
       } else {
         console.warn('⚠️ Agency admin sem currentAgencyId definido');
         setUsers([]);
