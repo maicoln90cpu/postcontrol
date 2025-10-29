@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3 } from "lucide-react";
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useNavigate, Link } from "react-router-dom";
 import { EventDialog } from "@/components/EventDialog";
@@ -27,8 +27,9 @@ import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
 const Admin = () => {
-  const { user, isAgencyAdmin, loading, signOut } = useAuthStore();
+  const { user, isAgencyAdmin, isMasterAdmin, loading, signOut } = useAuthStore();
   const navigate = useNavigate();
+  const [currentAgency, setCurrentAgency] = useState<any>(null);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [postDialogOpen, setPostDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -74,11 +75,31 @@ const Admin = () => {
   }, [user, isAgencyAdmin, loading, navigate]);
 
   useEffect(() => {
+    // Detect agency from URL query param
+    const urlParams = new URLSearchParams(window.location.search);
+    const agencySlug = urlParams.get('agency');
+    
+    if (agencySlug && (isAgencyAdmin || isMasterAdmin)) {
+      loadAgencyBySlug(agencySlug);
+    }
+  }, [isAgencyAdmin, isMasterAdmin]);
+
+  useEffect(() => {
     if (user && isAgencyAdmin) {
       loadData();
       loadRejectionTemplates();
     }
-  }, [user, isAgencyAdmin]);
+  }, [user, isAgencyAdmin, currentAgency]);
+
+  const loadAgencyBySlug = async (slug: string) => {
+    const { data } = await sb
+      .from('agencies')
+      .select('id, name, slug')
+      .eq('slug', slug)
+      .maybeSingle();
+    
+    setCurrentAgency(data);
+  };
 
   const loadRejectionTemplates = async () => {
     const { data } = await sb.from('rejection_templates').select('*').order('title');
@@ -86,22 +107,33 @@ const Admin = () => {
   };
 
   const loadData = async () => {
+    // Build agency filter if viewing specific agency
+    const agencyFilter = currentAgency?.id ? { agency_id: currentAgency.id } : {};
     const { data: eventsData } = await sb
       .from('events')
       .select('*')
+      .match(agencyFilter)
       .order('created_at', { ascending: false });
     
     const { data: postsData } = await sb
       .from('posts')
       .select('*, events(title)')
+      .match(agencyFilter)
       .order('created_at', { ascending: false });
     
-    const { data: submissionsData } = await sb
+    // For submissions, filter via posts.agency_id
+    let submissionsQuery = sb
       .from('submissions')
       .select(`
         *,
-        posts(post_number, deadline, event_id, events(title, id))
-      `)
+        posts!inner(post_number, deadline, event_id, agency_id, events(title, id))
+      `);
+    
+    if (currentAgency?.id) {
+      submissionsQuery = submissionsQuery.eq('posts.agency_id', currentAgency.id);
+    }
+    
+    const { data: submissionsData } = await submissionsQuery
       .order('submitted_at', { ascending: false });
 
     // Buscar perfis em lote (admins têm permissão para ver todos)
@@ -459,6 +491,32 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
+      {/* Agency Filter Indicator */}
+      {currentAgency && (
+        <div className="bg-primary/10 border-b border-primary/20">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Visualizando dados de:</p>
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  {currentAgency.name}
+                </h3>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  navigate('/master-admin');
+                  setCurrentAgency(null);
+                }}
+              >
+                ← Voltar ao Painel Master
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">

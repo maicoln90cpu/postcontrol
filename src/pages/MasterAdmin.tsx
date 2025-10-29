@@ -38,6 +38,8 @@ import { PlanManager } from "@/components/PlanManager";
 import { AdminManager } from "@/components/AdminManager";
 import { FinancialReports } from "@/components/FinancialReports";
 import { EditAgencyDialog } from "@/components/EditAgencyDialog";
+import { AgencyAdminCard } from "@/components/AgencyAdminCard";
+import { AllUsersManagement } from "@/components/AllUsersManagement";
 
 interface Agency {
   id: string;
@@ -308,111 +310,18 @@ const MasterAdmin = () => {
         {/* Tabs com diferentes áreas */}
         <Tabs defaultValue="agencies" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="agencies">Agências</TabsTrigger>
-            <TabsTrigger value="admins">Admins</TabsTrigger>
+            <TabsTrigger value="agencies">Agências e Administradores</TabsTrigger>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="reports">Relatórios</TabsTrigger>
           </TabsList>
 
           <TabsContent value="agencies" className="space-y-6">
-            {/* Actions */}
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Agências Cadastradas</h2>
-            </div>
-
-            {/* Agencies List */}
-            <div className="grid gap-6">
-              {agencies.length === 0 ? (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground mb-4">Nenhuma agência cadastrada</p>
-                  <p className="text-sm text-muted-foreground">Vá para a aba "Admins" para criar uma nova agência com admin</p>
-                </Card>
-              ) : (
-                agencies.map((agency) => (
-                  <Card key={agency.id} className="p-6 border-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold">{agency.name}</h3>
-                          <Badge variant={
-                            agency.subscription_status === 'active' ? 'default' :
-                            agency.subscription_status === 'trial' ? 'secondary' :
-                            'destructive'
-                          }>
-                            {agency.subscription_status === 'active' ? 'Ativo' :
-                             agency.subscription_status === 'trial' ? 'Trial' :
-                             agency.subscription_status === 'suspended' ? 'Suspenso' : 'Inativo'}
-                          </Badge>
-                          <Badge variant="outline">
-                            {agency.subscription_plan === 'basic' ? 'Básico' :
-                             agency.subscription_plan === 'pro' ? 'Pro' : 'Enterprise'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid md:grid-cols-4 gap-4 mt-4">
-                          <div className="md:col-span-2">
-                            <p className="text-sm text-muted-foreground">URL da Agência</p>
-                            <p className="font-mono text-sm break-all">{getFullAgencyUrl(agency.slug)}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Influencers</p>
-                            <p className="text-lg font-bold">
-                              {agencyStats[agency.id]?.totalInfluencers || 0} / {agency.max_influencers}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Eventos</p>
-                            <p className="text-lg font-bold">
-                              {agencyStats[agency.id]?.totalEvents || 0} / {agency.max_events}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Submissões</p>
-                            <p className="text-lg font-bold">
-                              {agencyStats[agency.id]?.totalSubmissions || 0}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleCopyAgencyLink(agency.slug)}
-                          >
-                            <Copy className="mr-2 h-4 w-4" />
-                            Copiar Link
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedAgency(agency);
-                              setEditAgencyDialogOpen(true);
-                            }}
-                          >
-                            <Settings className="mr-2 h-4 w-4" />
-                            Configurar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(`/admin?agency=${agency.slug}`)}
-                          >
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Ver Dashboard
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
+            <AdminManager />
           </TabsContent>
 
-          <TabsContent value="admins">
-            <AdminManager />
+          <TabsContent value="users">
+            <AllUsersManagement />
           </TabsContent>
 
           <TabsContent value="plans">

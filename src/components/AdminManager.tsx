@@ -224,18 +224,78 @@ export const AdminManager = () => {
     }
   };
 
+  const handleDeleteAgency = async (agencyId: string, agencyName: string) => {
+    // Check if agency has data
+    const { count: eventsCount } = await sb
+      .from('events')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', agencyId);
+    
+    const { count: postsCount } = await sb
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', agencyId);
+    
+    const hasData = (eventsCount || 0) > 0 || (postsCount || 0) > 0;
+    
+    let confirmed = false;
+    if (hasData) {
+      const userInput = prompt(
+        `⚠️ ATENÇÃO: A agência "${agencyName}" possui ${eventsCount} eventos e ${postsCount} posts.\n\nTODOS OS DADOS SERÃO PERMANENTEMENTE EXCLUÍDOS (incluindo submissões).\n\nDigite "EXCLUIR" para confirmar:`
+      );
+      confirmed = userInput === 'EXCLUIR';
+    } else {
+      confirmed = window.confirm(`Tem certeza que deseja excluir a agência "${agencyName}"?`);
+    }
+    
+    if (!confirmed) {
+      toast({
+        title: "Exclusão cancelada",
+        variant: "default",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await sb
+        .from('agencies')
+        .delete()
+        .eq('id', agencyId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Agência excluída",
+        description: "A agência e todos os seus dados foram removidos com sucesso.",
+      });
+      
+      await loadAdmins();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir agência",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getAgencyForAdmin = (userId: string) => {
+    const admin = admins.find(a => a.user_id === userId);
+    return admin?.agency_id;
+  };
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold">Gerenciar Admins</h2>
+          <h2 className="text-2xl font-bold">Agências e Administradores</h2>
           <p className="text-muted-foreground mt-1">
-            Crie novas agências e convide administradores
+            Gerencie agências e seus administradores
           </p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="bg-gradient-primary">
           <UserPlus className="mr-2 h-4 w-4" />
-          Novo Admin
+          Nova Agência + Admin
         </Button>
       </div>
 
