@@ -39,6 +39,7 @@ interface UserProfile {
   instagram?: string;
   agency_id?: string;
   created_at: string;
+  roles?: string[];
 }
 
 interface Agency {
@@ -53,6 +54,7 @@ export const AllUsersManagement = () => {
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [agencyFilter, setAgencyFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({
@@ -69,19 +71,28 @@ export const AllUsersManagement = () => {
   }, []);
 
   const loadData = async () => {
-    // Load users
+    // Load users with roles
     const { data: usersData } = await sb
       .from('profiles')
-      .select('*')
+      .select(`
+        *,
+        user_roles(role)
+      `)
       .order('created_at', { ascending: false });
 
     if (usersData) {
-      setUsers(usersData);
+      // Transform data to include roles array
+      const usersWithRoles = usersData.map((user: any) => ({
+        ...user,
+        roles: user.user_roles?.map((ur: any) => ur.role) || []
+      }));
+      
+      setUsers(usersWithRoles);
 
       // Load submission counts for each user
       const counts: Record<string, number> = {};
       await Promise.all(
-        usersData.map(async (user) => {
+        usersWithRoles.map(async (user) => {
           const { count } = await sb
             .from('submissions')
             .select('*', { count: 'exact', head: true })
@@ -185,6 +196,20 @@ export const AllUsersManagement = () => {
     return agency?.name || "—";
   };
 
+  const getUserRole = (roles?: string[]) => {
+    if (!roles || roles.length === 0) return "Usuário";
+    if (roles.includes("master_admin")) return "Master Admin";
+    if (roles.includes("agency_admin")) return "Agency Admin";
+    return "Usuário";
+  };
+
+  const getRoleBadgeVariant = (roles?: string[]) => {
+    if (!roles || roles.length === 0) return "secondary";
+    if (roles.includes("master_admin")) return "default";
+    if (roles.includes("agency_admin")) return "outline";
+    return "secondary";
+  };
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch = searchTerm
       ? user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -195,7 +220,13 @@ export const AllUsersManagement = () => {
     const matchesAgency =
       agencyFilter === "all" || user.agency_id === agencyFilter;
 
-    return matchesSearch && matchesAgency;
+    const matchesRole = 
+      roleFilter === "all" || 
+      (roleFilter === "master_admin" && user.roles?.includes("master_admin")) ||
+      (roleFilter === "agency_admin" && user.roles?.includes("agency_admin")) ||
+      (roleFilter === "user" && (!user.roles || user.roles.length === 0));
+
+    return matchesSearch && matchesAgency && matchesRole;
   });
 
   return (
@@ -227,7 +258,20 @@ export const AllUsersManagement = () => {
               />
             </div>
           </div>
-          <div className="w-full md:w-64">
+          <div className="w-full md:w-48">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Nível de acesso" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os níveis</SelectItem>
+                <SelectItem value="master_admin">Master Admin</SelectItem>
+                <SelectItem value="agency_admin">Agency Admin</SelectItem>
+                <SelectItem value="user">Usuário</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full md:w-48">
             <Select value={agencyFilter} onValueChange={setAgencyFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas as agências" />
@@ -264,6 +308,7 @@ export const AllUsersManagement = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Instagram</TableHead>
                   <TableHead>Telefone</TableHead>
+                  <TableHead>Nível de Acesso</TableHead>
                   <TableHead>Agência</TableHead>
                   <TableHead className="text-center">Submissões</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -278,6 +323,11 @@ export const AllUsersManagement = () => {
                       {user.instagram ? `@${user.instagram}` : "—"}
                     </TableCell>
                     <TableCell>{user.phone || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleBadgeVariant(user.roles)}>
+                        {getUserRole(user.roles)}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{getAgencyName(user.agency_id)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant="secondary">
