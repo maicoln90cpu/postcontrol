@@ -43,7 +43,7 @@ interface EventStats {
 }
 
 const Dashboard = () => {
-  const { user, signOut, isAdmin, isMasterAdmin } = useAuthStore();
+  const { user, signOut, isAgencyAdmin, isMasterAdmin } = useAuthStore();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
@@ -213,7 +213,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-4">
             {user && <NotificationBell userId={user.id} />}
             <ThemeToggle />
-            {isAdmin && (
+            {isAgencyAdmin && (
               <Link to="/admin">
                 <Button className="bg-gradient-secondary">
                   🏢 Painel Agência

@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
 const Admin = () => {
-  const { user, isAdmin, loading, signOut } = useAuthStore();
+  const { user, isAgencyAdmin, loading, signOut } = useAuthStore();
   const navigate = useNavigate();
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [postDialogOpen, setPostDialogOpen] = useState(false);
@@ -67,18 +67,18 @@ const Admin = () => {
   }, [searchTerm]);
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
+    if (!loading && (!user || !isAgencyAdmin)) {
       navigate('/dashboard');
       toast.error("Acesso negado. Você não tem permissão para acessar esta página.");
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, isAgencyAdmin, loading, navigate]);
 
   useEffect(() => {
-    if (user && isAdmin) {
+    if (user && isAgencyAdmin) {
       loadData();
       loadRejectionTemplates();
     }
-  }, [user, isAdmin]);
+  }, [user, isAgencyAdmin]);
 
   const loadRejectionTemplates = async () => {
     const { data } = await sb.from('rejection_templates').select('*').order('title');
@@ -453,7 +453,7 @@ const Admin = () => {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user || !isAgencyAdmin) {
     return null;
   }
 

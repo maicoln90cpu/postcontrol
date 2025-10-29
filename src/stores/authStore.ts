@@ -6,38 +6,38 @@ import { User, Session } from '@supabase/supabase-js';
 interface AuthState {
   user: User | null;
   session: Session | null;
-  isAdmin: boolean;
+  isAgencyAdmin: boolean;
   isMasterAdmin: boolean;
   loading: boolean;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
-  setIsAdmin: (isAdmin: boolean) => void;
+  setIsAgencyAdmin: (isAgencyAdmin: boolean) => void;
   setIsMasterAdmin: (isMasterAdmin: boolean) => void;
   setLoading: (loading: boolean) => void;
   signOut: () => Promise<void>;
-  checkAdminStatus: () => Promise<void>;
+  checkAgencyAdminStatus: () => Promise<void>;
   checkMasterAdminStatus: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
-  isAdmin: false,
+  isAgencyAdmin: false,
   isMasterAdmin: false,
   loading: true,
   setUser: (user) => set({ user }),
   setSession: (session) => set({ session }),
-  setIsAdmin: (isAdmin) => set({ isAdmin }),
+  setIsAgencyAdmin: (isAgencyAdmin) => set({ isAgencyAdmin }),
   setIsMasterAdmin: (isMasterAdmin) => set({ isMasterAdmin }),
   setLoading: (loading) => set({ loading }),
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ user: null, session: null, isAdmin: false, isMasterAdmin: false });
+    set({ user: null, session: null, isAgencyAdmin: false, isMasterAdmin: false });
   },
-  checkAdminStatus: async () => {
+  checkAgencyAdminStatus: async () => {
     const { user } = get();
     if (!user) {
-      set({ isAdmin: false });
+      set({ isAgencyAdmin: false });
       return;
     }
 
@@ -45,10 +45,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .eq('role', 'admin')
+      .eq('role', 'agency_admin')
       .maybeSingle();
 
-    set({ isAdmin: !error && !!data });
+    set({ isAgencyAdmin: !error && !!data });
   },
   checkMasterAdminStatus: async () => {
     const { user } = get();

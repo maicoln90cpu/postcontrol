@@ -31,7 +31,7 @@ interface SubmissionCommentsProps {
 }
 
 export const SubmissionComments = ({ submissionId, onCommentAdded }: SubmissionCommentsProps) => {
-  const { user, isAdmin } = useAuthStore();
+  const { user, isAgencyAdmin } = useAuthStore();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isInternal, setIsInternal] = useState(false);
@@ -94,7 +94,7 @@ export const SubmissionComments = ({ submissionId, onCommentAdded }: SubmissionC
           submission_id: submissionId,
           user_id: user.id,
           comment: newComment.trim(),
-          is_internal: isInternal && isAdmin, // Apenas admins podem criar comentários internos
+          is_internal: isInternal && isAgencyAdmin, // Apenas agency admins podem criar comentários internos
         });
 
       if (error) throw error;
@@ -174,7 +174,7 @@ export const SubmissionComments = ({ submissionId, onCommentAdded }: SubmissionC
         />
         
         <div className="flex items-center justify-between gap-3">
-          {isAdmin && (
+          {isAgencyAdmin && (
             <div className="flex items-center space-x-2">
               <Checkbox
                 id={`internal-${submissionId}`}
