@@ -47,7 +47,7 @@ const Admin = () => {
   const [postEventFilter, setPostEventFilter] = useState<string>("all");
   const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [postToDelete, setPostToDelete] = useState<{ id: string; submissionsCount: number } | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedSubmissionForRejection, setSelectedSubmissionForRejection] = useState<string | null>(null);
@@ -583,32 +583,46 @@ const Admin = () => {
     if (!postToDelete) return;
 
     try {
-      // Verificar se há submissões associadas a este post
-      const { data: submissions } = await sb
+      // Deletar todas as submissões associadas primeiro
+      const { error: submissionsError } = await sb
         .from('submissions')
-        .select('id')
-        .eq('post_id', postToDelete);
+        .delete()
+        .eq('post_id', postToDelete.id);
 
-      if (submissions && submissions.length > 0) {
-        toast.error(`Não é possível deletar. Existem ${submissions.length} submissão(ões) associada(s) a esta postagem.`);
-        setPostToDelete(null);
-        return;
-      }
+      if (submissionsError) throw submissionsError;
 
-      const { error } = await sb
+      // Depois deletar o post
+      const { error: postError } = await sb
         .from('posts')
         .delete()
-        .eq('id', postToDelete);
+        .eq('id', postToDelete.id);
 
-      if (error) throw error;
+      if (postError) throw postError;
 
-      toast.success("Postagem deletada com sucesso");
+      const submissionsText = postToDelete.submissionsCount === 1 
+        ? "1 submissão foi deletada" 
+        : `${postToDelete.submissionsCount} submissões foram deletadas`;
+      
+      toast.success(`Postagem deletada com sucesso${postToDelete.submissionsCount > 0 ? `. ${submissionsText}` : ''}`);
       await loadData();
       setPostToDelete(null);
     } catch (error) {
       console.error('Error deleting post:', error);
       toast.error("Erro ao deletar postagem");
     }
+  };
+
+  const handleDeletePostClick = async (postId: string) => {
+    // Verificar quantas submissões estão associadas
+    const { data: submissions, count } = await sb
+      .from('submissions')
+      .select('id', { count: 'exact', head: false })
+      .eq('post_id', postId);
+
+    setPostToDelete({ 
+      id: postId, 
+      submissionsCount: count || 0 
+    });
   };
 
   const handleDeleteSubmission = async () => {
@@ -920,7 +934,7 @@ const Admin = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setPostToDelete(post.id)}
+                            onClick={() => handleDeletePostClick(post.id)}
                             className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -1500,8 +1514,12 @@ const Admin = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir postagem?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A postagem será permanentemente excluída. 
-              Não será possível deletar se houver submissões associadas.
+              Esta ação não pode ser desfeita. A postagem será permanentemente excluída.
+              {postToDelete && postToDelete.submissionsCount > 0 && (
+                <span className="block mt-2 font-semibold text-destructive">
+                  ⚠️ Atenção: {postToDelete.submissionsCount} submissão(ões) associada(s) também será(ão) deletada(s).
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1510,7 +1528,7 @@ const Admin = () => {
               onClick={handleDeletePost}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Excluir
+              Excluir {postToDelete && postToDelete.submissionsCount > 0 ? `tudo (${postToDelete.submissionsCount} submissão${postToDelete.submissionsCount > 1 ? 'ões' : ''})` : ''}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
