@@ -133,7 +133,7 @@ const handleSave = async () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Máx. Influencers</Label>
+                    <Label>Máx. Divulgadores</Label>
                     <Input
                       type="number"
                       value={editData.max_influencers || 0}
@@ -199,7 +199,7 @@ const handleSave = async () => {
 
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
-                    <p className="text-muted-foreground">Influencers</p>
+                    <p className="text-muted-foreground">Divulgadores</p>
                     <p className="font-semibold">{plan.max_influencers === 99999 ? 'Ilimitado' : plan.max_influencers}</p>
                   </div>
                   <div>

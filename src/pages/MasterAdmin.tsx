@@ -299,7 +299,7 @@ const MasterAdmin = () => {
                 <Users className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Influencers</p>
+                <p className="text-sm text-muted-foreground">Total Divulgadores</p>
                 <p className="text-3xl font-bold">
                   {Object.values(agencyStats).reduce((sum, s) => sum + s.totalInfluencers, 0)}
                 </p>
@@ -427,7 +427,7 @@ const MasterAdmin = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="maxInfluencers">Máx. Influencers</Label>
+                <Label htmlFor="maxInfluencers">Máx. Divulgadores</Label>
                 <Input
                   id="maxInfluencers"
                   type="number"

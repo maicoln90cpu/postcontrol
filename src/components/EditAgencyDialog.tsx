@@ -185,7 +185,7 @@ export const EditAgencyDialog = ({ open, onOpenChange, agency, onSuccess }: Edit
               <div className="bg-muted p-3 rounded-lg text-sm">
                 <p className="font-semibold mb-1">Limites do plano:</p>
                 <ul className="list-disc list-inside text-muted-foreground">
-                  <li>Até {selectedPlan.max_influencers === 99999 ? 'ilimitados' : selectedPlan.max_influencers} influencers</li>
+                  <li>Até {selectedPlan.max_influencers === 99999 ? 'ilimitados' : selectedPlan.max_influencers} divulgadores</li>
                   <li>Até {selectedPlan.max_events === 99999 ? 'ilimitados' : selectedPlan.max_events} eventos</li>
                 </ul>
               </div>

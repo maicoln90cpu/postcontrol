@@ -671,7 +671,7 @@ export const AdminManager = () => {
                   <p className="font-semibold mb-1">Limites do plano:</p>
                   {plans.filter(p => p.plan_key === newAdmin.plan).map((plan) => (
                     <ul key={plan.plan_key} className="list-disc list-inside text-muted-foreground">
-                      <li>Até {plan.max_influencers === 99999 ? 'ilimitados' : plan.max_influencers} influencers</li>
+                      <li>Até {plan.max_influencers === 99999 ? 'ilimitados' : plan.max_influencers} divulgadores</li>
                       <li>Até {plan.max_events === 99999 ? 'ilimitados' : plan.max_events} eventos</li>
                     </ul>
                   ))}

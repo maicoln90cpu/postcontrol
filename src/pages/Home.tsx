@@ -326,7 +326,7 @@ const Home = () => {
                         <span className="text-muted-foreground">/mês</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {plan.max_influencers} influencers • {plan.max_events} eventos
+                        {plan.max_influencers} divulgadores • {plan.max_events} eventos
                       </p>
                     </div>
 

@@ -126,7 +126,7 @@ export const AgencyAdminCard = ({
           </p>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <p className="text-muted-foreground">Influencers:</p>
+              <p className="text-muted-foreground">Divulgadores:</p>
               <p className="font-semibold">
                 {stats?.totalInfluencers || 0} / {agency.max_influencers === 99999 ? '∞' : agency.max_influencers}
               </p>
