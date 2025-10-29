@@ -7,11 +7,14 @@ import { Clock, User, Calendar } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
 import { toast } from "sonner";
 
+import { SubmissionImageDisplay } from "./SubmissionImageDisplay";
+
 interface Submission {
   id: string;
   status: string;
   submitted_at: string;
   screenshot_url: string;
+  screenshot_path: string | null;
   profiles: {
     full_name: string;
     instagram: string;
@@ -44,11 +47,10 @@ const DraggableSubmissionCard = ({ submission }: { submission: Submission }) => 
       <Card className={`p-3 cursor-move hover:shadow-md transition-all ${isDragging ? 'opacity-50' : ''}`}>
         <div className="space-y-2">
           <div className="aspect-video bg-muted rounded overflow-hidden">
-            <img
-              src={submission.screenshot_url}
+            <SubmissionImageDisplay
+              screenshotPath={submission.screenshot_path}
+              screenshotUrl={submission.screenshot_url}
               alt="Screenshot"
-              className="w-full h-full object-cover"
-              loading="lazy"
             />
           </div>
           <div className="space-y-1">
@@ -202,11 +204,11 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
           <Card className="p-3 shadow-lg rotate-3">
             <div className="space-y-2">
               <div className="aspect-video bg-muted rounded overflow-hidden">
-                <img
-                  src={draggingSubmission.screenshot_url}
+                <SubmissionImageDisplay
+                  screenshotPath={draggingSubmission.screenshot_path}
+                  screenshotUrl={draggingSubmission.screenshot_url}
                   alt="Screenshot"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+                  loading="eager"
                 />
               </div>
               <div className="space-y-1">

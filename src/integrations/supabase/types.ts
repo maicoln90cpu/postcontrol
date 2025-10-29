@@ -50,6 +50,7 @@ export type Database = {
           name: string
           owner_id: string | null
           plan_expiry_date: string | null
+          signup_token: string | null
           slug: string
           subscription_plan: string | null
           subscription_status: string | null
@@ -68,6 +69,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           plan_expiry_date?: string | null
+          signup_token?: string | null
           slug: string
           subscription_plan?: string | null
           subscription_status?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           plan_expiry_date?: string | null
+          signup_token?: string | null
           slug?: string
           subscription_plan?: string | null
           subscription_status?: string | null
@@ -616,7 +619,8 @@ export type Database = {
           instagram_verified_at: string | null
           post_id: string
           rejection_reason: string | null
-          screenshot_url: string
+          screenshot_path: string | null
+          screenshot_url: string | null
           status: string
           submitted_at: string
           user_id: string
@@ -630,7 +634,8 @@ export type Database = {
           instagram_verified_at?: string | null
           post_id: string
           rejection_reason?: string | null
-          screenshot_url: string
+          screenshot_path?: string | null
+          screenshot_url?: string | null
           status?: string
           submitted_at?: string
           user_id: string
@@ -644,7 +649,8 @@ export type Database = {
           instagram_verified_at?: string | null
           post_id?: string
           rejection_reason?: string | null
-          screenshot_url?: string
+          screenshot_path?: string | null
+          screenshot_url?: string | null
           status?: string
           submitted_at?: string
           user_id?: string

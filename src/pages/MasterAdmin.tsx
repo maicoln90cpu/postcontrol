@@ -46,6 +46,7 @@ interface Agency {
   id: string;
   name: string;
   slug: string;
+  signup_token: string;
   owner_id: string;
   subscription_status: string;
   subscription_plan: string;
@@ -210,7 +211,7 @@ const MasterAdmin = () => {
       }, 0);
   };
 
-  const getFullAgencyUrl = async (slug: string) => {
+  const getFullAgencyUrl = async (token: string) => {
     const { data } = await sb
       .from('admin_settings')
       .select('setting_value')
@@ -218,11 +219,24 @@ const MasterAdmin = () => {
       .maybeSingle();
     
     const baseDomain = data?.setting_value || window.location.origin;
-    return `${baseDomain}/agency/${slug}`;
+    return `${baseDomain}/agency/${token}`;
   };
 
-  const handleCopyAgencyLink = async (slug: string) => {
-    const url = await getFullAgencyUrl(slug);
+  const getAgencyUrl = (agency: Agency) => {
+    return `${window.location.origin}/agency/${agency.signup_token}`;
+  };
+
+  const copyAgencyUrl = (agency: Agency) => {
+    const url = getAgencyUrl(agency);
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link copiado!",
+      description: "URL de cadastro copiada para a área de transferência",
+    });
+  };
+
+  const handleCopyAgencyLink = async (agency: Agency) => {
+    const url = await getFullAgencyUrl(agency.signup_token);
     navigator.clipboard.writeText(url);
     toast({
       title: "Link Copiado!",

@@ -398,13 +398,11 @@ const Submit = () => {
         .from("screenshots")
         .createSignedUrl(fileName, 31536000); // 1 year expiry
 
-      if (urlError) throw urlError;
-      const screenshotUrl = signedUrlData.signedUrl;
-
+      // Store only the file path, not the signed URL
       const { error } = await sb.from("submissions").insert({
         post_id: selectedPost,
         user_id: user.id,
-        screenshot_url: screenshotUrl,
+        screenshot_path: fileName, // Store path instead of URL
       });
 
       if (error) throw error;

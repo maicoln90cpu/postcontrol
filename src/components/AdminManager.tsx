@@ -184,7 +184,7 @@ export const AdminManager = () => {
               )
           ]);
 
-          const fullUrl = `${customDomain}/agency/${agency.slug}`;
+          const fullUrl = `${customDomain}/agency/${agency.signup_token}`;
 
           return {
             ...agency,
@@ -329,7 +329,7 @@ export const AdminManager = () => {
 
       // Obter URL base para o link de convite
       const baseUrl = await getFullAgencyUrl('');
-      const resetLink = adminResult?.resetLink || `${baseUrl}/agency/${agency.slug}`;
+      const resetLink = adminResult?.resetLink || `${baseUrl}/agency/${agency.signup_token}`;
       
       setInviteLink(resetLink);
       setInviteLinkAgency(agency.name);
@@ -456,7 +456,7 @@ export const AdminManager = () => {
     }
   };
 
-  const getFullAgencyUrl = async (slug: string) => {
+  const getFullAgencyUrl = async (token: string) => {
     const { data } = await sb
       .from('admin_settings')
       .select('setting_value')
@@ -464,11 +464,11 @@ export const AdminManager = () => {
       .maybeSingle();
     
     const baseDomain = data?.setting_value || window.location.origin;
-    return `${baseDomain}/agency/${slug}`;
+    return `${baseDomain}/agency/${token}`;
   };
 
-  const handleCopyAgencyLink = async (slug: string) => {
-    const url = await getFullAgencyUrl(slug);
+  const handleCopyAgencyLink = async (token: string) => {
+    const url = await getFullAgencyUrl(token);
     navigator.clipboard.writeText(url);
     toast({
       title: "Link copiado!",

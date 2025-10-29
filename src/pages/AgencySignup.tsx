@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Building2, LogIn, UserPlus } from "lucide-react";
 
 export default function AgencySignup() {
-  const { slug } = useParams<{ slug: string }>();
+  const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [agency, setAgency] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -27,20 +27,20 @@ export default function AgencySignup() {
 
   useEffect(() => {
     loadAgency();
-  }, [slug]);
+  }, [token]);
 
   const loadAgency = async () => {
-    if (!slug) {
+    if (!token) {
       setLoading(false);
       return;
     }
 
-    console.log('🔍 Buscando agência com slug:', slug);
+    console.log('🔍 Buscando agência com token:', token);
 
     const { data, error } = await sb
       .from('agencies')
       .select('*')
-      .eq('slug', slug)
+      .eq('signup_token', token)
       .maybeSingle();
 
     console.log('📊 Resultado da busca:', { data, error });
@@ -55,10 +55,10 @@ export default function AgencySignup() {
     }
 
     if (!data) {
-      console.warn('⚠️ Agência não encontrada para slug:', slug);
+      console.warn('⚠️ Agência não encontrada para token:', token);
       toast({
         title: "Agência não encontrada",
-        description: "Esta agência não existe ou foi removida.",
+        description: "Este link de cadastro é inválido ou expirou.",
         variant: "destructive"
       });
     }
