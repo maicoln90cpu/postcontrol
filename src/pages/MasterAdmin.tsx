@@ -361,8 +361,8 @@ const MasterAdmin = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <AdminSettings />
-          </TabsContent>
+  <AdminSettings isMasterAdmin={true} />
+</TabsContent>
         </Tabs>
       </div>
 
