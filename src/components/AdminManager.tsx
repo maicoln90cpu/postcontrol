@@ -55,6 +55,7 @@ interface Agency {
   max_events: number;
   owner_id?: string;
   created_at: string;
+  signup_token?: string;
   admin?: AdminData;
   plan?: Plan;
   stats?: {
@@ -585,8 +586,8 @@ export const AdminManager = () => {
               fullUrl={agency.fullUrl || ''}
               onEdit={() => handleEditAgency(agency)}
               onDelete={() => handleDeleteAgency(agency.id, agency.name)}
-              onViewDashboard={() => window.open(`/admin?agency=${agency.slug}`, '_blank')}
-              onCopyLink={() => handleCopyAgencyLink(agency.slug)}
+              onViewDashboard={() => window.open(`/admin?agencyId=${agency.id}`, '_blank')}
+              onCopyLink={() => handleCopyAgencyLink(agency.signup_token)}
             />
           ))}
         </div>

@@ -77,8 +77,31 @@ const Admin = () => {
     }
   }, [user, isAgencyAdmin, isMasterAdmin, loading, navigate]);
 
+  // Handle Master Admin viewing specific agency via querystring agencyId
   useEffect(() => {
-    // Detect agency from URL query param
+    const urlParams = new URLSearchParams(window.location.search);
+    const agencyId = urlParams.get('agencyId');
+    
+    if (agencyId && isMasterAdmin) {
+      loadAgencyById(agencyId);
+    }
+  }, [isMasterAdmin]);
+
+  const loadAgencyById = async (id: string) => {
+    const { data } = await sb
+      .from('agencies')
+      .select('id, name, slug')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (data) {
+      setCurrentAgency(data);
+      console.log('🏢 Master Admin visualizando agência:', data.name);
+    }
+  };
+
+  useEffect(() => {
+    // Detect agency from URL query param (legacy support for slug)
     const urlParams = new URLSearchParams(window.location.search);
     const agencySlug = urlParams.get('agency');
     
@@ -150,13 +173,23 @@ const Admin = () => {
 
     let agencyIdFilter = null;
 
+    // Check if Master Admin is viewing specific agency via agencyId querystring
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryAgencyId = urlParams.get('agencyId');
+
     // Determine which agency's data to load
-    if (isMasterAdmin && !currentAgency) {
+    if (queryAgencyId && isMasterAdmin) {
+      // Master Admin viewing specific agency by ID
+      agencyIdFilter = queryAgencyId;
+      console.log('👑 Master Admin visualizando agência específica:', agencyIdFilter);
+    } else if (isMasterAdmin && !currentAgency) {
       // Master admin without specific agency = see all data
       agencyIdFilter = null;
+      console.log('👑 Master Admin - Visualizando todos os dados');
     } else if (currentAgency) {
       // Viewing specific agency (master admin or agency admin)
       agencyIdFilter = currentAgency.id;
+      console.log('🏢 Visualizando agência:', currentAgency.name);
     } else if (isAgencyAdmin) {
       // Agency admin - load their own agency
       const { data: profileData } = await sb
@@ -166,9 +199,23 @@ const Admin = () => {
         .maybeSingle();
       
       agencyIdFilter = profileData?.agency_id;
+      
+      if (!agencyIdFilter) {
+        console.error('❌ Agency Admin sem agency_id');
+        toast.error("Erro: Usuário não está associado a nenhuma agência.");
+        return;
+      }
+      console.log('👤 Agency Admin - agency_id:', agencyIdFilter);
     }
 
-    console.log('📊 Loading data with agency filter:', agencyIdFilter);
+    console.log('🔍 DEBUG ISOLAMENTO:', {
+      userId: user.id,
+      isMasterAdmin,
+      isAgencyAdmin,
+      agencyIdFilter,
+      queryAgencyId,
+      currentAgency: currentAgency?.name
+    });
 
     // Load events
     let eventsQuery = sb.from('events').select('*');

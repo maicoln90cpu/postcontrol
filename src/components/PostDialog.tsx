@@ -48,16 +48,45 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
   }, [post, open]);
 
   const loadEvents = async () => {
-    const { data, error } = await sb
-      .from('events')
-      .select('id, title')
-      .order('created_at', { ascending: false });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Check if user is master admin
+    const { data: roleData } = await sb
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'master_admin')
+      .maybeSingle();
+
+    const isMaster = !!roleData;
+
+    let query = sb.from('events').select('id, title, agency_id');
+
+    // If not master admin, filter by agency
+    if (!isMaster) {
+      const { data: profileData } = await sb
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profileData?.agency_id) {
+        query = query.eq('agency_id', profileData.agency_id);
+        console.log('🔍 Filtrando eventos por agency_id:', profileData.agency_id);
+      }
+    } else {
+      console.log('👑 Master Admin - Mostrando todos os eventos');
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error loading events:', error);
       return;
     }
 
+    console.log('📋 Eventos carregados:', data?.length);
     setEvents(data || []);
   };
 
