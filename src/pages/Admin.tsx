@@ -185,19 +185,10 @@ const Admin = () => {
       // Master Admin viewing specific agency by ID
       agencyIdFilter = queryAgencyId;
       console.log('👑 Master Admin visualizando agência específica:', agencyIdFilter);
-// Linha ~188-191 (melhorar log):
-} else if (isMasterAdmin && !currentAgency) {
-  // Master admin without specific agency = see all data
-  agencyIdFilter = null;
-  console.log('👑 Master Admin - Visualizando todos os dados');
-  console.log('🔍 DEBUG ISOLAMENTO:', {
-    userId: user.id,
-    isMasterAdmin,
-    isAgencyAdmin,
-    agencyIdFilter,
-    queryAgencyId,
-    currentAgency
-  });
+    } else if (isMasterAdmin && !currentAgency) {
+      // Master admin without specific agency = see all data
+      agencyIdFilter = null;
+      console.log('👑 Master Admin - Visualizando todos os dados');
     } else if (currentAgency) {
       // Viewing specific agency (master admin or agency admin)
       agencyIdFilter = currentAgency.id;
