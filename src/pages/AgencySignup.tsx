@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, LogIn, UserPlus } from "lucide-react";
 
@@ -22,7 +23,8 @@ export default function AgencySignup() {
     email: '',
     password: '',
     instagram: '',
-    phone: ''
+    phone: '',
+    gender: ''
   });
 
   useEffect(() => {
@@ -94,6 +96,7 @@ export default function AgencySignup() {
             full_name: formData.fullName,
             instagram: formData.instagram,
             phone: formData.phone,
+            gender: formData.gender,
           })
           .eq('id', authData.user.id);
 
@@ -232,6 +235,23 @@ export default function AgencySignup() {
                   placeholder="Seu nome completo"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gênero *</Label>
+                <Select 
+                  value={formData.gender} 
+                  onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  required
+                >
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder="Selecione seu gênero" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Feminino">Feminino</SelectItem>
+                    <SelectItem value="LGBTQ+">LGBTQ+</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="instagram">Instagram</Label>

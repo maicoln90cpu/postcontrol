@@ -13,6 +13,7 @@ import { UserPerformance } from "@/components/UserPerformance";
 import { UserManagement } from "@/components/UserManagement";
 import { AdminSettings } from "@/components/AdminSettings";
 import { AgencyAdminSettings } from "@/components/AgencyAdminSettings";
+import { AdminTutorialGuide } from "@/components/AdminTutorialGuide";
 import { SubmissionKanban } from "@/components/SubmissionKanban";
 import { SubmissionAuditLog } from "@/components/SubmissionAuditLog";
 import { SubmissionComments } from "@/components/SubmissionComments";
@@ -670,6 +671,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
+      <AdminTutorialGuide />
       {/* Admin Context Header */}
       <div className="bg-gradient-primary text-white py-4 px-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -763,7 +765,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div id="stats-cards" className="grid md:grid-cols-3 gap-6 mb-8">
           <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
@@ -806,16 +808,16 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1 h-auto">
             <TabsTrigger value="events" className="text-xs sm:text-sm py-2">Eventos</TabsTrigger>
             <TabsTrigger value="posts" className="text-xs sm:text-sm py-2">Postagens</TabsTrigger>
-            <TabsTrigger value="submissions" className="text-xs sm:text-sm py-2">Submissões</TabsTrigger>
-            <TabsTrigger value="users" className="text-xs sm:text-sm py-2">Usuários</TabsTrigger>
+            <TabsTrigger id="submissions-tab" value="submissions" className="text-xs sm:text-sm py-2">Submissões</TabsTrigger>
+            <TabsTrigger id="users-tab" value="users" className="text-xs sm:text-sm py-2">Usuários</TabsTrigger>
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2">Dashboard</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs sm:text-sm py-2">Configurações</TabsTrigger>
+            <TabsTrigger id="settings-tab" value="settings" className="text-xs sm:text-sm py-2">Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="events" className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-2xl font-bold">Gerenciar Eventos</h2>
-              <Button className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
+              <Button id="create-event-button" className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
                 setSelectedEvent(null);
                 setEventDialogOpen(true);
               }}>
