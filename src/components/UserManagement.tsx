@@ -207,13 +207,12 @@ export const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.instagram?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone?.includes(searchTerm),
-  );
+const filteredUsers = users.filter(user => {
+  const matchesSearch = ...; // lógica atual
+  const matchesGender = genderFilter === 'all' || user.gender === genderFilter;
+  const matchesEvent = eventFilter === 'all' || userEvents[user.id]?.includes(eventFilter);
+  return matchesSearch && matchesGender && matchesEvent;
+});
 
   if (loading) {
     return (
