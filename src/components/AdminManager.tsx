@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { UserPlus, Building2, Link as LinkIcon, Copy } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditAdminDialog } from "./EditAdminDialog";
 import { EditAgencyDialog } from "./EditAgencyDialog";
@@ -79,10 +80,13 @@ export const AdminManager = () => {
   const [customDomain, setCustomDomain] = useState<string>("");
   const [newAdmin, setNewAdmin] = useState({
     email: "",
+    fullName: "",
     agencyName: "",
     agencySlug: "",
     plan: "basic"
   });
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const [inviteLinkAgency, setInviteLinkAgency] = useState("");
 
   useEffect(() => {
     loadPlans();
@@ -202,8 +206,40 @@ export const AdminManager = () => {
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsCreatingAdmin(true);
 
     try {
+      // Validações
+      if (!newAdmin.email.includes('@')) {
+        toast({
+          title: "Erro",
+          description: "Email inválido",
+          variant: "destructive",
+        });
+        setIsCreatingAdmin(false);
+        return;
+      }
+
+      if (!newAdmin.agencyName.trim()) {
+        toast({
+          title: "Erro",
+          description: "Nome da agência é obrigatório",
+          variant: "destructive",
+        });
+        setIsCreatingAdmin(false);
+        return;
+      }
+
+      if (!newAdmin.fullName.trim()) {
+        toast({
+          title: "Erro",
+          description: "Nome do admin é obrigatório",
+          variant: "destructive",
+        });
+        setIsCreatingAdmin(false);
+        return;
+      }
+
       // Buscar limites do plano selecionado
       const selectedPlan = plans.find(p => p.plan_key === newAdmin.plan);
       
@@ -213,17 +249,35 @@ export const AdminManager = () => {
           description: "Plano selecionado não encontrado.",
           variant: "destructive",
         });
+        setIsCreatingAdmin(false);
         return;
       }
+
+      // Gerar slug único da agência se não fornecido
+      let slug = newAdmin.agencySlug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      if (!slug) {
+        slug = newAdmin.agencyName
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9\s-]/g, "")
+          .trim()
+          .replace(/\s+/g, "-");
+      }
+
+      console.log("Slug gerado:", slug);
 
       // Criar agência
       const { data: agency, error: agencyError } = await sb
         .from('agencies')
         .insert({
           name: newAdmin.agencyName,
-          slug: newAdmin.agencySlug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+          slug: slug,
+          admin_email: newAdmin.email,
           subscription_plan: newAdmin.plan,
           subscription_status: 'trial',
+          trial_start_date: new Date().toISOString(),
+          trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           max_influencers: selectedPlan.max_influencers,
           max_events: selectedPlan.max_events,
         })
@@ -238,30 +292,74 @@ export const AdminManager = () => {
             variant: "destructive",
           });
         } else {
-          throw agencyError;
+          console.error("Erro ao criar agência:", agencyError);
+          toast({
+            title: "Erro",
+            description: "Falha ao criar agência",
+            variant: "destructive",
+          });
         }
+        setIsCreatingAdmin(false);
         return;
       }
 
-      // Gerar link de convite
-      const link = `${window.location.origin}/auth?agency=${agency.slug}&email=${encodeURIComponent(newAdmin.email)}&mode=signup`;
-      setInviteLink(link);
+      console.log("Agência criada:", agency);
+
+      // Chamar edge function para criar o admin automaticamente
+      const { data: adminResult, error: adminError } = await supabase.functions.invoke('create-agency-admin', {
+        body: {
+          agencyId: agency.id,
+          agencyName: agency.name,
+          email: newAdmin.email,
+          fullName: newAdmin.fullName
+        }
+      });
+
+      if (adminError || !adminResult?.success) {
+        console.error("Erro ao criar admin:", adminError || adminResult);
+        toast({
+          title: "Aviso",
+          description: adminResult?.error || "Agência criada mas houve erro ao criar admin. Gere um novo convite.",
+          variant: "destructive",
+        });
+        // Não retornar - continuar para mostrar agência criada
+      } else {
+        console.log("Admin criado com sucesso:", adminResult);
+      }
+
+      // Obter URL base para o link de convite
+      const baseUrl = await getFullAgencyUrl('');
+      const resetLink = adminResult?.resetLink || `${baseUrl}/agency/${agency.slug}`;
+      
+      setInviteLink(resetLink);
+      setInviteLinkAgency(agency.name);
 
       toast({
-        title: "Agência e Admin criados!",
-        description: `${newAdmin.agencyName} foi criado com sucesso. Link de convite gerado!`,
+        title: "Sucesso!",
+        description: `Agência "${agency.name}" e admin criados com sucesso!`,
+      });
+      
+      setDialogOpen(false);
+      setNewAdmin({ 
+        email: "", 
+        fullName: "",
+        agencyName: "", 
+        agencySlug: "", 
+        plan: "basic" 
       });
 
       await loadAdmins();
       await loadAgencies();
-      setDialogOpen(false);
-      setNewAdmin({ email: "", agencyName: "", agencySlug: "", plan: "basic" });
-    } catch (error: any) {
+
+    } catch (error) {
+      console.error("Erro ao criar admin:", error);
       toast({
-        title: "Erro ao criar admin",
-        description: error.message || "Tente novamente.",
+        title: "Erro",
+        description: "Erro ao criar agência. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
+      setIsCreatingAdmin(false);
     }
   };
 
@@ -444,7 +542,12 @@ export const AdminManager = () => {
         <Card className="p-4 bg-primary/5 border-primary/20 mb-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium mb-1">Link de Convite Gerado:</p>
+              <p className="text-sm font-medium mb-1">
+                ✅ Link de Acesso Criado - {inviteLinkAgency}
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                O admin receberá um email para criar sua senha. Link de redefinição:
+              </p>
               <code className="text-xs bg-background p-2 rounded block overflow-x-auto">
                 {inviteLink}
               </code>
@@ -508,9 +611,17 @@ export const AdminManager = () => {
                 placeholder="admin@agencia.com"
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                Um link de convite será gerado após a criação
-              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Nome Completo do Admin *</Label>
+              <Input
+                id="fullName"
+                value={newAdmin.fullName}
+                onChange={(e) => setNewAdmin({ ...newAdmin, fullName: e.target.value })}
+                placeholder="João Silva"
+                required
+              />
             </div>
 
             <div className="space-y-2">
@@ -571,9 +682,18 @@ export const AdminManager = () => {
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-gradient-primary">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Criar Admin
+              <Button type="submit" className="bg-gradient-primary" disabled={isCreatingAdmin}>
+                {isCreatingAdmin ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Criando...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Criar Agência + Admin
+                  </>
+                )}
               </Button>
             </div>
           </form>
