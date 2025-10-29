@@ -288,7 +288,6 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-8 px-4">
       <TutorialGuide />
       
-// COMEÇA AQUI
 {/* Card 1: Informações Pessoais */}
 <Card className="max-w-7xl mx-auto mb-6 p-6 bg-gradient-primary text-white">
   <div>
@@ -357,8 +356,6 @@ const Dashboard = () => {
     </div>
   </Card>
 )}
-
-// TERMINA AQUI
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
