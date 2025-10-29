@@ -34,24 +34,46 @@ serve(async (req) => {
 
     console.log('Creating agency admin:', { agencyId, email, fullName });
 
-    // 1. Create user in auth.users with temporary password
-    const tempPassword = crypto.randomUUID().slice(0, 16);
+    // 1. Check if user already exists
+    const { data: existingUsersData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName
-      }
-    });
-
-    if (authError) {
-      console.error('Error creating auth user:', authError);
-      throw new Error(`Erro ao criar usuário: ${authError.message}`);
+    if (listError) {
+      console.error('Error listing users:', listError);
+      throw new Error(`Erro ao verificar usuários: ${listError.message}`);
     }
 
-    console.log('Auth user created:', authUser.user.id);
+    const existingUser = existingUsersData.users.find(u => u.email === email);
+    
+    let userId: string;
+    let isNewUser = false;
+
+    if (existingUser) {
+      // User already exists - use existing ID
+      userId = existingUser.id;
+      isNewUser = false;
+      console.log('User already exists, updating roles and agency linkage:', userId);
+    } else {
+      // Create new user
+      const tempPassword = crypto.randomUUID().slice(0, 16);
+      
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName
+        }
+      });
+
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        throw new Error(`Erro ao criar usuário: ${authError.message}`);
+      }
+
+      userId = authUser.user.id;
+      isNewUser = true;
+      console.log('Auth user created:', userId);
+    }
 
     // 2. Update profile with agency_id
     const { error: profileError } = await supabaseAdmin
@@ -60,7 +82,7 @@ serve(async (req) => {
         agency_id: agencyId,
         full_name: fullName 
       })
-      .eq('id', authUser.user.id);
+      .eq('id', userId);
 
     if (profileError) {
       console.error('Error updating profile:', profileError);
@@ -69,15 +91,16 @@ serve(async (req) => {
 
     console.log('Profile updated with agency_id');
 
-    // 3. Insert agency_admin role
+    // 3. Insert agency_admin role (ignore if already exists)
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
-        user_id: authUser.user.id,
+        user_id: userId,
         role: 'agency_admin'
       });
 
-    if (roleError) {
+    // Ignore duplicate key error (code 23505)
+    if (roleError && roleError.code !== '23505') {
       console.error('Error inserting role:', roleError);
       throw new Error(`Erro ao atribuir role: ${roleError.message}`);
     }
@@ -87,7 +110,7 @@ serve(async (req) => {
     // 4. Update agencies.owner_id
     const { error: agencyError } = await supabaseAdmin
       .from('agencies')
-      .update({ owner_id: authUser.user.id })
+      .update({ owner_id: userId })
       .eq('id', agencyId);
 
     if (agencyError) {
@@ -114,9 +137,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        userId: authUser.user.id,
+        userId: userId,
         resetLink,
-        message: 'Admin criado com sucesso'
+        isNewUser,
+        message: isNewUser ? 'Admin criado com sucesso' : 'Admin existente atualizado com sucesso'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
