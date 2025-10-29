@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TrendingUp, Award, Calendar, LogOut, MessageCircle } from "lucide-react";
+import { ArrowLeft, TrendingUp, Award, Calendar, LogOut, MessageCircle, Building2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +48,9 @@ const Dashboard = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<{ full_name: string; email: string; instagram: string } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; email: string; instagram: string; agency_id?: string } | null>(null);
+  const [agencyName, setAgencyName] = useState<string>("");
+  const [agencyPlan, setAgencyPlan] = useState<string>("");
   const [selectedHistoryEvent, setSelectedHistoryEvent] = useState<string>("all");
   const [events, setEvents] = useState<any[]>([]);
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
@@ -69,11 +71,25 @@ const Dashboard = () => {
     // Carregar perfil
     const { data: profileData } = await sb
       .from('profiles')
-      .select('full_name, email, instagram')
+      .select('full_name, email, instagram, agency_id')
       .eq('id', user.id)
       .maybeSingle();
 
     setProfile(profileData);
+
+    // Load agency info if user has one
+    if (profileData?.agency_id) {
+      const { data: agencyData } = await sb
+        .from('agencies')
+        .select('name, subscription_plan')
+        .eq('id', profileData.agency_id)
+        .maybeSingle();
+      
+      if (agencyData) {
+        setAgencyName(agencyData.name);
+        setAgencyPlan(agencyData.subscription_plan);
+      }
+    }
 
     // Carregar configuração do WhatsApp
     const { data: whatsappData } = await sb
@@ -199,6 +215,35 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-8 px-4">
       <TutorialGuide />
+      
+      {/* User Context Header */}
+      <Card className="max-w-7xl mx-auto mb-8 p-4 bg-gradient-primary text-white">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold">
+              {profile?.full_name || 'Usuário'}
+            </h2>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
+              <span>{profile?.email}</span>
+              {profile?.agency_id && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Agência: {agencyName || 'Carregando...'}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          {agencyPlan && (
+            <Badge variant="secondary" className="text-base px-4 py-2">
+              Plano: {agencyPlan.toUpperCase()}
+            </Badge>
+          )}
+        </div>
+      </Card>
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

@@ -5,9 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Phone, Save, Globe } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const AdminSettings = () => {
+interface AdminSettingsProps {
+  isMasterAdmin?: boolean;
+}
+
+export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [customDomain, setCustomDomain] = useState("");
   const [loading, setLoading] = useState(false);
@@ -89,32 +94,38 @@ export const AdminSettings = () => {
   return (
     <Card className="p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">⚙️ Configurações do Sistema</h2>
+        <h2 className="text-2xl font-bold mb-2">⚙️ Configurações</h2>
         <p className="text-muted-foreground text-sm">
-          Configure as informações globais da plataforma
+          {isMasterAdmin 
+            ? "Configure as informações globais da plataforma" 
+            : "Configure o WhatsApp para suporte"}
         </p>
       </div>
 
       <div className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="customDomain">
-            <Globe className="inline mr-2 h-4 w-4" />
-            URL Base para Links de Agência
-          </Label>
-          <Input
-            id="customDomain"
-            placeholder="https://seudominio.com.br"
-            value={customDomain}
-            onChange={(e) => setCustomDomain(e.target.value)}
-            disabled={loading}
-          />
-          <p className="text-xs text-muted-foreground">
-            Esta URL será usada para gerar links de convite das agências.
-            <br />
-            <strong>Exemplo:</strong> {customDomain || 'https://seudominio.com.br'}/agency/nome-agencia
-          </p>
-        </div>
+        {/* URL Base - Only for Master Admin */}
+        {isMasterAdmin && (
+          <div className="space-y-2">
+            <Label htmlFor="customDomain">
+              <Globe className="inline mr-2 h-4 w-4" />
+              URL Base para Links de Agência
+            </Label>
+            <Input
+              id="customDomain"
+              placeholder="https://seudominio.com.br"
+              value={customDomain}
+              onChange={(e) => setCustomDomain(e.target.value)}
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta URL será usada para gerar links de convite das agências.
+              <br />
+              <strong>Exemplo:</strong> {customDomain || 'https://seudominio.com.br'}/agency/nome-agencia
+            </p>
+          </div>
+        )}
 
+        {/* WhatsApp - Available for all admins */}
         <div className="space-y-2">
           <Label htmlFor="whatsapp">
             <Phone className="inline mr-2 h-4 w-4" />

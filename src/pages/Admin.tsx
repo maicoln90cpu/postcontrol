@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useNavigate, Link } from "react-router-dom";
@@ -11,6 +12,7 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { UserPerformance } from "@/components/UserPerformance";
 import { UserManagement } from "@/components/UserManagement";
 import { AdminSettings } from "@/components/AdminSettings";
+import { AgencyAdminSettings } from "@/components/AgencyAdminSettings";
 import { SubmissionKanban } from "@/components/SubmissionKanban";
 import { SubmissionAuditLog } from "@/components/SubmissionAuditLog";
 import { SubmissionComments } from "@/components/SubmissionComments";
@@ -30,6 +32,7 @@ const Admin = () => {
   const { user, isAgencyAdmin, isMasterAdmin, loading, signOut } = useAuthStore();
   const navigate = useNavigate();
   const [currentAgency, setCurrentAgency] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [postDialogOpen, setPostDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -95,6 +98,15 @@ const Admin = () => {
   const loadCurrentAgency = async () => {
     if (!user) return;
 
+    // Load user profile
+    const { data: profileData } = await sb
+      .from('profiles')
+      .select('*, agencies(*)')
+      .eq('id', user.id)
+      .maybeSingle();
+    
+    setProfile(profileData);
+
     // If master admin and viewing specific agency, use query param
     const urlParams = new URLSearchParams(window.location.search);
     const agencySlug = urlParams.get('agency');
@@ -112,18 +124,9 @@ const Admin = () => {
     }
 
     // If agency admin, load their own agency
-    if (isAgencyAdmin && !isMasterAdmin) {
-      const { data: profileData } = await sb
-        .from('profiles')
-        .select('agency_id, agencies(*)')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      console.log('🏢 Agency admin profile:', profileData);
-      
-      if (profileData?.agencies) {
-        setCurrentAgency(profileData.agencies);
-      }
+    if (isAgencyAdmin && !isMasterAdmin && profileData?.agencies) {
+      console.log('🏢 Agency admin profile:', profileData.agencies);
+      setCurrentAgency(profileData.agencies);
     }
   };
 
@@ -551,6 +554,34 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
+      {/* Admin Context Header */}
+      <div className="bg-gradient-primary text-white py-4 px-6 shadow-lg">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold">
+              {profile?.full_name || 'Admin'}
+            </h2>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
+              <span>{profile?.email}</span>
+              {currentAgency && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    {currentAgency.name}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          {currentAgency && (
+            <Badge variant="secondary" className="text-base px-4 py-2">
+              Plano: {currentAgency.subscription_plan?.toUpperCase() || 'BASIC'}
+            </Badge>
+          )}
+        </div>
+      </div>
+
       {/* Agency Filter Indicator */}
       {currentAgency && (
         <div className="bg-primary/10 border-b border-primary/20">
@@ -1205,7 +1236,11 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <AdminSettings />
+            {isMasterAdmin ? (
+              <AdminSettings isMasterAdmin={true} />
+            ) : (
+              <AgencyAdminSettings />
+            )}
           </TabsContent>
         </Tabs>
       </div>

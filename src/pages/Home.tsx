@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,14 +7,69 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import heroBg from "@/assets/hero-bg.jpg";
+import { sb } from "@/lib/supabaseSafe";
 
 const Home = () => {
   const { user } = useAuthStore();
+  const [plans, setPlans] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    const { data } = await sb
+      .from('subscription_plans')
+      .select('*')
+      .eq('is_visible', true)
+      .order('display_order', { ascending: true });
+    
+    setPlans(data || []);
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    element?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen">
+      {/* Fixed Navigation Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <nav className="flex items-center justify-between">
+            <Link to="/" className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              PostControl
+            </Link>
+            <div className="flex items-center gap-6">
+              <button onClick={() => scrollToSection('recursos')} className="text-sm hover:text-primary transition-colors">
+                Recursos
+              </button>
+              <button onClick={() => scrollToSection('como-funciona')} className="text-sm hover:text-primary transition-colors">
+                Como Funciona
+              </button>
+              <button onClick={() => scrollToSection('precos')} className="text-sm hover:text-primary transition-colors">
+                Preços
+              </button>
+              <button onClick={() => scrollToSection('faq')} className="text-sm hover:text-primary transition-colors">
+                FAQ
+              </button>
+              {user ? (
+                <Link to="/dashboard">
+                  <Button size="sm" className="bg-gradient-primary">Dashboard</Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button size="sm" className="bg-gradient-primary">Entrar</Button>
+                </Link>
+              )}
+            </div>
+          </nav>
+        </div>
+      </header>
+
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden pt-20">
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroBg})` }}
@@ -93,7 +149,7 @@ const Home = () => {
       </section>
 
       {/* Recursos */}
-      <section className="py-24 px-4 bg-gradient-to-br from-background via-muted to-background">
+      <section id="recursos" className="py-24 px-4 bg-gradient-to-br from-background via-muted to-background scroll-mt-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Recursos Premium</Badge>
@@ -170,7 +226,7 @@ const Home = () => {
       </section>
 
       {/* Como Funciona */}
-      <section className="py-24 px-4 bg-gradient-to-br from-muted via-background to-muted">
+      <section id="como-funciona" className="py-24 px-4 bg-gradient-to-br from-muted via-background to-muted scroll-mt-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -222,88 +278,88 @@ const Home = () => {
       </section>
 
       {/* Pricing */}
-      <section className="py-24 px-4 bg-gradient-to-br from-background via-muted to-background">
-        <div className="max-w-4xl mx-auto">
+      <section id="precos" className="py-24 px-4 bg-gradient-to-br from-background via-muted to-background scroll-mt-20">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none text-base px-6 py-2 shadow-glow animate-pulse">
-              🎁 7 DIAS GRÁTIS + Oferta de Lançamento - Economia de R$ 50,00
+            <Badge className="mb-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none text-base px-6 py-2 shadow-glow">
+              🎁 Escolha o melhor plano para você
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Plano Admin Completo
+              Planos Flexíveis
             </h2>
             <p className="text-muted-foreground text-lg">
-              Gerencie usuários ilimitados e eventos simultâneos
+              Escolha o plano ideal para o tamanho da sua operação
             </p>
           </div>
 
-          <Card className="p-8 md:p-12 border-4 border-primary/20 shadow-glow relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-gradient-primary text-white px-6 py-2 text-sm font-bold">
-              MELHOR OFERTA
+          {plans.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             </div>
-            
-            <div className="text-center mb-8">
-              <Badge className="mb-4 bg-green-100 text-green-800 border-green-300 text-sm px-4 py-2">
-                <Clock className="w-4 h-4 mr-2 inline" />
-                Experimente GRÁTIS por 7 dias
-              </Badge>
-              <h3 className="text-3xl font-bold mb-4">Assinatura Mensal Admin</h3>
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <span className="text-4xl text-muted-foreground line-through">R$ 79,90</span>
-                <span className="text-6xl md:text-7xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  R$ 29,90
-                </span>
-              </div>
-              <p className="text-xl text-muted-foreground mb-2">no primeiro mês (após período grátis)</p>
-              <p className="text-sm text-muted-foreground">Depois R$ 79,90/mês - Cancele quando quiser</p>
-            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8">
+              {plans.map((plan, index) => {
+                const isPopular = index === Math.floor(plans.length / 2); // Middle plan is most popular
+                const features = Array.isArray(plan.features) ? plan.features : [];
+                
+                return (
+                  <Card 
+                    key={plan.id} 
+                    className={`p-8 relative ${
+                      isPopular ? 'border-4 border-primary shadow-glow scale-105' : 'border-2'
+                    }`}
+                  >
+                    {isPopular && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-gradient-primary px-6 py-2 text-base shadow-lg">
+                          ⭐ MAIS POPULAR
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    <div className="text-center mb-6">
+                      <h3 className="text-2xl font-bold mb-2">{plan.plan_name}</h3>
+                      <div className="flex items-baseline justify-center gap-2 mb-4">
+                        <span className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                          R$ {Number(plan.monthly_price).toFixed(2)}
+                        </span>
+                        <span className="text-muted-foreground">/mês</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {plan.max_influencers} influencers • {plan.max_events} eventos
+                      </p>
+                    </div>
 
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg font-semibold text-green-800">7 dias de teste grátis - Sem cartão de crédito</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg">Usuários ilimitados no sistema</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg">Dashboard completo com estatísticas em tempo real</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg">Aprovação em massa de submissões</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg">Relatórios em Excel e PDF</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg">Gestão de múltiplos eventos simultâneos</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
-                <span className="text-lg">Suporte prioritário 24/7</span>
-              </div>
-            </div>
+                    <div className="space-y-3 mb-8">
+                      {features.map((feature: string, idx: number) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
 
-            <Link to="/auth" className="block">
-              <Button size="lg" className="w-full bg-gradient-primary text-lg py-6 group shadow-xl">
-                Começar 7 Dias Grátis
-                <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              🎁 7 dias grátis sem cartão • 🔒 Pagamento 100% seguro • ⚡ Setup instantâneo • 🎯 Cancele quando quiser
-            </p>
-          </Card>
+                    <Link to="/auth" className="block">
+                      <Button 
+                        size="lg" 
+                        className={`w-full ${
+                          isPopular ? 'bg-gradient-primary' : 'bg-gradient-secondary'
+                        }`}
+                      >
+                        Começar Agora
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-24 px-4 bg-gradient-to-br from-muted via-background to-muted">
+      <section id="faq" className="py-24 px-4 bg-gradient-to-br from-muted via-background to-muted scroll-mt-20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Perguntas Frequentes</Badge>
