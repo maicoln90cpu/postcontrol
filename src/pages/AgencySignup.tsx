@@ -216,7 +216,7 @@ export default function AgencySignup() {
             {agency.name}
           </h1>
           <p className="text-muted-foreground">
-            {mode === 'signup' ? 'Cadastre-se como influencer' : 'Faça login para continuar'}
+            {mode === 'signup' ? 'Cadastre-se como usuário' : 'Faça login para continuar'}
           </p>
         </div>
 
