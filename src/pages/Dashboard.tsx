@@ -288,76 +288,99 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-8 px-4">
       <TutorialGuide />
       
-      {/* User Context Header com Informações Pessoais */}
-      <Card className="max-w-7xl mx-auto mb-6 p-6 bg-gradient-primary text-white">
-        <div className="space-y-4">
-          {/* Informações pessoais */}
-          <div>
-            <h2 className="text-2xl font-bold mb-2">
-              {profile?.full_name || 'Usuário'}
-            </h2>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
-              <span className="flex items-center gap-2">
-                📧 {profile?.email}
-              </span>
-              {profile?.instagram && (
-                <>
-                  <span>•</span>
-                  <span className="flex items-center gap-2">
-                    📷 Instagram: {profile.instagram}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
+// COMEÇA AQUI
+{/* Card 1: Informações Pessoais */}
+<Card className="max-w-7xl mx-auto mb-6 p-6 bg-gradient-primary text-white">
+  <div>
+    <h2 className="text-2xl font-bold mb-2">
+      {profile?.full_name || 'Usuário'}
+    </h2>
+    <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
+      <span className="flex items-center gap-2">
+        📧 {profile?.email}
+      </span>
+      {profile?.instagram && (
+        <>
+          <span>•</span>
+          <span className="flex items-center gap-2">
+            📷 Instagram: {profile.instagram}
+          </span>
+        </>
+      )}
+    </div>
+  </div>
+</Card>
 
-          {/* 🆕 Seletor de Agência mais visível */}
-          {userAgencies.length > 0 && (
-            <div className="pt-4 border-t border-white/20">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Building2 className="h-5 w-5" />
-                  <div>
-                    <p className="text-sm font-semibold">Agência Atual</p>
-                    <p className="text-xs text-white/70">{agencyName}</p>
-                  </div>
-                </div>
-                
-                {userAgencies.length > 1 && (
-                  <Select 
-                    value={currentAgencyId || ''} 
-                    onValueChange={(newAgencyId) => {
-                      setSearchParams({ agency: newAgencyId });
-                      window.location.reload();
-                    }}
-                  >
-                    <SelectTrigger className="w-full sm:w-[280px] bg-white/10 border-white/30 text-white hover:bg-white/20">
-                      <SelectValue placeholder="Trocar de agência" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userAgencies.map((agency: any) => (
-                        <SelectItem key={agency.id} value={agency.id}>
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4" />
-                            {agency.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+{/* Botão Enviar Nova Postagem (mover para cá - linha 397-416) */}
+<Card id="welcome-card" className="max-w-7xl mx-auto p-4 md:p-6 mb-6 border-2">
+  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+    <div className="flex-1 min-w-0">
+      <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent break-words">
+        Olá, {profile?.full_name?.split(' ')[0] || 'Usuário'}!
+      </h1>
+      <p className="text-muted-foreground break-words">
+        {profile?.email}
+      </p>
+      {profile?.instagram && (
+        <p className="text-sm text-muted-foreground mt-1 break-words">
+          Instagram: {profile.instagram}
+        </p>
+      )}
+    </div>
+    <Link to="/submit">
+      <Button className="bg-gradient-primary w-full sm:w-auto whitespace-nowrap">
+        Enviar Nova Postagem
+      </Button>
+    </Link>
+  </div>
+</Card>
 
-                {agencyPlan && (
-                  <Badge variant="secondary" className="text-base px-4 py-2">
-                    Plano: {agencyPlan.toUpperCase()}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          )}
+{/* Card 2: Seletor de Agência (NOVO CARD SEPARADO) */}
+{userAgencies.length > 0 && (
+  <Card className="max-w-7xl mx-auto mb-6 p-6 bg-white dark:bg-gray-800">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <Building2 className="h-5 w-5 text-primary" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Agência Atual</p>
+          <p className="text-lg font-bold text-primary">{agencyName}</p>
         </div>
-      </Card>
+      </div>
+      
+      {userAgencies.length > 1 && (
+        <Select 
+          value={currentAgencyId || ''} 
+          onValueChange={(newAgencyId) => {
+            setSearchParams({ agency: newAgencyId });
+            window.location.reload();
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-[280px] border-2">
+            <SelectValue placeholder="Trocar de agência" />
+          </SelectTrigger>
+          <SelectContent>
+            {userAgencies.map((agency: any) => (
+              <SelectItem key={agency.id} value={agency.id}>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  {agency.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
+      {agencyPlan && (
+        <Badge variant="secondary" className="text-base px-4 py-2">
+          Plano: {agencyPlan.toUpperCase()}
+        </Badge>
+      )}
+    </div>
+  </Card>
+)}
+
+// TERMINA AQUI
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
