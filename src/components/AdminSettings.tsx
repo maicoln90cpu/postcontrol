@@ -67,27 +67,25 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
     }
 
     try {
-      // Atualizar whatsapp
-// DEPOIS:
-await sb
-  .from('admin_settings')
-  .upsert({ 
-    setting_key: 'whatsapp_number', 
-    setting_value: whatsappNumber || '',  // Sempre salva, mesmo se vazio
-    updated_at: new Date().toISOString() 
-  }, { onConflict: 'setting_key' });
+      // Atualizar whatsapp (sempre salva, mesmo se vazio)
+      await sb
+        .from('admin_settings')
+        .upsert({ 
+          setting_key: 'whatsapp_number', 
+          setting_value: whatsappNumber || '',
+          updated_at: new Date().toISOString() 
+        }, { onConflict: 'setting_key' });
 
-      // Atualizar custom domain
-// DEPOIS:
-if (isMasterAdmin) {  // Apenas master admin pode alterar custom domain
-  await sb
-    .from('admin_settings')
-    .upsert({ 
-      setting_key: 'custom_domain', 
-      setting_value: customDomain.replace(/\/$/, ''),
-      updated_at: new Date().toISOString() 
-    }, { onConflict: 'setting_key' });
-}
+      // Atualizar custom domain (apenas master admin)
+      if (isMasterAdmin) {
+        await sb
+          .from('admin_settings')
+          .upsert({ 
+            setting_key: 'custom_domain', 
+            setting_value: customDomain.replace(/\/$/, ''),
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'setting_key' });
+      }
 
       // Atualizar AI Insights (apenas master admin)
       if (isMasterAdmin) {
@@ -109,14 +107,16 @@ if (isMasterAdmin) {  // Apenas master admin pode alterar custom domain
           }, { onConflict: 'setting_key' });
       }
 
+      toast.success("Configurações salvas com sucesso!");
+      
       // Recarregar as configurações para confirmar o salvamento
-await loadSettings();
-console.log('✅ Configurações recarregadas:', {
-  whatsappNumber,
-  customDomain,
-  aiInsightsEnabled,
-  badgesEnabled
-});
+      await loadSettings();
+      console.log('✅ Configurações recarregadas:', {
+        whatsappNumber,
+        customDomain,
+        aiInsightsEnabled,
+        badgesEnabled
+      });
     } catch (error: any) {
       console.error('Error saving settings:', error);
       toast.error("Erro ao salvar configurações");
