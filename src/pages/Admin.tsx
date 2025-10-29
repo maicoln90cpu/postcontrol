@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2 } from "lucide-react";
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useNavigate, Link } from "react-router-dom";
 import { EventDialog } from "@/components/EventDialog";
@@ -710,15 +710,17 @@ const Admin = () => {
                   {currentAgency.name}
                 </h3>
               </div>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  navigate('/master-admin');
-                  setCurrentAgency(null);
-                }}
-              >
-                ← Voltar ao Painel Master
-              </Button>
+              {isMasterAdmin && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    navigate('/master-admin');
+                    setCurrentAgency(null);
+                  }}
+                >
+                  ← Voltar ao Painel Master
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -728,9 +730,24 @@ const Admin = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h1 className="text-xl md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Painel Agência
-            </h1>
+            <div className="flex items-center gap-4">
+              <Link to="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Dashboard
+                </Button>
+              </Link>
+              {isMasterAdmin && !currentAgency && (
+                <Link to="/master-admin">
+                  <Button variant="outline" size="sm">
+                    🎯 Painel Master
+                  </Button>
+                </Link>
+              )}
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Painel Agência
+              </h1>
+            </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Link to="/submit" className="flex-1 sm:flex-initial">
                 <Button variant="outline" className="w-full sm:w-auto">

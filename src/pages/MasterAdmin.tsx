@@ -267,6 +267,12 @@ const MasterAdmin = () => {
                 Voltar ao Dashboard
               </Button>
             </Link>
+            <Link to="/admin">
+              <Button variant="outline">
+                <Building2 className="mr-2 h-4 w-4" />
+                Painel Agência
+              </Button>
+            </Link>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Painel Master

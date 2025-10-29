@@ -339,6 +339,13 @@ const Dashboard = () => {
           <div className="flex items-center gap-4">
             {user && <NotificationBell userId={user.id} />}
             <ThemeToggle />
+            {isMasterAdmin && (
+              <Link to="/master-admin">
+                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                  🎯 Painel Master
+                </Button>
+              </Link>
+            )}
             {isAgencyAdmin && (
               <Link to="/admin">
                 <Button className="bg-gradient-secondary">
