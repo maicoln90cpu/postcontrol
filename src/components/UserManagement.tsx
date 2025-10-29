@@ -23,7 +23,12 @@ const profileUpdateSchema = z.object({
   full_name: z.string().trim().min(2, "Nome deve ter no mínimo 2 caracteres").max(100, "Nome muito longo"),
   email: z.string().trim().email("Email inválido").max(255, "Email muito longo"),
   instagram: z.string().trim().min(1, "Instagram é obrigatório").max(50, "Instagram muito longo"),
-  phone: z.string().trim().regex(/^\(?(\d{2})\)?\s?(\d{4,5})-?(\d{4})$/, "Formato de telefone inválido. Use: (00) 00000-0000").optional().or(z.literal('')),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\(?(\d{2})\)?\s?(\d{4,5})-?(\d{4})$/, "Formato de telefone inválido. Use: (00) 00000-0000")
+    .optional()
+    .or(z.literal("")),
 });
 
 export const UserManagement = () => {
@@ -47,58 +52,54 @@ export const UserManagement = () => {
   }, [isMasterAdmin, currentAgencyId]);
 
   const checkAdminStatus = async () => {
-    const { data: { user } } = await sb.auth.getUser();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
     if (!user) return;
 
     // Check if master admin
     const { data: masterCheck } = await sb
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'master_admin')
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "master_admin")
       .maybeSingle();
-    
+
     setIsMasterAdmin(!!masterCheck);
 
     // Se não for master admin, buscar agência onde é owner
     if (!masterCheck) {
-      const { data: agencyData } = await sb
-        .from('agencies')
-        .select('id')
-        .eq('owner_id', user.id)
-        .maybeSingle();
-      
+      const { data: agencyData } = await sb.from("agencies").select("id").eq("owner_id", user.id).maybeSingle();
+
       setCurrentAgencyId(agencyData?.id || null);
-      console.log('👤 Agency Admin - agência:', agencyData?.id);
+      console.log("👤 Agency Admin - agência:", agencyData?.id);
     } else {
-      console.log('👑 Master Admin');
+      console.log("👑 Master Admin");
     }
     // Não chamar loadUsers() aqui - será chamado pelo useEffect
   };
 
   const loadUsers = async () => {
     setLoading(true);
-    
+
     try {
       if (isMasterAdmin) {
         // Master admin vê todos os usuários
-        console.log('👑 Master Admin - carregando todos os usuários');
-        const { data, error } = await sb
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
+        console.log("👑 Master Admin - carregando todos os usuários");
+        const { data, error } = await sb.from("profiles").select("*").order("created_at", { ascending: false });
 
         if (error) throw error;
         console.log(`📊 Loaded ${data?.length || 0} users (master admin)`);
         setUsers(data || []);
       } else if (currentAgencyId) {
         // Agency admin vê apenas usuários que fizeram submissões em eventos da sua agência
-        console.log('👤 Agency Admin - carregando usuários com submissões da agência:', currentAgencyId);
-        
+        console.log("👤 Agency Admin - carregando usuários com submissões da agência:", currentAgencyId);
+
         // Primeiro, buscar os IDs dos usuários que fizeram submissões
         const { data: submissionsData, error: submissionsError } = await sb
-          .from('submissions')
-          .select(`
+          .from("submissions")
+          .select(
+            `
             user_id,
             posts!inner(
               event_id,
@@ -106,22 +107,23 @@ export const UserManagement = () => {
                 agency_id
               )
             )
-          `)
-          .eq('posts.events.agency_id', currentAgencyId);
+          `,
+          )
+          .eq("posts.events.agency_id", currentAgencyId);
 
         if (submissionsError) {
-          console.error('❌ Erro ao buscar submissões:', submissionsError);
+          console.error("❌ Erro ao buscar submissões:", submissionsError);
           throw submissionsError;
         }
 
-        console.log('📋 Submissões encontradas:', submissionsData?.length || 0);
+        console.log("📋 Submissões encontradas:", submissionsData?.length || 0);
 
         // Extrair IDs únicos de usuários
         const userIds = Array.from(new Set((submissionsData || []).map((s: any) => s.user_id)));
-        console.log('👥 User IDs únicos:', userIds.length, userIds);
+        console.log("👥 User IDs únicos:", userIds.length, userIds);
 
         if (userIds.length === 0) {
-          console.log('⚠️ Nenhum usuário encontrado com submissões');
+          console.log("⚠️ Nenhum usuário encontrado com submissões");
           setUsers([]);
           setLoading(false);
           return;
@@ -129,28 +131,28 @@ export const UserManagement = () => {
 
         // Buscar os perfis desses usuários
         const { data: profilesData, error: profilesError } = await sb
-          .from('profiles')
-          .select('*')
-          .in('id', userIds)
-          .order('created_at', { ascending: false });
+          .from("profiles")
+          .select("*")
+          .in("id", userIds)
+          .order("created_at", { ascending: false });
 
         if (profilesError) {
-          console.error('❌ Erro ao buscar perfis:', profilesError);
+          console.error("❌ Erro ao buscar perfis:", profilesError);
           throw profilesError;
         }
-        
+
         console.log(`📊 Loaded ${profilesData?.length || 0} users for agency ${currentAgencyId}`);
         setUsers(profilesData || []);
       } else {
-        console.warn('⚠️ Agency admin sem currentAgencyId definido');
+        console.warn("⚠️ Agency admin sem currentAgencyId definido");
         setUsers([]);
       }
     } catch (error) {
       toast.error("Erro ao carregar usuários");
-      console.error('❌ Erro ao carregar usuários:', error);
+      console.error("❌ Erro ao carregar usuários:", error);
       setUsers([]);
     }
-    
+
     setLoading(false);
   };
 
@@ -160,7 +162,7 @@ export const UserManagement = () => {
       email: user.email,
       phone: user.phone,
       full_name: user.full_name,
-      instagram: user.instagram
+      instagram: user.instagram,
     });
   };
 
@@ -176,7 +178,7 @@ export const UserManagement = () => {
         full_name: editForm.full_name,
         email: editForm.email,
         instagram: editForm.instagram,
-        phone: editForm.phone || '',
+        phone: editForm.phone || "",
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -186,14 +188,14 @@ export const UserManagement = () => {
     }
 
     const { error } = await sb
-      .from('profiles')
+      .from("profiles")
       .update({
         email: editForm.email,
         phone: editForm.phone,
         full_name: editForm.full_name,
-        instagram: editForm.instagram
+        instagram: editForm.instagram,
       })
-      .eq('id', userId);
+      .eq("id", userId);
 
     if (error) {
       toast.error("Erro ao atualizar usuário");
@@ -205,11 +207,12 @@ export const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.instagram?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone?.includes(searchTerm)
+  const filteredUsers = users.filter(
+    (user) =>
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.instagram?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone?.includes(searchTerm),
   );
 
   if (loading) {
@@ -226,19 +229,13 @@ export const UserManagement = () => {
         <h2 className="text-2xl font-bold">Gerenciador de Usuários</h2>
         <CSVImportExport onImportComplete={loadUsers} />
         <div className="w-64">
-          <Input
-            placeholder="Buscar usuário..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Input placeholder="Buscar usuário..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
       <Card className="p-6">
         {filteredUsers.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">
-            Nenhum usuário encontrado
-          </p>
+          <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado</p>
         ) : (
           <div className="space-y-4">
             {filteredUsers.map((user) => (
@@ -249,7 +246,7 @@ export const UserManagement = () => {
                       <div>
                         <Label>Nome Completo</Label>
                         <Input
-                          value={editForm.full_name || ''}
+                          value={editForm.full_name || ""}
                           onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
                         />
                       </div>
@@ -257,21 +254,21 @@ export const UserManagement = () => {
                         <Label>Email</Label>
                         <Input
                           type="email"
-                          value={editForm.email || ''}
+                          value={editForm.email || ""}
                           onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                         />
                       </div>
                       <div>
                         <Label>Instagram (sem @)</Label>
                         <Input
-                          value={editForm.instagram || ''}
+                          value={editForm.instagram || ""}
                           onChange={(e) => setEditForm({ ...editForm, instagram: e.target.value })}
                         />
                       </div>
                       <div>
                         <Label>Telefone</Label>
                         <Input
-                          value={editForm.phone || ''}
+                          value={editForm.phone || ""}
                           onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                         />
                       </div>
@@ -290,33 +287,34 @@ export const UserManagement = () => {
                 ) : (
                   <div className="flex justify-between items-start">
                     <div className="space-y-2">
-                      <h3 className="font-bold text-lg">{user.full_name || 'Nome não definido'}</h3>
+                      <h3 className="font-bold text-lg">{user.full_name || "Nome não definido"}</h3>
                       <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Email:</span>{' '}
-                          <span className="font-medium">{user.email || 'Não definido'}</span>
+                          <span className="text-muted-foreground">Email:</span>{" "}
+                          <span className="font-medium">{user.email || "Não definido"}</span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Instagram:</span>{' '}
-                          <span className="font-medium">@{user.instagram || 'Não definido'}</span>
+                          <span className="text-muted-foreground">Instagram:</span>{" "}
+                          <a
+                            href={`https://instagram.com/${user.instagram?.replace("@", "") || ""}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-primary hover:underline"
+                          >
+                            @{user.instagram?.replace("@", "") || "Não definido"}
+                          </a>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Telefone:</span>{' '}
-                          <span className="font-medium">{user.phone || 'Não definido'}</span>
+                          <span className="text-muted-foreground">Telefone:</span>{" "}
+                          <span className="font-medium">{user.phone || "Não definido"}</span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Cadastrado em:</span>{' '}
-                          <span className="font-medium">
-                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                          </span>
+                          <span className="text-muted-foreground">Cadastrado em:</span>{" "}
+                          <span className="font-medium">{new Date(user.created_at).toLocaleDateString("pt-BR")}</span>
                         </div>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startEdit(user)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => startEdit(user)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </div>
