@@ -269,7 +269,7 @@ const MasterAdmin = () => {
             </Link>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Painel Master Admin
+            Painel Master
           </h1>
         </div>
 

@@ -16,6 +16,7 @@ import { AgencyAdminSettings } from "@/components/AgencyAdminSettings";
 import { SubmissionKanban } from "@/components/SubmissionKanban";
 import { SubmissionAuditLog } from "@/components/SubmissionAuditLog";
 import { SubmissionComments } from "@/components/SubmissionComments";
+import { SubmissionImageDisplay } from "@/components/SubmissionImageDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { sb } from "@/lib/supabaseSafe";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -660,7 +661,7 @@ const Admin = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h1 className="text-xl md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Controle de Postagem - Admin
+              Painel Agência
             </h1>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Link to="/submit" className="flex-1 sm:flex-initial">
@@ -1043,8 +1044,9 @@ const Admin = () => {
 
                           {/* Screenshot */}
                           <div className="w-full sm:w-48 h-64 sm:h-48 flex-shrink-0 order-2 sm:order-2">
-                            <img 
-                              src={submission.screenshot_url} 
+                            <SubmissionImageDisplay
+                              screenshotPath={submission.screenshot_path}
+                              screenshotUrl={submission.screenshot_url}
                               alt="Screenshot da postagem"
                               className="w-full h-full object-cover rounded-lg border"
                             />

@@ -73,22 +73,46 @@ export const UserManagement = () => {
   const loadUsers = async () => {
     setLoading(true);
     
-    let query = sb.from('profiles').select('*');
-    
-    // Agency admins only see their own agency's users
-    if (!isMasterAdmin && currentAgencyId) {
-      query = query.eq('agency_id', currentAgencyId);
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
+    try {
+      if (isMasterAdmin) {
+        // Master admin vê todos os usuários
+        console.log('👑 Master Admin - carregando todos os usuários');
+        const { data, error } = await sb
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-    if (error) {
+        if (error) throw error;
+        console.log(`📊 Loaded ${data?.length || 0} users (master admin)`);
+        setUsers(data || []);
+      } else if (currentAgencyId) {
+        // Agency admin vê apenas usuários da sua agência através de user_agencies
+        console.log('👤 Agency Admin - carregando usuários da agência:', currentAgencyId);
+        
+        const { data, error } = await sb
+          .from('user_agencies')
+          .select(`
+            user_id,
+            profiles!inner(*)
+          `)
+          .eq('agency_id', currentAgencyId);
+
+        if (error) throw error;
+        
+        // Extrair profiles do resultado
+        const userProfiles = (data || []).map((ua: any) => ua.profiles);
+        console.log(`📊 Loaded ${userProfiles.length} users for agency ${currentAgencyId}`);
+        setUsers(userProfiles);
+      } else {
+        console.warn('⚠️ Agency admin sem currentAgencyId definido');
+        setUsers([]);
+      }
+    } catch (error) {
       toast.error("Erro ao carregar usuários");
-      console.error(error);
-    } else {
-      console.log(`📊 Loaded ${data?.length || 0} users`);
-      setUsers(data || []);
+      console.error('❌ Erro ao carregar usuários:', error);
+      setUsers([]);
     }
+    
     setLoading(false);
   };
 
