@@ -59,6 +59,8 @@ const Dashboard = () => {
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [userAgencies, setUserAgencies] = useState<any[]>([]);
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
+  const [aiInsightsEnabled, setAiInsightsEnabled] = useState(true);
+  const [badgesEnabled, setBadgesEnabled] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -81,6 +83,19 @@ const Dashboard = () => {
       .maybeSingle();
 
     setProfile(profileData);
+
+    // 🆕 Carregar configurações de features
+    const { data: featuresSettings } = await sb
+      .from('admin_settings')
+      .select('setting_key, setting_value')
+      .in('setting_key', ['ai_insights_enabled', 'badges_enabled']);
+    
+    if (featuresSettings) {
+      const aiInsights = featuresSettings.find(s => s.setting_key === 'ai_insights_enabled');
+      const badges = featuresSettings.find(s => s.setting_key === 'badges_enabled');
+      setAiInsightsEnabled(aiInsights?.setting_value !== 'false');
+      setBadgesEnabled(badges?.setting_value !== 'false');
+    }
 
     // 🆕 Carregar agências do usuário
     const { data: agencies, error: agenciesError } = await sb
@@ -273,54 +288,72 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-8 px-4">
       <TutorialGuide />
       
-      {/* User Context Header com Seletor de Agência */}
-      <Card className="max-w-7xl mx-auto mb-8 p-4 bg-gradient-primary text-white">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="text-xl font-bold">
+      {/* User Context Header com Informações Pessoais */}
+      <Card className="max-w-7xl mx-auto mb-6 p-6 bg-gradient-primary text-white">
+        <div className="space-y-4">
+          {/* Informações pessoais */}
+          <div>
+            <h2 className="text-2xl font-bold mb-2">
               {profile?.full_name || 'Usuário'}
             </h2>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
-              <span>{profile?.email}</span>
-              {agencyName && (
+            <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
+              <span className="flex items-center gap-2">
+                📧 {profile?.email}
+              </span>
+              {profile?.instagram && (
                 <>
                   <span>•</span>
                   <span className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    {agencyName}
+                    📷 Instagram: {profile.instagram}
                   </span>
                 </>
               )}
             </div>
           </div>
 
-          {/* 🆕 Seletor de Agência (se usuário tiver múltiplas) */}
-          {userAgencies.length > 1 && (
-            <Select 
-              value={currentAgencyId || ''} 
-              onValueChange={(newAgencyId) => {
-                setSearchParams({ agency: newAgencyId });
-                window.location.reload(); // Recarregar com nova agência
-              }}
-            >
-              <SelectTrigger className="w-[250px] bg-white/10 border-white/20 text-white">
-                <Building2 className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Selecionar agência" />
-              </SelectTrigger>
-              <SelectContent>
-                {userAgencies.map((agency: any) => (
-                  <SelectItem key={agency.id} value={agency.id}>
-                    {agency.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          {/* 🆕 Seletor de Agência mais visível */}
+          {userAgencies.length > 0 && (
+            <div className="pt-4 border-t border-white/20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5" />
+                  <div>
+                    <p className="text-sm font-semibold">Agência Atual</p>
+                    <p className="text-xs text-white/70">{agencyName}</p>
+                  </div>
+                </div>
+                
+                {userAgencies.length > 1 && (
+                  <Select 
+                    value={currentAgencyId || ''} 
+                    onValueChange={(newAgencyId) => {
+                      setSearchParams({ agency: newAgencyId });
+                      window.location.reload();
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[280px] bg-white/10 border-white/30 text-white hover:bg-white/20">
+                      <SelectValue placeholder="Trocar de agência" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userAgencies.map((agency: any) => (
+                        <SelectItem key={agency.id} value={agency.id}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            {agency.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
-          {agencyPlan && (
-            <Badge variant="secondary" className="text-base px-4 py-2">
-              Plano: {agencyPlan.toUpperCase()}
-            </Badge>
+                {agencyPlan && (
+                  <Badge variant="secondary" className="text-base px-4 py-2">
+                    Plano: {agencyPlan.toUpperCase()}
+                  </Badge>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </Card>
@@ -383,10 +416,10 @@ const Dashboard = () => {
         </Card>
 
         {/* Badges */}
-        <BadgeDisplay />
+        {badgesEnabled && <BadgeDisplay />}
 
         {/* Barra de progresso para próximo badge */}
-        {user && (() => {
+        {badgesEnabled && user && (() => {
           const approvedCount = submissions.filter(s => s.status === 'approved').length;
           const milestones = [
             { count: 5, name: 'Bronze', emoji: '🥉' },
@@ -423,7 +456,7 @@ const Dashboard = () => {
         })()}
 
         {/* AI Insights */}
-        {user && eventStats.length > 0 && (
+        {aiInsightsEnabled && user && eventStats.length > 0 && (
           <div className="mt-6">
             <AIInsights eventId={eventStats[0].eventId} userId={user.id} />
           </div>

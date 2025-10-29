@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Phone, Save, Globe } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,8 @@ interface AdminSettingsProps {
 export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [customDomain, setCustomDomain] = useState("");
+  const [aiInsightsEnabled, setAiInsightsEnabled] = useState(true);
+  const [badgesEnabled, setBadgesEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -25,7 +28,7 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
     const { data: settings, error } = await sb
       .from('admin_settings')
       .select('setting_key, setting_value')
-      .in('setting_key', ['whatsapp_number', 'custom_domain']);
+      .in('setting_key', ['whatsapp_number', 'custom_domain', 'ai_insights_enabled', 'badges_enabled']);
 
     if (error) {
       console.error('Error loading settings:', error);
@@ -35,9 +38,13 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
     if (settings) {
       const whatsapp = settings.find(s => s.setting_key === 'whatsapp_number');
       const domain = settings.find(s => s.setting_key === 'custom_domain');
+      const aiInsights = settings.find(s => s.setting_key === 'ai_insights_enabled');
+      const badges = settings.find(s => s.setting_key === 'badges_enabled');
       
       setWhatsappNumber(whatsapp?.setting_value || '');
       setCustomDomain(domain?.setting_value || '');
+      setAiInsightsEnabled(aiInsights?.setting_value !== 'false');
+      setBadgesEnabled(badges?.setting_value !== 'false');
     }
   };
 
@@ -78,6 +85,26 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
           .upsert({ 
             setting_key: 'custom_domain', 
             setting_value: customDomain.replace(/\/$/, ''), // Remove trailing slash
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'setting_key' });
+      }
+
+      // Atualizar AI Insights (apenas master admin)
+      if (isMasterAdmin) {
+        await sb
+          .from('admin_settings')
+          .upsert({ 
+            setting_key: 'ai_insights_enabled', 
+            setting_value: aiInsightsEnabled ? 'true' : 'false',
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'setting_key' });
+
+        // Atualizar Badges
+        await sb
+          .from('admin_settings')
+          .upsert({ 
+            setting_key: 'badges_enabled', 
+            setting_value: badgesEnabled ? 'true' : 'false',
             updated_at: new Date().toISOString() 
           }, { onConflict: 'setting_key' });
       }
@@ -123,6 +150,41 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
               <strong>Exemplo:</strong> {customDomain || 'https://seudominio.com.br'}/agency/nome-agencia
             </p>
           </div>
+        )}
+
+        {/* Features Control - Only for Master Admin */}
+        {isMasterAdmin && (
+          <>
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+              <h3 className="font-semibold text-sm">Funcionalidades do Dashboard</h3>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Insights com IA</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Mostrar análises de desempenho com inteligência artificial
+                  </p>
+                </div>
+                <Switch
+                  checked={aiInsightsEnabled}
+                  onCheckedChange={setAiInsightsEnabled}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Sistema de Badges</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Exibir sistema de conquistas e badges para usuários
+                  </p>
+                </div>
+                <Switch
+                  checked={badgesEnabled}
+                  onCheckedChange={setBadgesEnabled}
+                />
+              </div>
+            </div>
+          </>
         )}
 
         {/* WhatsApp - Available for all admins */}

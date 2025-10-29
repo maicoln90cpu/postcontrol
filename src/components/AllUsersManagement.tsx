@@ -73,22 +73,26 @@ export const AllUsersManagement = () => {
   const loadData = async () => {
     console.log('🔄 Carregando usuários...');
     
-    // Load users with roles
-    const { data: usersData, error } = await sb
+    // Load users first
+    const { data: usersData, error: usersError } = await sb
       .from('profiles')
-      .select(`
-        *,
-        user_roles(role)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    console.log('📊 Usuários carregados:', usersData?.length, 'Error:', error);
+    console.log('📊 Usuários carregados:', usersData?.length, 'Error:', usersError);
 
     if (usersData) {
-      // Transform data to include roles array
-      const usersWithRoles = usersData.map((user: any) => ({
-        ...user,
-        roles: user.user_roles?.map((ur: any) => ur.role) || []
+      // Load roles separately for each user
+      const usersWithRoles = await Promise.all(usersData.map(async (user: any) => {
+        const { data: rolesData } = await sb
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+        
+        return {
+          ...user,
+          roles: rolesData?.map((ur: any) => ur.role) || []
+        };
       }));
       
       console.log('✅ Usuários com roles:', usersWithRoles.length);
