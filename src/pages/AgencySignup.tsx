@@ -88,7 +88,7 @@ export default function AgencySignup() {
 
       if (authError) throw authError;
 
-      // 2. Atualizar profile (SEM agency_id - agora usa user_agencies)
+      // 2. Atualizar profile (COM agency_id para contagem de divulgadores)
       if (authData.user) {
         const { error: profileError } = await sb
           .from('profiles')
@@ -97,6 +97,7 @@ export default function AgencySignup() {
             instagram: formData.instagram,
             phone: formData.phone,
             gender: formData.gender,
+            agency_id: agency.id, // Adiciona agency_id para contagem
           })
           .eq('id', authData.user.id);
 
