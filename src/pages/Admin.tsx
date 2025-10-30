@@ -335,7 +335,13 @@ const Admin = () => {
       .from('submissions')
       .select(`
         *,
-        posts(post_number, deadline, event_id, agency_id, events(title, id))
+        posts(
+          post_number, 
+          deadline, 
+          event_id, 
+          agency_id, 
+          events(title, id, event_purpose)
+        )
       `);
     
     if (agencyIdFilter) {

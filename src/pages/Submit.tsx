@@ -31,22 +31,24 @@ interface Post {
   event_id: string;
 }
 
-interface Event {
-  id: string;
-  title: string;
-  description: string | null;
-  event_date: string | null;
-  location: string | null;
-  setor: string | null;
-  numero_de_vagas: number | null;
-  event_image_url: string | null;
-  require_instagram_link: boolean;
-  event_purpose?: string;
-  accept_sales?: boolean;
-  accept_posts?: boolean;
-  require_profile_screenshot?: boolean;
-  require_post_screenshot?: boolean;
-}
+  interface Event {
+    id: string;
+    title: string;
+    description: string | null;
+    event_date: string | null;
+    location: string | null;
+    setor: string | null;
+    numero_de_vagas: number | null;
+    event_image_url: string | null;
+    require_instagram_link: boolean;
+    event_purpose?: string;
+    accept_sales?: boolean;
+    accept_posts?: boolean;
+    require_profile_screenshot?: boolean;
+    require_post_screenshot?: boolean;
+    whatsapp_group_url?: string; // 🆕
+    target_gender?: string[]; // 🆕
+  }
 
 interface EventRequirement {
   id: string;
@@ -181,7 +183,7 @@ const Submit = () => {
     // 3. Buscar eventos APENAS da agência no contexto
     const { data, error } = await sb
       .from("events")
-      .select("id, title, description, event_date, location, setor, numero_de_vagas, event_image_url, require_instagram_link, event_purpose, accept_sales, accept_posts, require_profile_screenshot, require_post_screenshot")
+      .select("id, title, description, event_date, location, setor, numero_de_vagas, event_image_url, require_instagram_link, event_purpose, accept_sales, accept_posts, require_profile_screenshot, require_post_screenshot, whatsapp_group_url, target_gender")
       .eq("is_active", true)
       .eq("agency_id", contextAgencyId)
       .order("event_date", { ascending: true });
@@ -403,6 +405,42 @@ const Submit = () => {
           });
           return;
         }
+      }
+    }
+
+    // 🆕 Validação de gênero compatível (Item 2)
+    if (selectedEventData?.target_gender && selectedEventData.target_gender.length > 0) {
+      // Buscar gênero do perfil do usuário
+      const { data: userProfile, error: profileError } = await sb
+        .from('profiles')
+        .select('gender')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+      }
+
+      const userGender = userProfile?.gender;
+
+      // Verificar se gênero do usuário está na lista de gêneros aceitos
+      const genderCompatible = !userGender || selectedEventData.target_gender.includes(userGender);
+
+      if (!genderCompatible) {
+        const genderLabels: Record<string, string> = {
+          'masculino': 'Masculino',
+          'feminino': 'Feminino',
+          'outro': 'Outro'
+        };
+        const acceptedGenders = selectedEventData.target_gender.map(g => genderLabels[g] || g).join(', ');
+        const userGenderLabel = userGender ? genderLabels[userGender] || userGender : 'Não informado';
+        
+        toast({
+          title: "Gênero Incompatível",
+          description: `Este evento aceita apenas submissões de: ${acceptedGenders}. Seu perfil está cadastrado como: ${userGenderLabel}.`,
+          variant: "destructive",
+        });
+        return; // ⛔ Bloquear envio
       }
     }
 
@@ -727,6 +765,15 @@ const Submit = () => {
                   </div>
                 )}
                 
+                <h2 className="text-2xl font-bold">{selectedEventData.title}</h2>
+                
+                {/* 🆕 Badge de Tipo de Evento (Item 5) */}
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant={selectedEventData.event_purpose === "selecao_perfil" ? "secondary" : "default"}>
+                    {selectedEventData.event_purpose === "selecao_perfil" ? "👤 Seleção de Perfil" : "📢 Divulgação"}
+                  </Badge>
+                </div>
+                
                 <div className="space-y-2 text-sm">
                   {selectedEventData.location && (
                     <div className="flex items-start gap-2">
@@ -900,6 +947,51 @@ const Submit = () => {
               </div>
             )}
 
+            {/* 🆕 URL do Grupo WhatsApp (Item 3) */}
+            {selectedEventData?.event_purpose === "selecao_perfil" && selectedEventData?.whatsapp_group_url && (
+              <div className="space-y-2 p-4 border-2 border-green-200 rounded-lg bg-green-50 dark:bg-green-950 dark:border-green-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">📱</span>
+                  <div className="flex-1">
+                    <Label className="font-semibold">Grupo WhatsApp de Resultados</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Entre no grupo para receber os resultados da seleção
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={selectedEventData.whatsapp_group_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button type="button" className="w-full bg-green-600 hover:bg-green-700">
+                    Entrar no Grupo WhatsApp
+                  </Button>
+                </a>
+              </div>
+            )}
+
+            {/* 🆕 URL do Grupo WhatsApp */}
+            {selectedEventData?.event_purpose === "selecao_perfil" && selectedEventData?.whatsapp_group_url && (
+              <div className="space-y-2 p-4 border-2 border-green-200 rounded-lg bg-green-50 dark:bg-green-950 dark:border-green-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">📱</span>
+                  <div className="flex-1">
+                    <Label className="font-semibold">Grupo WhatsApp de Resultados</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Entre no grupo para receber os resultados da seleção
+                    </p>
+                  </div>
+                </div>
+                <a href={selectedEventData.whatsapp_group_url} target="_blank" rel="noopener noreferrer" className="block">
+                  <Button type="button" className="w-full bg-green-600 hover:bg-green-700">
+                    Entrar no Grupo WhatsApp
+                  </Button>
+                </a>
+              </div>
+            )}
+
             {/* 🆕 Campos específicos para Seleção de Perfil */}
             {selectedEventData?.event_purpose === "selecao_perfil" && (
               <>
@@ -973,7 +1065,7 @@ const Submit = () => {
                 {/* Upload do Print da Postagem (condicional) */}
                 {selectedEventData.require_post_screenshot && (
                   <div className="space-y-2">
-                    <Label htmlFor="postScreenshot">Print de uma Postagem Sua *</Label>
+                    <Label htmlFor="postScreenshot">Print do Post do Evento *</Label>
                     {previewUrl ? (
                       <div className="relative max-w-sm mx-auto">
                         <AspectRatio ratio={9 / 16}>
@@ -1016,7 +1108,7 @@ const Submit = () => {
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      📸 Faça um print de uma postagem sua que você mais gosta
+                      📸 Faça um print do post relacionado a este evento
                     </p>
                   </div>
                 )}

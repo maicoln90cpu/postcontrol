@@ -71,26 +71,33 @@ export const SubmissionZoomDialog = ({
           {/* Imagens lado a lado se houver print do perfil */}
           <div className="relative bg-black flex items-center justify-center overflow-hidden gap-2 p-2" style={{ maxHeight: 'calc(95vh - 200px)', minHeight: '400px' }}>
             {/* Imagem principal */}
-            <div className={submission.profile_screenshot_path ? "flex-1" : "w-full h-full"}>
+            <div className={submission.profile_screenshot_path ? "flex-1 relative" : "w-full h-full"}>
               <SubmissionImageDisplay
                 screenshotPath={submission.screenshot_path}
                 screenshotUrl={submission.screenshot_url}
                 className="max-w-full max-h-full object-contain"
                 loading="eager"
               />
+              {/* 🆕 Legenda clara (Item 6) */}
+              {submission.profile_screenshot_path && (
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+                  📸 Print da Postagem
+                </div>
+              )}
             </div>
 
             {/* 🆕 Imagem do perfil (se existir) */}
             {submission.profile_screenshot_path && (
-              <div className="flex-1 border-l-2 border-white/20 pl-2">
+              <div className="flex-1 border-l-2 border-white/20 pl-2 relative">
                 <SubmissionImageDisplay
                   screenshotPath={submission.profile_screenshot_path}
                   className="max-w-full max-h-full object-contain"
                   loading="eager"
                 />
-                <p className="text-white text-xs text-center mt-2 bg-black/50 rounded px-2 py-1">
-                  Print do Perfil
-                </p>
+                {/* 🆕 Legenda mais visível (Item 6) */}
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+                  👤 Print do Perfil
+                </div>
               </div>
             )}
             

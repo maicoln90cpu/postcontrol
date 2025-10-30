@@ -282,6 +282,7 @@ export type Database = {
           title: string
           total_required_posts: number | null
           updated_at: string
+          whatsapp_group_url: string | null
         }
         Insert: {
           accept_posts?: boolean | null
@@ -311,6 +312,7 @@ export type Database = {
           title: string
           total_required_posts?: number | null
           updated_at?: string
+          whatsapp_group_url?: string | null
         }
         Update: {
           accept_posts?: boolean | null
@@ -340,6 +342,7 @@ export type Database = {
           title?: string
           total_required_posts?: number | null
           updated_at?: string
+          whatsapp_group_url?: string | null
         }
         Relationships: [
           {

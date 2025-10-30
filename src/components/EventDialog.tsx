@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { sb } from "@/lib/supabaseSafe";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2, Lock, Save, FileText } from "lucide-react";
+import { Loader2, Plus, Trash2, Lock, Save, FileText, X } from "lucide-react";
 import { useEventTemplates } from "@/hooks/useEventTemplates";
 
 interface EventDialogProps {
@@ -50,6 +50,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
   const [acceptPosts, setAcceptPosts] = useState(true);
   const [requireProfileScreenshot, setRequireProfileScreenshot] = useState(false);
   const [requirePostScreenshot, setRequirePostScreenshot] = useState(false);
+  const [whatsappGroupUrl, setWhatsappGroupUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
@@ -78,6 +79,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setAcceptPosts(event.accept_posts ?? true);
         setRequireProfileScreenshot(event.require_profile_screenshot || false);
         setRequirePostScreenshot(event.require_post_screenshot || false);
+        setWhatsappGroupUrl(event.whatsapp_group_url || "");
 
         // Load requirements
         const { data: reqData } = await sb
@@ -112,6 +114,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setAcceptPosts(true);
         setRequireProfileScreenshot(false);
         setRequirePostScreenshot(false);
+        setWhatsappGroupUrl("");
       }
       
       // Load agency_id and templates
@@ -267,6 +270,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             accept_posts: acceptPosts,
             require_profile_screenshot: requireProfileScreenshot,
             require_post_screenshot: requirePostScreenshot,
+            whatsapp_group_url: whatsappGroupUrl || null,
           })
           .eq('id', event.id);
 
@@ -299,6 +303,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             accept_posts: acceptPosts,
             require_profile_screenshot: requireProfileScreenshot,
             require_post_screenshot: requirePostScreenshot,
+            whatsapp_group_url: whatsappGroupUrl || null,
             created_by: user.id,
             agency_id: userAgencyId,
           })
@@ -636,17 +641,33 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
                     disabled={loading}
                   />
                   <Label htmlFor="require_post_screenshot" className="cursor-pointer font-normal">
-                    Exigir Print de uma Postagem
-                  </Label>
-                </div>
+                  Exigir Print de uma Postagem
+                </Label>
               </div>
-              <p className="text-xs text-yellow-600 mt-2">
-                ⚠️ A faixa de seguidores sempre será solicitada em eventos de seleção de perfil
+            </div>
+            <p className="text-xs text-yellow-600 mt-2">
+              ⚠️ A faixa de seguidores sempre será solicitada em eventos de seleção de perfil
+            </p>
+
+            {/* 🆕 Campo URL Grupo WhatsApp */}
+            <div className="space-y-2 mt-4">
+              <Label htmlFor="whatsapp_group_url">URL do Grupo WhatsApp (Opcional)</Label>
+              <Input
+                id="whatsapp_group_url"
+                type="url"
+                value={whatsappGroupUrl}
+                onChange={(e) => setWhatsappGroupUrl(e.target.value)}
+                placeholder="https://chat.whatsapp.com/..."
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                📱 Link do grupo onde os resultados da seleção serão divulgados. Será exibido no formulário para os participantes.
               </p>
             </div>
-          )}
+          </div>
+        )}
 
-          <div className="space-y-2">
+        <div className="space-y-2">
             <Label htmlFor="description">Descrição do Evento</Label>
             <Textarea
               id="description"
@@ -769,18 +790,35 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="event_image">Imagem do Evento</Label>
+            <Label htmlFor="eventImage">Imagem do Evento</Label>
             {(eventImageUrl || eventImage) && (
-              <div className="mb-2">
+              <div className="relative w-full max-w-sm">
                 <img 
                   src={eventImage ? URL.createObjectURL(eventImage) : eventImageUrl} 
-                  alt="Preview do evento"
-                  className="w-full h-48 object-cover rounded-lg border"
+                  alt="Preview do evento" 
+                  className="w-full h-auto rounded-lg border"
                 />
+                {/* 🆕 Botão de excluir */}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={() => {
+                    setEventImage(null);
+                    setEventImageUrl("");
+                    // Limpar input file
+                    const fileInput = document.getElementById('eventImage') as HTMLInputElement;
+                    if (fileInput) fileInput.value = '';
+                  }}
+                  disabled={loading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             )}
             <Input
-              id="event_image"
+              id="eventImage"
               type="file"
               accept="image/*"
               onChange={(e) => {
@@ -791,10 +829,11 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">
-              Imagem que será exibida para todos os usuários
+              Formatos aceitos: JPG, PNG, WEBP. Máximo 5MB.
             </p>
           </div>
 
+          {/* M10: Botão para salvar como template (apenas em criação) */}
           <div className="flex gap-2 justify-end">
             {!event && (
               <Button
