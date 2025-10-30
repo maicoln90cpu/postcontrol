@@ -768,13 +768,6 @@ const Submit = () => {
                 
                 <h2 className="text-2xl font-bold">{selectedEventData.title}</h2>
                 
-                {/* 🆕 Badge de Tipo de Evento (Item 5) */}
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge variant={selectedEventData.event_purpose === "selecao_perfil" ? "secondary" : "default"}>
-                    {selectedEventData.event_purpose === "selecao_perfil" ? "👤 Seleção de Perfil" : "📢 Divulgação"}
-                  </Badge>
-                </div>
-                
                 <div className="space-y-2 text-sm">
                   {selectedEventData.location && (
                     <div className="flex items-start gap-2">
@@ -800,6 +793,19 @@ const Submit = () => {
 
             {selectedEvent && (
               <>
+                {/* Exibir Tipo de Evento de forma destacada */}
+                <div className="space-y-2 bg-muted/50 p-4 rounded-lg border">
+                  <Label>Tipo de Evento *</Label>
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={selectedEventData?.event_purpose === "selecao_perfil" ? "secondary" : "default"}
+                      className="text-base py-2 px-4"
+                    >
+                      {selectedEventData?.event_purpose === "selecao_perfil" ? "👤 Seleção de Perfil" : "📢 Divulgação"}
+                    </Badge>
+                  </div>
+                </div>
+
                 {(selectedEventData?.accept_posts || selectedEventData?.accept_sales) && (
                   <div className="space-y-2">
                     <Label>Tipo de Envio *</Label>
@@ -818,6 +824,7 @@ const Submit = () => {
                     </Select>
                   </div>
                 )}
+
 
                 {/* Mostrar seleção de postagem APENAS se tipo for "post" */}
                 {submissionType === "post" && (
