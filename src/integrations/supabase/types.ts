@@ -239,6 +239,7 @@ export type Database = {
           setor: string | null
           target_gender: string[] | null
           title: string
+          total_required_posts: number | null
           updated_at: string
         }
         Insert: {
@@ -261,6 +262,7 @@ export type Database = {
           setor?: string | null
           target_gender?: string[] | null
           title: string
+          total_required_posts?: number | null
           updated_at?: string
         }
         Update: {
@@ -283,6 +285,7 @@ export type Database = {
           setor?: string | null
           target_gender?: string[] | null
           title?: string
+          total_required_posts?: number | null
           updated_at?: string
         }
         Relationships: [
