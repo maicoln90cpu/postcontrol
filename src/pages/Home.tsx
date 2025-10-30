@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ..., MessageCircle } from "lucide-react";
 import { ArrowRight, Upload, Trophy, Users, Zap, Shield, BarChart3, CheckCircle2, Calendar, Clock, Gift } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
@@ -339,17 +340,23 @@ const Home = () => {
                       ))}
                     </div>
 
-                    <Link to="/auth" className="block">
-                      <Button 
-                        size="lg" 
-                        className={`w-full ${
-                          isPopular ? 'bg-gradient-primary' : 'bg-gradient-secondary'
-                        }`}
-                      >
-                        Começar Agora
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
+<a 
+  href={`https://wa.me/5511999136884?text=Olá!%20Gostaria%20de%20contratar%20o%20plano%20${encodeURIComponent(plan.plan_name)}%20por%20R$%20${plan.monthly_price}/mês`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="block"
+>
+  <Button 
+    size="lg" 
+    className={`w-full ${
+      isPopular ? 'bg-gradient-primary' : 'bg-gradient-secondary'
+    }`}
+  >
+    Contratar via WhatsApp
+    <MessageCircle className="ml-2 h-4 w-4" />
+  </Button>
+</a>
+
                   </Card>
                 );
               })}
