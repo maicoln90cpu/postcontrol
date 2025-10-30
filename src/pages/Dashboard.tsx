@@ -193,24 +193,25 @@ const Dashboard = () => {
       .from("submissions")
       .select(
         `
+    id,
+    submitted_at,
+    screenshot_url,
+    screenshot_path,
+    status,
+    rejection_reason,
+    posts!inner (
+      post_number,
+      deadline,
+      event_id,
+      events!inner (
+        title,
+        required_posts,
         id,
-        submitted_at,
-        screenshot_url,
-        status,
-        rejection_reason,
-        posts!inner (
-          post_number,
-          deadline,
-          event_id,
-          events!inner (
-            title,
-            required_posts,
-            id,
-            is_active,
-            agency_id
-          )
-        )
-      `,
+        is_active,
+        agency_id
+      )
+    )
+  `,
       )
       .eq("user_id", user.id)
       .eq("posts.events.is_active", true)
