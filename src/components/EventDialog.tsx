@@ -51,6 +51,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
   const [requireProfileScreenshot, setRequireProfileScreenshot] = useState(false);
   const [requirePostScreenshot, setRequirePostScreenshot] = useState(false);
   const [whatsappGroupUrl, setWhatsappGroupUrl] = useState("");
+  const [whatsappGroupTitle, setWhatsappGroupTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
@@ -80,6 +81,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setRequireProfileScreenshot(event.require_profile_screenshot || false);
         setRequirePostScreenshot(event.require_post_screenshot || false);
         setWhatsappGroupUrl(event.whatsapp_group_url || "");
+        setWhatsappGroupTitle(event.whatsapp_group_title || "");
 
         // Load requirements
         const { data: reqData } = await sb
@@ -271,6 +273,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             require_profile_screenshot: requireProfileScreenshot,
             require_post_screenshot: requirePostScreenshot,
             whatsapp_group_url: whatsappGroupUrl || null,
+            whatsapp_group_title: whatsappGroupTitle || null,
           })
           .eq('id', event.id);
 
@@ -304,6 +307,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             require_profile_screenshot: requireProfileScreenshot,
             require_post_screenshot: requirePostScreenshot,
             whatsapp_group_url: whatsappGroupUrl || null,
+            whatsapp_group_title: whatsappGroupTitle || null,
             created_by: user.id,
             agency_id: userAgencyId,
           })
@@ -649,7 +653,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
               ⚠️ A faixa de seguidores sempre será solicitada em eventos de seleção de perfil
             </p>
 
-            {/* 🆕 Campo URL Grupo WhatsApp */}
+            {/* Campos de Grupo WhatsApp para Seleção de Perfil */}
             <div className="space-y-2 mt-4">
               <Label htmlFor="whatsapp_group_url">URL do Grupo WhatsApp (Opcional)</Label>
               <Input
@@ -661,7 +665,22 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
-                📱 Link do grupo onde os resultados da seleção serão divulgados. Será exibido no formulário para os participantes.
+                📱 Link do grupo onde os resultados da seleção serão divulgados
+              </p>
+            </div>
+
+            <div className="space-y-2 mt-2">
+              <Label htmlFor="whatsapp_group_title">Título do Grupo WhatsApp (Opcional)</Label>
+              <Input
+                id="whatsapp_group_title"
+                type="text"
+                value={whatsappGroupTitle}
+                onChange={(e) => setWhatsappGroupTitle(e.target.value)}
+                placeholder="Ex: Grupo WhatsApp de Resultados"
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                ✏️ Personalize o texto que aparecerá no formulário. Se deixar em branco, será usado "Grupo WhatsApp de Resultados"
               </p>
             </div>
           </div>

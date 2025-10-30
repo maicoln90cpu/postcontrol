@@ -46,8 +46,9 @@ interface Post {
     accept_posts?: boolean;
     require_profile_screenshot?: boolean;
     require_post_screenshot?: boolean;
-    whatsapp_group_url?: string; // 🆕
-    target_gender?: string[]; // 🆕
+    whatsapp_group_url?: string;
+    whatsapp_group_title?: string;
+    target_gender?: string[];
   }
 
 interface EventRequirement {
@@ -947,13 +948,15 @@ const Submit = () => {
               </div>
             )}
 
-            {/* 🆕 URL do Grupo WhatsApp (Item 3) */}
+            {/* Grupo WhatsApp com título customizável */}
             {selectedEventData?.event_purpose === "selecao_perfil" && selectedEventData?.whatsapp_group_url && (
               <div className="space-y-2 p-4 border-2 border-green-200 rounded-lg bg-green-50 dark:bg-green-950 dark:border-green-800">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">📱</span>
                   <div className="flex-1">
-                    <Label className="font-semibold">Grupo WhatsApp de Resultados</Label>
+                    <Label className="font-semibold">
+                      {selectedEventData.whatsapp_group_title || "Grupo WhatsApp de Resultados"}
+                    </Label>
                     <p className="text-xs text-muted-foreground mt-1">
                       Entre no grupo para receber os resultados da seleção
                     </p>
@@ -965,26 +968,6 @@ const Submit = () => {
                   rel="noopener noreferrer"
                   className="block"
                 >
-                  <Button type="button" className="w-full bg-green-600 hover:bg-green-700">
-                    Entrar no Grupo WhatsApp
-                  </Button>
-                </a>
-              </div>
-            )}
-
-            {/* 🆕 URL do Grupo WhatsApp */}
-            {selectedEventData?.event_purpose === "selecao_perfil" && selectedEventData?.whatsapp_group_url && (
-              <div className="space-y-2 p-4 border-2 border-green-200 rounded-lg bg-green-50 dark:bg-green-950 dark:border-green-800">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">📱</span>
-                  <div className="flex-1">
-                    <Label className="font-semibold">Grupo WhatsApp de Resultados</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Entre no grupo para receber os resultados da seleção
-                    </p>
-                  </div>
-                </div>
-                <a href={selectedEventData.whatsapp_group_url} target="_blank" rel="noopener noreferrer" className="block">
                   <Button type="button" className="w-full bg-green-600 hover:bg-green-700">
                     Entrar no Grupo WhatsApp
                   </Button>

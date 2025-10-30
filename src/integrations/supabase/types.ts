@@ -282,6 +282,7 @@ export type Database = {
           title: string
           total_required_posts: number | null
           updated_at: string
+          whatsapp_group_title: string | null
           whatsapp_group_url: string | null
         }
         Insert: {
@@ -312,6 +313,7 @@ export type Database = {
           title: string
           total_required_posts?: number | null
           updated_at?: string
+          whatsapp_group_title?: string | null
           whatsapp_group_url?: string | null
         }
         Update: {
@@ -342,6 +344,7 @@ export type Database = {
           title?: string
           total_required_posts?: number | null
           updated_at?: string
+          whatsapp_group_title?: string | null
           whatsapp_group_url?: string | null
         }
         Relationships: [
