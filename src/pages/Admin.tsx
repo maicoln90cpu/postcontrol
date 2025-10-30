@@ -71,6 +71,7 @@ const Admin = () => {
   const [dateFilterEnd, setDateFilterEnd] = useState<string>("");
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [selectedImageForZoom, setSelectedImageForZoom] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [usersCount, setUsersCount] = useState(0);
 
@@ -1352,7 +1353,25 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                           {/* Screenshot */}
                           <div 
                             className="w-full sm:w-48 h-64 sm:h-48 flex-shrink-0 order-2 sm:order-2 cursor-pointer"
-                            onClick={() => setSelectedImageForZoom(submission.screenshot_url)}
+                            onClick={async () => {
+                              if (!submission.screenshot_path) return;
+                              
+                              // Usar cache se já gerou
+                              if (imageUrls[submission.id]) {
+                                setSelectedImageForZoom(imageUrls[submission.id]);
+                                return;
+                              }
+                              
+                              // Gerar nova URL assinada
+                              const { data } = await supabase.storage
+                                .from('screenshots')
+                                .createSignedUrl(submission.screenshot_path, 3600);
+                                
+                              if (data?.signedUrl) {
+                                setImageUrls(prev => ({ ...prev, [submission.id]: data.signedUrl }));
+                                setSelectedImageForZoom(data.signedUrl);
+                              }
+                            }}
                           >
                             <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
                               <SubmissionImageDisplay
