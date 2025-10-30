@@ -437,8 +437,7 @@ const Admin = () => {
 const confirmRejection = async () => {
   if (!selectedSubmissionForRejection) return;
   
-  // Adicionar estado de loading
-  setLoading(true);
+  setLoadingSubmissions(true);
   
   try {
     const { data, error } = await supabase
@@ -455,25 +454,25 @@ const confirmRejection = async () => {
     if (error) {
       toast.error("Erro ao rejeitar submissão");
       console.error('Erro detalhado:', error);
-      setLoading(false);
+      setLoadingSubmissions(false);
       return;
     }
     
-    // Fechar diálogo IMEDIATAMENTE para evitar tela cinza
+    // Recarregar dados antes de fechar
+    await loadSubmissions();
+    
+    // Fechar diálogo após sucesso
     setRejectionDialogOpen(false);
     setSelectedSubmissionForRejection(null);
     setRejectionReason("");
     setRejectionTemplate("");
-    
-    // Recarregar em background
-    await loadSubmissions();
     
     toast.success("Submissão rejeitada com sucesso");
   } catch (error) {
     toast.error("Erro ao rejeitar submissão");
     console.error('Exception:', error);
   } finally {
-    setLoading(false);
+    setLoadingSubmissions(false);
   }
 };
 
