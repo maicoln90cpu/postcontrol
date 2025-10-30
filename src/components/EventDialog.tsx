@@ -45,6 +45,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
   const [internalNotes, setInternalNotes] = useState("");
   const [totalRequiredPosts, setTotalRequiredPosts] = useState<number>(0);
   const [isApproximateTotal, setIsApproximateTotal] = useState(false);
+  const [eventPurpose, setEventPurpose] = useState<string>("divulgacao");
+  const [acceptSales, setAcceptSales] = useState(false);
+  const [acceptPosts, setAcceptPosts] = useState(true);
   const [loading, setLoading] = useState(false);
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
@@ -68,6 +71,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setInternalNotes(event.internal_notes || "");
         setTotalRequiredPosts(event.total_required_posts || 0);
         setIsApproximateTotal(event.is_approximate_total || false);
+        setEventPurpose(event.event_purpose || "divulgacao");
+        setAcceptSales(event.accept_sales || false);
+        setAcceptPosts(event.accept_posts ?? true);
 
         // Load requirements
         const { data: reqData } = await sb
@@ -97,6 +103,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setInternalNotes("");
         setTotalRequiredPosts(0);
         setIsApproximateTotal(false);
+        setEventPurpose("divulgacao");
+        setAcceptSales(false);
+        setAcceptPosts(true);
       }
       
       // Load agency_id and templates
@@ -247,6 +256,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             internal_notes: internalNotes,
             total_required_posts: totalRequiredPosts,
             is_approximate_total: isApproximateTotal,
+            event_purpose: eventPurpose,
+            accept_sales: acceptSales,
+            accept_posts: acceptPosts,
           })
           .eq('id', event.id);
 
@@ -274,6 +286,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             internal_notes: internalNotes,
             total_required_posts: totalRequiredPosts,
             is_approximate_total: isApproximateTotal,
+            event_purpose: eventPurpose,
+            accept_sales: acceptSales,
+            accept_posts: acceptPosts,
             created_by: user.id,
             agency_id: userAgencyId,
           })
@@ -535,6 +550,53 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="event_purpose">Tipo de Evento *</Label>
+            <Select value={eventPurpose} onValueChange={setEventPurpose} disabled={loading}>
+              <SelectTrigger id="event_purpose">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="divulgacao">Divulgação</SelectItem>
+                <SelectItem value="selecao_perfil">Seleção de Perfil</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Define se o evento é para divulgação de conteúdo ou seleção de perfis
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tipos de Submissão Aceitos *</Label>
+            <div className="flex flex-col gap-3 p-4 border rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="accept_posts"
+                  checked={acceptPosts}
+                  onCheckedChange={(checked) => setAcceptPosts(checked as boolean)}
+                  disabled={loading}
+                />
+                <Label htmlFor="accept_posts" className="cursor-pointer font-normal">
+                  Aceitar Postagens
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="accept_sales"
+                  checked={acceptSales}
+                  onCheckedChange={(checked) => setAcceptSales(checked as boolean)}
+                  disabled={loading}
+                />
+                <Label htmlFor="accept_sales" className="cursor-pointer font-normal">
+                  Aceitar Comprovantes de Venda
+                </Label>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Selecione pelo menos um tipo de submissão
+            </p>
           </div>
 
           <div className="space-y-2">

@@ -10,6 +10,7 @@ import { useNavigate, Link } from "react-router-dom";
 // M2: Lazy loading de componentes pesados
 const EventDialog = lazy(() => import("@/components/EventDialog").then(m => ({ default: m.EventDialog })));
 const PostDialog = lazy(() => import("@/components/PostDialog").then(m => ({ default: m.PostDialog })));
+const AddManualSubmissionDialog = lazy(() => import("@/components/AddManualSubmissionDialog").then(m => ({ default: m.AddManualSubmissionDialog })));
 const DashboardStats = lazy(() => import("@/components/DashboardStats").then(m => ({ default: m.DashboardStats })));
 const UserPerformance = lazy(() => import("@/components/UserPerformance").then(m => ({ default: m.UserPerformance })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
@@ -47,6 +48,9 @@ const Admin = () => {
   const [submissionEventFilter, setSubmissionEventFilter] = useState<string>("all");
   const [submissionPostFilter, setSubmissionPostFilter] = useState<string>("all");
   const [submissionStatusFilter, setSubmissionStatusFilter] = useState<string>("all");
+  const [submissionTypeFilter, setSubmissionTypeFilter] = useState<string>("all");
+  const [eventPurposeFilter, setEventPurposeFilter] = useState<string>("all");
+  const [addSubmissionDialogOpen, setAddSubmissionDialogOpen] = useState(false);
   const [postEventFilter, setPostEventFilter] = useState<string>("all");
   const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);

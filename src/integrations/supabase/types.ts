@@ -255,6 +255,8 @@ export type Database = {
       }
       events: {
         Row: {
+          accept_posts: boolean | null
+          accept_sales: boolean | null
           agency_id: string | null
           auto_activate_at: string | null
           auto_deactivate_at: string | null
@@ -263,6 +265,7 @@ export type Database = {
           description: string | null
           event_date: string | null
           event_image_url: string | null
+          event_purpose: string | null
           id: string
           internal_notes: string | null
           is_active: boolean
@@ -279,6 +282,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accept_posts?: boolean | null
+          accept_sales?: boolean | null
           agency_id?: string | null
           auto_activate_at?: string | null
           auto_deactivate_at?: string | null
@@ -287,6 +292,7 @@ export type Database = {
           description?: string | null
           event_date?: string | null
           event_image_url?: string | null
+          event_purpose?: string | null
           id?: string
           internal_notes?: string | null
           is_active?: boolean
@@ -303,6 +309,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accept_posts?: boolean | null
+          accept_sales?: boolean | null
           agency_id?: string | null
           auto_activate_at?: string | null
           auto_deactivate_at?: string | null
@@ -311,6 +319,7 @@ export type Database = {
           description?: string | null
           event_date?: string | null
           event_image_url?: string | null
+          event_purpose?: string | null
           id?: string
           internal_notes?: string | null
           is_active?: boolean
@@ -663,9 +672,11 @@ export type Database = {
           instagram_verified_at: string | null
           post_id: string
           rejection_reason: string | null
+          sales_proof_url: string | null
           screenshot_path: string | null
           screenshot_url: string | null
           status: string
+          submission_type: string | null
           submitted_at: string
           user_id: string
         }
@@ -678,9 +689,11 @@ export type Database = {
           instagram_verified_at?: string | null
           post_id: string
           rejection_reason?: string | null
+          sales_proof_url?: string | null
           screenshot_path?: string | null
           screenshot_url?: string | null
           status?: string
+          submission_type?: string | null
           submitted_at?: string
           user_id: string
         }
@@ -693,9 +706,11 @@ export type Database = {
           instagram_verified_at?: string | null
           post_id?: string
           rejection_reason?: string | null
+          sales_proof_url?: string | null
           screenshot_path?: string | null
           screenshot_url?: string | null
           status?: string
+          submission_type?: string | null
           submitted_at?: string
           user_id?: string
         }
@@ -878,7 +893,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_sales_stats: {
+        Row: {
+          approved_sales_count: number | null
+          total_sales_count: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_rate_limit: {

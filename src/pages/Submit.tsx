@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -40,6 +41,9 @@ interface Event {
   numero_de_vagas: number | null;
   event_image_url: string | null;
   require_instagram_link: boolean;
+  event_purpose?: string;
+  accept_sales?: boolean;
+  accept_posts?: boolean;
 }
 
 interface EventRequirement {
@@ -89,6 +93,9 @@ const Submit = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [requirements, setRequirements] = useState<EventRequirement[]>([]);
+  const [submissionType, setSubmissionType] = useState<string>("post");
+  const [salesProofFile, setSalesProofFile] = useState<File | null>(null);
+  const [salesProofPreview, setSalesProofPreview] = useState<string | null>(null);
 
   useEffect(() => {
     loadEvents();
@@ -166,7 +173,7 @@ const Submit = () => {
     // 3. Buscar eventos APENAS da agência no contexto
     const { data, error } = await sb
       .from("events")
-      .select("id, title, description, event_date, location, setor, numero_de_vagas, event_image_url, require_instagram_link")
+      .select("id, title, description, event_date, location, setor, numero_de_vagas, event_image_url, require_instagram_link, event_purpose, accept_sales, accept_posts")
       .eq("is_active", true)
       .eq("agency_id", contextAgencyId)
       .order("event_date", { ascending: true });
@@ -302,19 +309,32 @@ const Submit = () => {
         return;
       }
       
-      setSelectedFile(file);
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      if (submissionType === "post") {
+        setSelectedFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewUrl(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setSalesProofFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSalesProofPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   const handleRemoveImage = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    if (submissionType === "post") {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+    } else {
+      setSalesProofFile(null);
+      setSalesProofPreview(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -385,17 +405,20 @@ const Submit = () => {
       return;
     }
 
-    if (!selectedFile) {
+    const fileToCheck = submissionType === "post" ? selectedFile : salesProofFile;
+    if (!fileToCheck) {
       toast({
-        title: "Adicione o print",
-        description: "Por favor, adicione o print da sua postagem.",
+        title: submissionType === "post" ? "Adicione o print" : "Adicione o comprovante",
+        description: submissionType === "post" 
+          ? "Por favor, adicione o print da sua postagem." 
+          : "Por favor, adicione o comprovante de venda.",
         variant: "destructive",
       });
       return;
     }
 
     // Validate file size (max 10MB)
-    if (selectedFile.size > 10 * 1024 * 1024) {
+    if (fileToCheck.size > 10 * 1024 * 1024) {
       toast({
         title: "Arquivo muito grande",
         description: "O arquivo deve ter no máximo 10MB.",
@@ -473,10 +496,13 @@ const Submit = () => {
         await sb.from("profiles").update(updateData).eq("id", user.id);
       }
 
-      const fileExt = selectedFile.name.split(".").pop();
+      const fileToUpload = submissionType === "post" ? selectedFile : salesProofFile;
+      if (!fileToUpload) throw new Error("No file to upload");
+
+      const fileExt = fileToUpload.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage.from("screenshots").upload(fileName, selectedFile);
+      const { error: uploadError } = await supabase.storage.from("screenshots").upload(fileName, fileToUpload);
 
       if (uploadError) throw uploadError;
 
@@ -486,21 +512,33 @@ const Submit = () => {
         .createSignedUrl(fileName, 31536000); // 1 year expiry
 
       // Store only the file path, not the signed URL
-      const { error } = await sb.from("submissions").insert({
+      const insertData: any = {
         post_id: selectedPost,
         user_id: user.id,
-        screenshot_path: fileName, // Store path instead of URL
-      });
+        submission_type: submissionType,
+      };
+
+      if (submissionType === "post") {
+        insertData.screenshot_path = fileName;
+      } else {
+        insertData.sales_proof_url = fileName;
+      }
+
+      const { error } = await sb.from("submissions").insert(insertData);
 
       if (error) throw error;
 
       toast({
-        title: "Postagem enviada!",
-        description: "Sua postagem foi enviada com sucesso e está em análise.",
+        title: submissionType === "post" ? "Postagem enviada!" : "Venda enviada!",
+        description: submissionType === "post" 
+          ? "Sua postagem foi enviada com sucesso e está em análise."
+          : "Seu comprovante de venda foi enviado com sucesso e está em análise.",
       });
 
       setSelectedFile(null);
       setPreviewUrl(null);
+      setSalesProofFile(null);
+      setSalesProofPreview(null);
       setSelectedPost("");
       setSelectedEvent("");
     } catch (error) {
@@ -565,6 +603,12 @@ const Submit = () => {
 
             {selectedEvent && selectedEventData && (
               <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant={selectedEventData.event_purpose === "divulgacao" ? "default" : "secondary"}>
+                    {selectedEventData.event_purpose === "divulgacao" ? "📢 Divulgação" : "👤 Seleção de Perfil"}
+                  </Badge>
+                </div>
+                
                 {selectedEventData.event_image_url && (
                   <div className="flex justify-center mb-3">
                     <img
@@ -606,6 +650,25 @@ const Submit = () => {
 
             {selectedEvent && (
               <>
+                {(selectedEventData?.accept_posts || selectedEventData?.accept_sales) && (
+                  <div className="space-y-2">
+                    <Label>Tipo de Envio *</Label>
+                    <Select value={submissionType} onValueChange={setSubmissionType} disabled={isSubmitting}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedEventData?.accept_posts && (
+                          <SelectItem value="post">📸 Enviar Postagem</SelectItem>
+                        )}
+                        {selectedEventData?.accept_sales && (
+                          <SelectItem value="sale">💰 Enviar Comprovante de Venda</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   {posts.length > 0 ? (
                     <div className="bg-primary/10 border border-primary rounded-lg p-4">
@@ -723,13 +786,15 @@ const Submit = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="screenshot">Print da Postagem *</Label>
-              {previewUrl ? (
+              <Label htmlFor="screenshot">
+                {submissionType === "post" ? "Print da Postagem *" : "Comprovante de Venda *"}
+              </Label>
+              {(submissionType === "post" ? previewUrl : salesProofPreview) ? (
                 <div className="relative max-w-sm mx-auto">
                   <AspectRatio ratio={9 / 16}>
                     <img
-                      src={previewUrl}
-                      alt="Preview da postagem"
+                      src={submissionType === "post" ? previewUrl! : salesProofPreview!}
+                      alt={submissionType === "post" ? "Preview da postagem" : "Preview do comprovante"}
                       className="w-full h-full object-cover rounded-lg border"
                     />
                   </AspectRatio>
@@ -742,7 +807,9 @@ const Submit = () => {
                   >
                     <X className="h-4 w-4" />
                   </Button>
-                  <p className="text-sm text-muted-foreground mt-2 text-center">{selectedFile?.name}</p>
+                  <p className="text-sm text-muted-foreground mt-2 text-center">
+                    {(submissionType === "post" ? selectedFile : salesProofFile)?.name}
+                  </p>
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
@@ -756,7 +823,9 @@ const Submit = () => {
                   />
                   <label htmlFor="screenshot" className="cursor-pointer">
                     <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-2">Clique para fazer upload do print</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {submissionType === "post" ? "Clique para fazer upload do print" : "Clique para fazer upload do comprovante"}
+                    </p>
                     <p className="text-xs text-muted-foreground">PNG, JPG ou JPEG (Max. 10MB)</p>
                   </label>
                 </div>
@@ -769,7 +838,7 @@ const Submit = () => {
               size="lg"
               disabled={isSubmitting || !selectedEvent || posts.length === 0}
             >
-              {isSubmitting ? "Enviando..." : "Enviar Postagem"}
+              {isSubmitting ? "Enviando..." : submissionType === "post" ? "Enviar Postagem" : "Enviar Comprovante"}
             </Button>
           </form>
         </Card>
