@@ -24,7 +24,17 @@ export const CSVImportExport = ({ onImportComplete }: CSVImportExportProps) => {
       return;
     }
 
-    const csv = Papa.unparse(profiles);
+    // Formatar dados para export
+    const formattedProfiles = profiles.map((profile) => ({
+      full_name: profile.full_name,
+      email: profile.email,
+      instagram_arroba: profile.instagram ? `@${profile.instagram.replace("@", "")}` : "",
+      instagram_https: profile.instagram ? `https://instagram.com/${profile.instagram.replace("@", "")}` : "",
+      phone: profile.phone,
+      created_at: profile.created_at,
+    }));
+
+    const csv = Papa.unparse(formattedProfiles);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -57,8 +67,8 @@ export const CSVImportExport = ({ onImportComplete }: CSVImportExportProps) => {
 
         toast.info(`Importando ${validUsers.length} usuários...`);
 
-        const { data, error } = await supabase.functions.invoke('import-users', {
-          body: { users: validUsers }
+        const { data, error } = await supabase.functions.invoke("import-users", {
+          body: { users: validUsers },
         });
 
         if (error) {
@@ -69,10 +79,10 @@ export const CSVImportExport = ({ onImportComplete }: CSVImportExportProps) => {
 
         if (data) {
           toast.success(`✅ ${data.success.length} usuários importados com sucesso!`);
-          
+
           if (data.errors.length > 0) {
             toast.warning(`⚠️ ${data.errors.length} erros durante a importação`);
-            console.error('Erros:', data.errors);
+            console.error("Erros:", data.errors);
           }
         }
 
@@ -90,19 +100,8 @@ export const CSVImportExport = ({ onImportComplete }: CSVImportExportProps) => {
 
   return (
     <div className="flex gap-2">
-      <Input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv"
-        onChange={handleImport}
-        className="hidden"
-        id="csv-import"
-      />
-      <Button
-        variant="outline"
-        onClick={() => fileInputRef.current?.click()}
-        className="gap-2"
-      >
+      <Input ref={fileInputRef} type="file" accept=".csv" onChange={handleImport} className="hidden" id="csv-import" />
+      <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
         <Upload className="h-4 w-4" />
         Importar CSV
       </Button>
