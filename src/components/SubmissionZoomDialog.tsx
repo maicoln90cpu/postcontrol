@@ -11,6 +11,8 @@ interface SubmissionZoomDialogProps {
     id: string;
     screenshot_path: string | null;
     screenshot_url?: string | null;
+    profile_screenshot_path?: string | null; // 🆕
+    followers_range?: string; // 🆕
     status: string;
     profiles?: {
       full_name: string;
@@ -66,14 +68,31 @@ export const SubmissionZoomDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 flex flex-col">
         <div className="flex flex-col h-full overflow-hidden">
-          {/* Imagem com zoom - área limitada */}
-          <div className="relative bg-black flex items-center justify-center overflow-hidden" style={{ maxHeight: 'calc(95vh - 200px)', minHeight: '400px' }}>
-            <SubmissionImageDisplay
-              screenshotPath={submission.screenshot_path}
-              screenshotUrl={submission.screenshot_url}
-              className="max-w-full max-h-full object-contain"
-              loading="eager"
-            />
+          {/* Imagens lado a lado se houver print do perfil */}
+          <div className="relative bg-black flex items-center justify-center overflow-hidden gap-2 p-2" style={{ maxHeight: 'calc(95vh - 200px)', minHeight: '400px' }}>
+            {/* Imagem principal */}
+            <div className={submission.profile_screenshot_path ? "flex-1" : "w-full h-full"}>
+              <SubmissionImageDisplay
+                screenshotPath={submission.screenshot_path}
+                screenshotUrl={submission.screenshot_url}
+                className="max-w-full max-h-full object-contain"
+                loading="eager"
+              />
+            </div>
+
+            {/* 🆕 Imagem do perfil (se existir) */}
+            {submission.profile_screenshot_path && (
+              <div className="flex-1 border-l-2 border-white/20 pl-2">
+                <SubmissionImageDisplay
+                  screenshotPath={submission.profile_screenshot_path}
+                  className="max-w-full max-h-full object-contain"
+                  loading="eager"
+                />
+                <p className="text-white text-xs text-center mt-2 bg-black/50 rounded px-2 py-1">
+                  Print do Perfil
+                </p>
+              </div>
+            )}
             
             {/* Navegação por setas */}
             {hasPrevious && (
@@ -112,6 +131,12 @@ export const SubmissionZoomDialog = ({
                 {submission.profiles?.instagram && (
                   <p className="text-xs sm:text-sm font-medium text-primary mt-1 truncate">
                     @{submission.profiles.instagram}
+                  </p>
+                )}
+                {/* 🆕 Mostrar faixa de seguidores */}
+                {submission.followers_range && (
+                  <p className="text-xs font-medium text-green-600 mt-1">
+                    👥 {submission.followers_range}
                   </p>
                 )}
               </div>

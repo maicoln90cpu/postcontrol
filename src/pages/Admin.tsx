@@ -1388,20 +1388,46 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                             />
                           </div>
 
-                          {/* Screenshot */}
-                          <div 
-                            className="w-full sm:w-48 h-64 sm:h-48 flex-shrink-0 order-2 sm:order-2 cursor-pointer"
-                            onClick={() => handleOpenZoom(submission.id)}
-                          >
-                            <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
-                              <SubmissionImageDisplay
-                                screenshotPath={submission.screenshot_path}
-                                screenshotUrl={submission.screenshot_url}
-                                alt="Screenshot da postagem"
-                                className="w-full h-full object-cover rounded-lg border hover:opacity-80 transition-opacity"
-                              />
-                            </Suspense>
-                          </div>
+          {/* Screenshots */}
+          <div className="w-full sm:w-48 flex-shrink-0 order-2 sm:order-2 space-y-2">
+            {/* Screenshot principal (post/venda) */}
+            <div 
+              className="h-64 sm:h-48 cursor-pointer"
+              onClick={() => handleOpenZoom(submission.id)}
+            >
+              <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
+                <SubmissionImageDisplay
+                  screenshotPath={submission.screenshot_path}
+                  screenshotUrl={submission.screenshot_url}
+                  alt="Screenshot da postagem"
+                  className="w-full h-full object-cover rounded-lg border hover:opacity-80 transition-opacity"
+                />
+              </Suspense>
+            </div>
+
+            {/* 🆕 Screenshot do perfil (se existir) */}
+            {submission.profile_screenshot_path && (
+              <div className="h-40 sm:h-32">
+                <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
+                  <SubmissionImageDisplay
+                    screenshotPath={submission.profile_screenshot_path}
+                    alt="Screenshot do perfil"
+                    className="w-full h-full object-cover rounded-lg border opacity-80"
+                  />
+                </Suspense>
+                <p className="text-xs text-muted-foreground text-center mt-1">Print do Perfil</p>
+              </div>
+            )}
+
+            {/* 🆕 Faixa de seguidores (se existir) */}
+            {submission.followers_range && (
+              <div className="bg-primary/10 rounded px-2 py-1 text-center">
+                <p className="text-xs font-medium text-primary">
+                  👥 {submission.followers_range}
+                </p>
+              </div>
+            )}
+          </div>
 
                           {/* Informações do usuário */}
                           <div className="flex-1 space-y-3 order-3 sm:order-3">

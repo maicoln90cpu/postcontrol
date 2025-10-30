@@ -48,6 +48,8 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
   const [eventPurpose, setEventPurpose] = useState<string>("divulgacao");
   const [acceptSales, setAcceptSales] = useState(false);
   const [acceptPosts, setAcceptPosts] = useState(true);
+  const [requireProfileScreenshot, setRequireProfileScreenshot] = useState(false);
+  const [requirePostScreenshot, setRequirePostScreenshot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
@@ -74,6 +76,8 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setEventPurpose(event.event_purpose || "divulgacao");
         setAcceptSales(event.accept_sales || false);
         setAcceptPosts(event.accept_posts ?? true);
+        setRequireProfileScreenshot(event.require_profile_screenshot || false);
+        setRequirePostScreenshot(event.require_post_screenshot || false);
 
         // Load requirements
         const { data: reqData } = await sb
@@ -106,6 +110,8 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setEventPurpose("divulgacao");
         setAcceptSales(false);
         setAcceptPosts(true);
+        setRequireProfileScreenshot(false);
+        setRequirePostScreenshot(false);
       }
       
       // Load agency_id and templates
@@ -259,6 +265,8 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             event_purpose: eventPurpose,
             accept_sales: acceptSales,
             accept_posts: acceptPosts,
+            require_profile_screenshot: requireProfileScreenshot,
+            require_post_screenshot: requirePostScreenshot,
           })
           .eq('id', event.id);
 
@@ -289,6 +297,8 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             event_purpose: eventPurpose,
             accept_sales: acceptSales,
             accept_posts: acceptPosts,
+            require_profile_screenshot: requireProfileScreenshot,
+            require_post_screenshot: requirePostScreenshot,
             created_by: user.id,
             agency_id: userAgencyId,
           })
@@ -598,6 +608,43 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
               Selecione pelo menos um tipo de submissão
             </p>
           </div>
+
+          {/* 🆕 Configurações para Seleção de Perfil */}
+          {eventPurpose === "selecao_perfil" && (
+            <div className="space-y-2 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
+              <Label className="text-base font-semibold">Requisitos de Submissão para Seleção de Perfil</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Configure quais prints são obrigatórios para participar da seleção
+              </p>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="require_profile_screenshot"
+                    checked={requireProfileScreenshot}
+                    onCheckedChange={(checked) => setRequireProfileScreenshot(checked as boolean)}
+                    disabled={loading}
+                  />
+                  <Label htmlFor="require_profile_screenshot" className="cursor-pointer font-normal">
+                    Exigir Print do Perfil do Instagram
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="require_post_screenshot"
+                    checked={requirePostScreenshot}
+                    onCheckedChange={(checked) => setRequirePostScreenshot(checked as boolean)}
+                    disabled={loading}
+                  />
+                  <Label htmlFor="require_post_screenshot" className="cursor-pointer font-normal">
+                    Exigir Print de uma Postagem
+                  </Label>
+                </div>
+              </div>
+              <p className="text-xs text-yellow-600 mt-2">
+                ⚠️ A faixa de seguidores sempre será solicitada em eventos de seleção de perfil
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="description">Descrição do Evento</Label>

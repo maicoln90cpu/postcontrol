@@ -273,6 +273,8 @@ export type Database = {
           location: string | null
           numero_de_vagas: number | null
           require_instagram_link: boolean | null
+          require_post_screenshot: boolean | null
+          require_profile_screenshot: boolean | null
           required_posts: number | null
           required_sales: number | null
           setor: string | null
@@ -300,6 +302,8 @@ export type Database = {
           location?: string | null
           numero_de_vagas?: number | null
           require_instagram_link?: boolean | null
+          require_post_screenshot?: boolean | null
+          require_profile_screenshot?: boolean | null
           required_posts?: number | null
           required_sales?: number | null
           setor?: string | null
@@ -327,6 +331,8 @@ export type Database = {
           location?: string | null
           numero_de_vagas?: number | null
           require_instagram_link?: boolean | null
+          require_post_screenshot?: boolean | null
+          require_profile_screenshot?: boolean | null
           required_posts?: number | null
           required_sales?: number | null
           setor?: string | null
@@ -667,10 +673,12 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          followers_range: string | null
           id: string
           instagram_verified: boolean | null
           instagram_verified_at: string | null
           post_id: string | null
+          profile_screenshot_path: string | null
           rejection_reason: string | null
           sales_proof_url: string | null
           screenshot_path: string | null
@@ -684,10 +692,12 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          followers_range?: string | null
           id?: string
           instagram_verified?: boolean | null
           instagram_verified_at?: string | null
           post_id?: string | null
+          profile_screenshot_path?: string | null
           rejection_reason?: string | null
           sales_proof_url?: string | null
           screenshot_path?: string | null
@@ -701,10 +711,12 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          followers_range?: string | null
           id?: string
           instagram_verified?: boolean | null
           instagram_verified_at?: string | null
           post_id?: string | null
+          profile_screenshot_path?: string | null
           rejection_reason?: string | null
           sales_proof_url?: string | null
           screenshot_path?: string | null

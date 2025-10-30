@@ -44,6 +44,8 @@ interface Event {
   event_purpose?: string;
   accept_sales?: boolean;
   accept_posts?: boolean;
+  require_profile_screenshot?: boolean;
+  require_post_screenshot?: boolean;
 }
 
 interface EventRequirement {
@@ -97,6 +99,10 @@ const Submit = () => {
   const [salesProofFile, setSalesProofFile] = useState<File | null>(null);
   const [salesProofPreview, setSalesProofPreview] = useState<string | null>(null);
   const [agencyId, setAgencyId] = useState<string | null>(null);
+  // 🆕 Estados para seleção de perfil
+  const [profileScreenshotFile, setProfileScreenshotFile] = useState<File | null>(null);
+  const [profileScreenshotPreview, setProfileScreenshotPreview] = useState<string | null>(null);
+  const [followersRange, setFollowersRange] = useState<string>("");
 
   useEffect(() => {
     loadEvents();
@@ -175,7 +181,7 @@ const Submit = () => {
     // 3. Buscar eventos APENAS da agência no contexto
     const { data, error } = await sb
       .from("events")
-      .select("id, title, description, event_date, location, setor, numero_de_vagas, event_image_url, require_instagram_link, event_purpose, accept_sales, accept_posts")
+      .select("id, title, description, event_date, location, setor, numero_de_vagas, event_image_url, require_instagram_link, event_purpose, accept_sales, accept_posts, require_profile_screenshot, require_post_screenshot")
       .eq("is_active", true)
       .eq("agency_id", contextAgencyId)
       .order("event_date", { ascending: true });
@@ -286,7 +292,7 @@ const Submit = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, uploadType: 'post' | 'sale' | 'profile' = 'post') => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
@@ -311,31 +317,42 @@ const Submit = () => {
         return;
       }
       
-      if (submissionType === "post") {
+      // 🆕 Suporte para 3 tipos de upload
+      if (uploadType === "post") {
         setSelectedFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
           setPreviewUrl(reader.result as string);
         };
         reader.readAsDataURL(file);
-      } else {
+      } else if (uploadType === "sale") {
         setSalesProofFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
           setSalesProofPreview(reader.result as string);
         };
         reader.readAsDataURL(file);
+      } else if (uploadType === "profile") {
+        setProfileScreenshotFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setProfileScreenshotPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
       }
     }
   };
 
-  const handleRemoveImage = () => {
-    if (submissionType === "post") {
+  const handleRemoveImage = (uploadType: 'post' | 'sale' | 'profile' = 'post') => {
+    if (uploadType === "post") {
       setSelectedFile(null);
       setPreviewUrl(null);
-    } else {
+    } else if (uploadType === "sale") {
       setSalesProofFile(null);
       setSalesProofPreview(null);
+    } else if (uploadType === "profile") {
+      setProfileScreenshotFile(null);
+      setProfileScreenshotPreview(null);
     }
   };
 
@@ -408,26 +425,60 @@ const Submit = () => {
       return;
     }
 
-    const fileToCheck = submissionType === "post" ? selectedFile : salesProofFile;
-    if (!fileToCheck) {
-      toast({
-        title: submissionType === "post" ? "Adicione o print" : "Adicione o comprovante",
-        description: submissionType === "post" 
-          ? "Por favor, adicione o print da sua postagem." 
-          : "Por favor, adicione o comprovante de venda.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // 🆕 Validação para eventos de seleção de perfil
+    if (selectedEventData?.event_purpose === "selecao_perfil") {
+      // Validar faixa de seguidores
+      if (!followersRange) {
+        toast({
+          title: "Selecione a faixa de seguidores",
+          description: "Por favor, selecione quantos seguidores você tem.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // Validate file size (max 10MB)
-    if (fileToCheck.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O arquivo deve ter no máximo 10MB.",
-        variant: "destructive",
-      });
-      return;
+      // Validar print do perfil (se obrigatório)
+      if (selectedEventData.require_profile_screenshot && !profileScreenshotFile) {
+        toast({
+          title: "Adicione o print do perfil",
+          description: "Por favor, adicione o print do seu perfil do Instagram.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validar print da postagem (se obrigatório)
+      if (selectedEventData.require_post_screenshot && !selectedFile) {
+        toast({
+          title: "Adicione o print da postagem",
+          description: "Por favor, adicione o print de uma postagem sua.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Validação para eventos normais
+      const fileToCheck = submissionType === "post" ? selectedFile : salesProofFile;
+      if (!fileToCheck) {
+        toast({
+          title: submissionType === "post" ? "Adicione o print" : "Adicione o comprovante",
+          description: submissionType === "post" 
+            ? "Por favor, adicione o print da sua postagem." 
+            : "Por favor, adicione o comprovante de venda.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 10MB)
+      if (fileToCheck.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setShowConfirmDialog(true);
@@ -499,27 +550,40 @@ const Submit = () => {
         await sb.from("profiles").update(updateData).eq("id", user.id);
       }
 
-      const fileToUpload = submissionType === "post" ? selectedFile : salesProofFile;
-      if (!fileToUpload) throw new Error("No file to upload");
+      // 🔄 Upload de screenshot principal
+      const fileToUpload = submissionType === "post" ? selectedFile : 
+                          (selectedEventData?.event_purpose === "selecao_perfil" && selectedEventData.require_post_screenshot ? selectedFile : salesProofFile);
+      if (!fileToUpload && selectedEventData?.event_purpose !== "selecao_perfil") throw new Error("No file to upload");
 
-      const fileExt = fileToUpload.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage.from("screenshots").upload(fileName, fileToUpload);
-
-      if (uploadError) throw uploadError;
-
-      // Get signed URL instead of public URL (bucket is now private)
-      const { data: signedUrlData, error: urlError } = await supabase.storage
-        .from("screenshots")
-        .createSignedUrl(fileName, 31536000); // 1 year expiry
-
-      // Store only the file path, not the signed URL
       const insertData: any = {
         user_id: user.id,
         submission_type: submissionType,
-        screenshot_path: fileName, // ✅ Sempre usar screenshot_path
       };
+
+      // Upload da imagem principal (se houver)
+      if (fileToUpload) {
+        const fileExt = fileToUpload.name.split(".").pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from("screenshots").upload(fileName, fileToUpload);
+        if (uploadError) throw uploadError;
+        insertData.screenshot_path = fileName;
+      }
+
+      // 🆕 Upload de screenshot do perfil (se for seleção de perfil)
+      if (selectedEventData?.event_purpose === "selecao_perfil" && profileScreenshotFile) {
+        const profileFileExt = profileScreenshotFile.name.split(".").pop();
+        const profileFileName = `${user.id}/profile_${Date.now()}.${profileFileExt}`;
+        const { error: profileUploadError } = await supabase.storage
+          .from("screenshots")
+          .upload(profileFileName, profileScreenshotFile);
+        if (profileUploadError) throw profileUploadError;
+        insertData.profile_screenshot_path = profileFileName;
+      }
+
+      // 🆕 Adicionar faixa de seguidores (se for seleção de perfil)
+      if (selectedEventData?.event_purpose === "selecao_perfil" && followersRange) {
+        insertData.followers_range = followersRange;
+      }
 
       // Adicionar post_id e event_id baseado no tipo
       if (submissionType === "post") {
@@ -574,6 +638,9 @@ const Submit = () => {
       setPreviewUrl(null);
       setSalesProofFile(null);
       setSalesProofPreview(null);
+      setProfileScreenshotFile(null); // 🆕
+      setProfileScreenshotPreview(null); // 🆕
+      setFollowersRange(""); // 🆕
       setSelectedPost("");
       setSelectedEvent("");
     } catch (error) {
@@ -833,11 +900,136 @@ const Submit = () => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="screenshot">
-                {submissionType === "post" ? "Print da Postagem *" : "Comprovante de Venda *"}
-              </Label>
-              {(submissionType === "post" ? previewUrl : salesProofPreview) ? (
+            {/* 🆕 Campos específicos para Seleção de Perfil */}
+            {selectedEventData?.event_purpose === "selecao_perfil" && (
+              <>
+                {/* Select de Faixa de Seguidores */}
+                <div className="space-y-2">
+                  <Label htmlFor="followersRange">Quantos seguidores você tem? *</Label>
+                  <Select value={followersRange} onValueChange={setFollowersRange} required disabled={isSubmitting}>
+                    <SelectTrigger id="followersRange">
+                      <SelectValue placeholder="Selecione a faixa de seguidores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-5k">1.000 a 5.000 seguidores</SelectItem>
+                      <SelectItem value="5-10k">5.000 a 10.000 seguidores</SelectItem>
+                      <SelectItem value="10k+">10.000+ seguidores</SelectItem>
+                      <SelectItem value="50k+">50.000+ seguidores</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Upload do Print do Perfil */}
+                {selectedEventData.require_profile_screenshot && (
+                  <div className="space-y-2">
+                    <Label htmlFor="profileScreenshot">Print do Perfil do Instagram *</Label>
+                    {profileScreenshotPreview ? (
+                      <div className="relative max-w-sm mx-auto">
+                        <AspectRatio ratio={9 / 16}>
+                          <img
+                            src={profileScreenshotPreview}
+                            alt="Preview do perfil"
+                            className="w-full h-full object-cover rounded-lg border"
+                          />
+                        </AspectRatio>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={() => handleRemoveImage('profile')}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          {profileScreenshotFile?.name}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+                        <input
+                          id="profileScreenshot"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, 'profile')}
+                          className="hidden"
+                          required
+                        />
+                        <label htmlFor="profileScreenshot" className="cursor-pointer">
+                          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Clique para fazer upload do print do seu perfil
+                          </p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG ou JPEG (Max. 5MB)</p>
+                        </label>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      📸 Faça um print da página inicial do seu perfil mostrando seu @ e quantidade de seguidores
+                    </p>
+                  </div>
+                )}
+
+                {/* Upload do Print da Postagem (condicional) */}
+                {selectedEventData.require_post_screenshot && (
+                  <div className="space-y-2">
+                    <Label htmlFor="postScreenshot">Print de uma Postagem Sua *</Label>
+                    {previewUrl ? (
+                      <div className="relative max-w-sm mx-auto">
+                        <AspectRatio ratio={9 / 16}>
+                          <img
+                            src={previewUrl}
+                            alt="Preview da postagem"
+                            className="w-full h-full object-cover rounded-lg border"
+                          />
+                        </AspectRatio>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={() => handleRemoveImage('post')}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          {selectedFile?.name}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+                        <input
+                          id="postScreenshot"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, 'post')}
+                          className="hidden"
+                          required
+                        />
+                        <label htmlFor="postScreenshot" className="cursor-pointer">
+                          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Clique para fazer upload do print de uma postagem
+                          </p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG ou JPEG (Max. 5MB)</p>
+                        </label>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      📸 Faça um print de uma postagem sua que você mais gosta
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Upload único para eventos normais (não seleção de perfil) */}
+            {selectedEventData?.event_purpose !== "selecao_perfil" && (
+              <div className="space-y-2">
+                <Label htmlFor="screenshot">
+                  {submissionType === "post" ? "Print da Postagem *" : "Comprovante de Venda *"}
+                </Label>
+                {(submissionType === "post" ? previewUrl : salesProofPreview) ? (
                 <div className="relative max-w-sm mx-auto">
                   <AspectRatio ratio={9 / 16}>
                     <img
@@ -851,7 +1043,7 @@ const Submit = () => {
                     variant="destructive"
                     size="icon"
                     className="absolute top-2 right-2"
-                    onClick={handleRemoveImage}
+                    onClick={() => handleRemoveImage(submissionType === "post" ? "post" : "sale")}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -878,7 +1070,8 @@ const Submit = () => {
                   </label>
                 </div>
               )}
-            </div>
+              </div>
+            )}
 
             <Button
               type="submit"
