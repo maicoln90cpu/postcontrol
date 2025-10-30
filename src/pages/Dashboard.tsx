@@ -15,6 +15,7 @@ import { BadgeDisplay } from "@/components/BadgeDisplay";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AIInsights } from "@/components/AIInsights";
+import { SubmissionImageDisplay } from "@/components/SubmissionImageDisplay";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,6 +23,7 @@ interface Submission {
   id: string;
   submitted_at: string;
   screenshot_url: string;
+  screenshot_path?: string;
   status: string;
   rejection_reason?: string;
   posts: {
@@ -196,6 +198,7 @@ const Dashboard = () => {
         id,
         submitted_at,
         screenshot_url,
+        screenshot_path,
         status,
         rejection_reason,
         posts!inner (
