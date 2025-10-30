@@ -1725,11 +1725,13 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                 value={rejectionTemplate} 
                 onValueChange={(value) => {
                   setRejectionTemplate(value);
-                  const template = rejectionTemplatesFromDB.find(t => t.id === value);
-                  if (template) {
-                    setRejectionReason(template.message);
-                  } else {
+                  if (value === "custom") {
                     setRejectionReason("");
+                  } else {
+                    const template = rejectionTemplatesFromDB.find(t => t.id === value);
+                    if (template) {
+                      setRejectionReason(template.message);
+                    }
                   }
                 }}
               >
@@ -1737,7 +1739,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                   <SelectValue placeholder="Selecione um template (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Template customizado</SelectItem>
+                  <SelectItem value="custom">Template customizado</SelectItem>
                   {rejectionTemplatesFromDB.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.title}
