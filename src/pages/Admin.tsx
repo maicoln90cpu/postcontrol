@@ -433,42 +433,49 @@ const Admin = () => {
     setRejectionDialogOpen(true);
   };
 
-  const confirmRejection = async () => {
-    if (!selectedSubmissionForRejection) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('submissions')
-        .update({
-          status: 'rejected',
-          rejection_reason: rejectionReason || undefined,
-          approved_at: new Date().toISOString(),
-          approved_by: user?.id
-        })
-        .eq('id', selectedSubmissionForRejection)
-        .select();
+  // Linhas 436-481
+const confirmRejection = async () => {
+  if (!selectedSubmissionForRejection) return;
+  
+  // Adicionar estado de loading
+  setLoading(true);
+  
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({
+        status: 'rejected',
+        rejection_reason: rejectionReason || undefined,
+        approved_at: new Date().toISOString(),
+        approved_by: user?.id
+      })
+      .eq('id', selectedSubmissionForRejection)
+      .select();
 
-      if (error) {
-        toast.error("Erro ao rejeitar submissão");
-        console.error('Erro detalhado:', error);
-        return;
-      }
-      
-      // Recarregar submissões antes de fechar o diálogo
-      await loadSubmissions();
-      
-      // Fechar diálogo e limpar estados apenas após sucesso completo
-      setRejectionDialogOpen(false);
-      setSelectedSubmissionForRejection(null);
-      setRejectionReason("");
-      setRejectionTemplate("");
-      
-      toast.success("Submissão rejeitada com sucesso");
-    } catch (error) {
+    if (error) {
       toast.error("Erro ao rejeitar submissão");
-      console.error('Exception:', error);
+      console.error('Erro detalhado:', error);
+      setLoading(false);
+      return;
     }
-  };
+    
+    // Fechar diálogo IMEDIATAMENTE para evitar tela cinza
+    setRejectionDialogOpen(false);
+    setSelectedSubmissionForRejection(null);
+    setRejectionReason("");
+    setRejectionTemplate("");
+    
+    // Recarregar em background
+    await loadSubmissions();
+    
+    toast.success("Submissão rejeitada com sucesso");
+  } catch (error) {
+    toast.error("Erro ao rejeitar submissão");
+    console.error('Exception:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const rejectionTemplates = [
     { value: "formato", label: "Imagem fora do padrão" },
