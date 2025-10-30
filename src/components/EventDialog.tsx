@@ -41,6 +41,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
   const [targetGender, setTargetGender] = useState<string[]>([]);
   const [requireInstagramLink, setRequireInstagramLink] = useState(false);
   const [internalNotes, setInternalNotes] = useState("");
+  const [totalRequiredPosts, setTotalRequiredPosts] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -58,6 +59,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setTargetGender(event.target_gender || []);
         setRequireInstagramLink(event.require_instagram_link || false);
         setInternalNotes(event.internal_notes || "");
+        setTotalRequiredPosts(event.total_required_posts || 0);
 
         // Load requirements
         const { data: reqData } = await sb
@@ -85,6 +87,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setTargetGender([]);
         setRequireInstagramLink(false);
         setInternalNotes("");
+        setTotalRequiredPosts(0);
       }
     };
 
@@ -168,6 +171,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             target_gender: targetGender,
             require_instagram_link: requireInstagramLink,
             internal_notes: internalNotes,
+            total_required_posts: totalRequiredPosts,
           })
           .eq('id', event.id);
 
@@ -193,6 +197,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             target_gender: targetGender,
             require_instagram_link: requireInstagramLink,
             internal_notes: internalNotes,
+            total_required_posts: totalRequiredPosts,
             created_by: user.id,
             agency_id: userAgencyId,
           })
@@ -304,6 +309,23 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
               min="0"
               disabled={loading}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="total_required_posts">Total de Postagens Obrigatórias *</Label>
+            <Input
+              id="total_required_posts"
+              type="number"
+              value={totalRequiredPosts}
+              onChange={(e) => setTotalRequiredPosts(parseInt(e.target.value) || 0)}
+              placeholder="Ex: 10"
+              min="0"
+              required
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Este número será usado para calcular o progresso dos divulgadores
+            </p>
           </div>
 
           <div className="space-y-4">

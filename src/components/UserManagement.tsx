@@ -16,6 +16,7 @@ interface Profile {
   instagram: string | null;
   phone: string | null;
   created_at: string;
+  gender?: string | null;
 }
 
 // Validation schema
@@ -39,6 +40,10 @@ export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
   const [isMasterAdmin, setIsMasterAdmin] = useState<boolean | null>(null);
+  const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [eventFilter, setEventFilter] = useState<string>("all");
+  const [events, setEvents] = useState<any[]>([]);
+  const [userEvents, setUserEvents] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     checkAdminStatus();
@@ -83,14 +88,28 @@ export const UserManagement = () => {
     setLoading(true);
 
     try {
+      // Carregar eventos
+      const { data: eventsData } = await sb
+        .from('events')
+        .select('id, title, is_active')
+        .eq('is_active', true)
+        .order('title');
+      
+      setEvents(eventsData || []);
+
       if (isMasterAdmin) {
         // Master admin vê todos os usuários
         console.log("👑 Master Admin - carregando todos os usuários");
-        const { data, error } = await sb.from("profiles").select("*").order("created_at", { ascending: false });
+        const { data, error } = await sb.from("profiles").select("*, gender").order("created_at", { ascending: false });
 
         if (error) throw error;
         console.log(`📊 Loaded ${data?.length || 0} users (master admin)`);
         setUsers(data || []);
+        
+        // Carregar eventos por usuário
+        if (data && data.length > 0) {
+          await loadUserEvents(data.map(u => u.id));
+        }
       } else if (currentAgencyId) {
         // Agency admin vê apenas usuários que fizeram submissões em eventos da sua agência
         console.log("👤 Agency Admin - carregando usuários com submissões da agência:", currentAgencyId);
@@ -132,7 +151,7 @@ export const UserManagement = () => {
         // Buscar os perfis desses usuários
         const { data: profilesData, error: profilesError } = await sb
           .from("profiles")
-          .select("*")
+          .select("*, gender")
           .in("id", userIds)
           .order("created_at", { ascending: false });
 
@@ -143,6 +162,11 @@ export const UserManagement = () => {
 
         console.log(`📊 Loaded ${profilesData?.length || 0} users for agency ${currentAgencyId}`);
         setUsers(profilesData || []);
+        
+        // Carregar eventos por usuário
+        if (profilesData && profilesData.length > 0) {
+          await loadUserEvents(profilesData.map(u => u.id));
+        }
       } else {
         console.warn("⚠️ Agency admin sem currentAgencyId definido");
         setUsers([]);
@@ -154,6 +178,40 @@ export const UserManagement = () => {
     }
 
     setLoading(false);
+  };
+
+  const loadUserEvents = async (userIds: string[]) => {
+    // Buscar eventos únicos por usuário via submissions
+    const eventsMap: Record<string, string[]> = {};
+    
+    for (const userId of userIds) {
+      const { data } = await sb
+        .from('submissions')
+        .select(`
+          posts!inner(
+            events!inner(
+              id,
+              title
+            )
+          )
+        `)
+        .eq('user_id', userId);
+      
+      if (data && data.length > 0) {
+        const eventTitles = Array.from(
+          new Set(
+            data
+              .map((s: any) => s.posts?.events?.title)
+              .filter(Boolean)
+          )
+        );
+        eventsMap[userId] = eventTitles as string[];
+      } else {
+        eventsMap[userId] = [];
+      }
+    }
+    
+    setUserEvents(eventsMap);
   };
 
   const startEdit = (user: Profile) => {
@@ -207,13 +265,21 @@ export const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = 
       user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.instagram?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone?.includes(searchTerm),
-  );
+      user.phone?.includes(searchTerm);
+    
+    const matchesGender = genderFilter === "all" || user.gender === genderFilter;
+    
+    const matchesEvent = eventFilter === "all" || (userEvents[user.id]?.some(eventTitle => 
+      events.find(e => e.title === eventTitle)?.id === eventFilter
+    ));
+    
+    return matchesSearch && matchesGender && matchesEvent;
+  });
 
   if (loading) {
     return (
@@ -225,11 +291,40 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold">Gerenciador de Usuários</h2>
-        <CSVImportExport onImportComplete={loadUsers} />
-        <div className="w-64">
-          <Input placeholder="Buscar usuário..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Gerenciador de Usuários</h2>
+          <CSVImportExport onImportComplete={loadUsers} />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input 
+            placeholder="Buscar usuário..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
+          
+          <select 
+            value={genderFilter} 
+            onChange={(e) => setGenderFilter(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">Todos os sexos</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Feminino">Feminino</option>
+            <option value="LGBTQ+">LGBTQ+</option>
+          </select>
+          
+          <select 
+            value={eventFilter} 
+            onChange={(e) => setEventFilter(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">Todos os eventos</option>
+            {events.map(event => (
+              <option key={event.id} value={event.id}>{event.title}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -309,9 +404,25 @@ export const UserManagement = () => {
                           <span className="font-medium">{user.phone || "Não definido"}</span>
                         </div>
                         <div>
+                          <span className="text-muted-foreground">Sexo:</span>{" "}
+                          <span className="font-medium">{user.gender || "Não definido"}</span>
+                        </div>
+                        <div>
                           <span className="text-muted-foreground">Cadastrado em:</span>{" "}
                           <span className="font-medium">{new Date(user.created_at).toLocaleDateString("pt-BR")}</span>
                         </div>
+                        {userEvents[user.id] && userEvents[user.id].length > 0 && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Eventos participando:</span>{" "}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {userEvents[user.id].map((eventTitle, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">
+                                  {eventTitle}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => startEdit(user)}>

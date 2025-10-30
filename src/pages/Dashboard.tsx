@@ -232,16 +232,20 @@ const Dashboard = () => {
         }
       });
 
-      // Para cada evento, buscar o total de posts criados
+      // Para cada evento, buscar o total obrigatório de posts
       for (const eventId of Array.from(uniqueEventIds)) {
         const eventData = submissionsData.find((sub) => sub.posts?.events && (sub.posts.events as any).id === eventId)
           ?.posts?.events;
 
         if (eventData) {
-          // Contar total de posts do evento
-          const { count } = await sb.from("posts").select("*", { count: "exact", head: true }).eq("event_id", eventId);
+          // Buscar dados completos do evento incluindo total_required_posts
+          const { data: fullEventData } = await sb
+            .from("events")
+            .select("total_required_posts")
+            .eq("id", eventId)
+            .single();
 
-          const totalPosts = count || 0;
+          const totalRequiredPosts = fullEventData?.total_required_posts || 0;
 
           // Contar posts aprovados do usuário neste evento
           const approvedCount = submissionsData.filter(
@@ -250,7 +254,7 @@ const Dashboard = () => {
 
           eventMap.set(eventId, {
             title: eventData.title,
-            totalPosts: totalPosts,
+            totalPosts: totalRequiredPosts,
             approvedCount: approvedCount,
           });
         }

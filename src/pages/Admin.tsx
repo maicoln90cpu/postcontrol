@@ -64,6 +64,8 @@ const Admin = () => {
   const [dateFilterStart, setDateFilterStart] = useState<string>("");
   const [dateFilterEnd, setDateFilterEnd] = useState<string>("");
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [selectedImageForZoom, setSelectedImageForZoom] = useState<string | null>(null);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
   // Debounce para busca
   useEffect(() => {
@@ -117,10 +119,17 @@ const Admin = () => {
   useEffect(() => {
     if (user && (isAgencyAdmin || isMasterAdmin)) {
       loadCurrentAgency();
-      loadData();
+      loadEvents();
       loadRejectionTemplates();
     }
   }, [user, isAgencyAdmin, isMasterAdmin]);
+
+  // Carregar submissions apenas quando um evento específico for selecionado
+  useEffect(() => {
+    if (user && (isAgencyAdmin || isMasterAdmin) && submissionEventFilter !== "all") {
+      loadSubmissions();
+    }
+  }, [submissionEventFilter, user, isAgencyAdmin, isMasterAdmin]);
 
   const loadCurrentAgency = async () => {
     if (!user) return;
@@ -172,7 +181,7 @@ const Admin = () => {
     setRejectionTemplatesFromDB(data || []);
   };
 
-  const loadData = async () => {
+  const loadEvents = async () => {
     if (!user) return;
 
     let agencyIdFilter = null;
@@ -234,6 +243,38 @@ const Admin = () => {
       postsQuery = postsQuery.eq('agency_id', agencyIdFilter);
     }
     const { data: postsData } = await postsQuery.order('created_at', { ascending: false });
+
+    setEvents(eventsData || []);
+    setPosts(postsData || []);
+  };
+
+  const loadSubmissions = async () => {
+    if (!user) return;
+
+    setLoadingSubmissions(true);
+
+    let agencyIdFilter = null;
+
+    // Check if Master Admin is viewing specific agency via agencyId querystring
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryAgencyId = urlParams.get('agencyId');
+
+    // Determine which agency's data to load
+    if (queryAgencyId && isMasterAdmin) {
+      agencyIdFilter = queryAgencyId;
+    } else if (isMasterAdmin && !currentAgency) {
+      agencyIdFilter = null;
+    } else if (currentAgency) {
+      agencyIdFilter = currentAgency.id;
+    } else if (isAgencyAdmin) {
+      const { data: profileData } = await sb
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      agencyIdFilter = profileData?.agency_id;
+    }
     
     // Load submissions via posts.agency_id
     let submissionsQuery = sb
@@ -293,10 +334,9 @@ const Admin = () => {
       };
     }));
 
-    setEvents(eventsData || []);
-    setPosts(postsData || []);
     setSubmissions(submissionsWithSignedUrls);
     setSelectedSubmissions(new Set());
+    setLoadingSubmissions(false);
   };
 
   const handleApproveSubmission = async (submissionId: string) => {
@@ -327,7 +367,7 @@ const Admin = () => {
           origin: { y: 0.6 }
         });
         
-        await loadData();
+        await loadSubmissions();
       }
     } catch (error) {
       toast.error("Erro ao aprovar submissão");
@@ -362,7 +402,7 @@ const Admin = () => {
         console.error('Erro detalhado:', error);
       } else {
         toast.success("Submissão rejeitada");
-        await loadData();
+        await loadSubmissions();
         setRejectionDialogOpen(false);
         setSelectedSubmissionForRejection(null);
         setRejectionReason("");
@@ -401,7 +441,7 @@ const Admin = () => {
         console.error('Erro detalhado:', error);
       } else {
         toast.success(`Status alterado para ${newStatus === 'approved' ? 'aprovado' : newStatus === 'rejected' ? 'rejeitado' : 'pendente'}`);
-        await loadData();
+        await loadSubmissions();
       }
     } catch (error) {
       toast.error("Erro ao alterar status");
@@ -430,7 +470,7 @@ const Admin = () => {
       console.error(error);
     } else {
       toast.success(`${ids.length} submissões aprovadas com sucesso`);
-      await loadData();
+      await loadSubmissions();
     }
   };
 
@@ -524,7 +564,7 @@ const Admin = () => {
       if (error) throw error;
 
       toast.success("Evento excluído com sucesso");
-      await loadData();
+      await loadEvents();
       setEventToDelete(null);
     } catch (error) {
       console.error('Error deleting event:', error);
@@ -573,7 +613,7 @@ const Admin = () => {
       }
 
       toast.success("Evento duplicado com sucesso! Você pode editá-lo agora.");
-      await loadData();
+      await loadEvents();
     } catch (error) {
       console.error('Error duplicating event:', error);
       toast.error("Erro ao duplicar evento");
@@ -605,7 +645,8 @@ const Admin = () => {
         : `${postToDelete.submissionsCount} submissões foram deletadas`;
       
       toast.success(`Postagem deletada com sucesso${postToDelete.submissionsCount > 0 ? `. ${submissionsText}` : ''}`);
-      await loadData();
+      await loadEvents();
+      await loadSubmissions();
       setPostToDelete(null);
     } catch (error) {
       console.error('Error deleting post:', error);
@@ -638,7 +679,7 @@ const Admin = () => {
       if (error) throw error;
 
       toast.success("Submissão deletada com sucesso");
-      await loadData();
+      await loadSubmissions();
       setSubmissionToDelete(null);
     } catch (error) {
       console.error('Error deleting submission:', error);
@@ -984,12 +1025,23 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               {kanbanView ? (
                 <SubmissionKanban 
                   submissions={getFilteredSubmissions()} 
-                  onUpdate={loadData}
+                  onUpdate={loadSubmissions}
                   userId={user?.id}
                 />
+              ) : submissionEventFilter === "all" ? (
+                <Card className="p-12 text-center">
+                  <div className="text-muted-foreground">
+                    <p className="text-lg mb-2">Selecione um evento acima para visualizar as submissões</p>
+                    <p className="text-sm">Os filtros ajudam a carregar os dados mais rapidamente</p>
+                  </div>
+                </Card>
+              ) : loadingSubmissions ? (
+                <Card className="p-12 text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Carregando submissões...</p>
+                </Card>
               ) : (
                 <>
-                  {/* Filtros e ações */}
                   <div className="flex flex-col gap-3">
                 {selectedSubmissions.size > 0 && (
                   <Button onClick={handleBulkApprove} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto">
@@ -1106,17 +1158,17 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                       <SelectItem value="rejected">Reprovados</SelectItem>
                     </SelectContent>
                   </Select>
+                  </div>
                 </div>
-              </div>
-            
-            <Card className="p-6">
-              {getFilteredSubmissions().length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  Nenhuma submissão encontrada com os filtros selecionados
-                </p>
-              ) : (
-                <>
-                  <div className="space-y-4">
+              
+              <Card className="p-6">
+                {getFilteredSubmissions().length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Nenhuma submissão encontrada com os filtros selecionados
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-4 border-b">
                       <Checkbox
                         checked={selectedSubmissions.size === getPaginatedSubmissions().length && getPaginatedSubmissions().length > 0}
@@ -1304,7 +1356,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                           {expandedComments.has(submission.id) && (
                             <SubmissionComments 
                               submissionId={submission.id}
-                              onCommentAdded={loadData}
+                              onCommentAdded={loadSubmissions}
                             />
                           )}
                         </div>
@@ -1363,12 +1415,12 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                         Próxima
                       </Button>
                     </div>
-                  </div>
+                    </div>
+                  )}
+                  </>
                 )}
+              </Card>
               </>
-              )}
-            </Card>
-                </>
               )}
             </div>
           </TabsContent>
@@ -1410,7 +1462,10 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
           setEventDialogOpen(open);
           if (!open) setSelectedEvent(null);
         }}
-        onEventCreated={loadData}
+        onEventCreated={() => {
+          loadEvents();
+          if (submissionEventFilter !== "all") loadSubmissions();
+        }}
         event={selectedEvent}
       />
       <PostDialog 
@@ -1419,7 +1474,10 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
           setPostDialogOpen(open);
           if (!open) setSelectedPost(null);
         }}
-        onPostCreated={loadData}
+        onPostCreated={() => {
+          loadEvents();
+          if (submissionEventFilter !== "all") loadSubmissions();
+        }}
         post={selectedPost}
       />
 
@@ -1572,6 +1630,24 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Zoom nas Imagens */}
+      <Dialog open={!!selectedImageForZoom} onOpenChange={() => setSelectedImageForZoom(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
+          <DialogHeader>
+            <DialogTitle>Imagem da Submissão</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center w-full h-full">
+            {selectedImageForZoom && (
+              <img 
+                src={selectedImageForZoom} 
+                alt="Screenshot ampliado" 
+                className="max-w-full max-h-[85vh] object-contain rounded"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
