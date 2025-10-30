@@ -68,80 +68,34 @@ export const SubmissionZoomDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 flex flex-col">
         <div className="flex flex-col h-full overflow-hidden">
-          {/* Imagens lado a lado se houver print do perfil */}
-
-          
-          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-black" style={{ height: 'calc(95vh - 200px)' }}>
-  {/* Cada imagem com max-height de 60vh */}
-  <div className="flex-1 flex flex-col gap-2 min-w-0">
-    <div className="flex-1 flex items-center justify-center overflow-hidden">
-      <SubmissionImageDisplay
-        screenshotPath={submission.screenshot_path}
-        screenshotUrl={submission.screenshot_url}
-        className="max-h-[60vh] max-w-full w-auto object-contain"
-        loading="eager"
-      />
-    </div>
-    <div className="text-center bg-blue-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0">
-      📸 Print da Postagem
-    </div>
-  </div>
-  
-  {submission.profile_screenshot_path && (
-    <div className="flex-1 flex flex-col gap-2 min-w-0">
-      <div className="flex-1 flex items-center justify-center overflow-hidden">
-        <SubmissionImageDisplay
-          screenshotPath={submission.profile_screenshot_path}
-          className="max-h-[60vh] max-w-full w-auto object-contain"
-          loading="eager"
-        />
-      </div>
-      <div className="text-center bg-green-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0">
-        👤 Print do Perfil
-      </div>
-    </div>
-  )}
-</div>
-          
-          
-          
-          {/* Imagem principal */}
-            <div className={submission.profile_screenshot_path ? "flex-1 relative" : "w-full h-full"}>
-              <SubmissionImageDisplay
-                screenshotPath={submission.screenshot_path}
-                screenshotUrl={submission.screenshot_url}
-                className="max-w-full max-h-full object-contain"
-                loading="eager"
-              />
-              {/* 🆕 Legenda clara (Item 6) */}
-{/* Container com imagem + legenda ABAIXO */}
-<div className="flex-1 flex flex-col gap-2">
-  <div className="flex-1 flex items-center justify-center">
-    <SubmissionImageDisplay
-      screenshotPath={submission.screenshot_path}
-      screenshotUrl={submission.screenshot_url}
-      className="max-h-[60vh] w-auto object-contain"
-      loading="eager"
-    />
-  </div>
-  {submission.profile_screenshot_path && (
-    <div className="text-center bg-blue-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium">
-      📸 Print da Postagem
-    </div>
-  )}
-</div>
-            </div>
-
-            {/* 🆕 Imagem do perfil (se existir) */}
-            {submission.profile_screenshot_path && (
-              <div className="flex-1 border-l-2 border-white/20 pl-2 relative">
+          {/* Imagens lado a lado com legendas visíveis */}
+          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-black relative" style={{ height: 'calc(95vh - 200px)' }}>
+            {/* Imagem da Postagem */}
+            <div className="flex-1 flex flex-col gap-2 min-w-0">
+              <div className="flex-1 flex items-center justify-center overflow-hidden">
                 <SubmissionImageDisplay
-                  screenshotPath={submission.profile_screenshot_path}
-                  className="max-w-full max-h-full object-contain"
+                  screenshotPath={submission.screenshot_path}
+                  screenshotUrl={submission.screenshot_url}
+                  className="max-h-[60vh] max-w-full w-auto object-contain"
                   loading="eager"
                 />
-                {/* 🆕 Legenda mais visível (Item 6) */}
-                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+              </div>
+              <div className="text-center bg-blue-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0">
+                📸 Print da Postagem
+              </div>
+            </div>
+            
+            {/* Imagem do Perfil (se existir) */}
+            {submission.profile_screenshot_path && (
+              <div className="flex-1 flex flex-col gap-2 min-w-0">
+                <div className="flex-1 flex items-center justify-center overflow-hidden">
+                  <SubmissionImageDisplay
+                    screenshotPath={submission.profile_screenshot_path}
+                    className="max-h-[60vh] max-w-full w-auto object-contain"
+                    loading="eager"
+                  />
+                </div>
+                <div className="text-center bg-green-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0">
                   👤 Print do Perfil
                 </div>
               </div>
@@ -152,7 +106,7 @@ export const SubmissionZoomDialog = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white z-10"
                 onClick={onPrevious}
               >
                 <ChevronLeft className="h-6 w-6 sm:h-8 sm:w-8" />
@@ -163,7 +117,7 @@ export const SubmissionZoomDialog = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white z-10"
                 onClick={onNext}
               >
                 <ChevronRight className="h-6 w-6 sm:h-8 sm:w-8" />
