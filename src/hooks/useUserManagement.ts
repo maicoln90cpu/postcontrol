@@ -72,9 +72,8 @@ export const useUserManagement = () => {
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
-
+    
     try {
-      // Carregar eventos
       let eventsQuery = sb
         .from("events")
         .select("id, title, is_active")
@@ -89,7 +88,10 @@ export const useUserManagement = () => {
       setEvents(eventsData || []);
 
       if (isMasterAdmin) {
-        const { data, error } = await sb.from("profiles").select("*, gender").order("created_at", { ascending: false });
+        const { data, error } = await sb
+          .from("profiles")
+          .select("*, gender")
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
         setUsers(data || []);
@@ -105,7 +107,6 @@ export const useUserManagement = () => {
           .order("created_at", { ascending: false });
 
         if (profilesError) throw profilesError;
-
         setUsers(profilesData || []);
 
         if (profilesData && profilesData.length > 0) {
@@ -120,9 +121,9 @@ export const useUserManagement = () => {
       });
       console.error("❌ Erro ao carregar usuários:", error);
       setUsers([]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, [isMasterAdmin, currentAgencyId, loadUserEvents]);
 
   return {
