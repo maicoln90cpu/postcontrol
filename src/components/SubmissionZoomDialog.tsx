@@ -79,11 +79,22 @@ export const SubmissionZoomDialog = ({
                 loading="eager"
               />
               {/* 🆕 Legenda clara (Item 6) */}
-              {submission.profile_screenshot_path && (
-                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-                  📸 Print da Postagem
-                </div>
-              )}
+{/* Container com imagem + legenda ABAIXO */}
+<div className="flex-1 flex flex-col gap-2">
+  <div className="flex-1 flex items-center justify-center">
+    <SubmissionImageDisplay
+      screenshotPath={submission.screenshot_path}
+      screenshotUrl={submission.screenshot_url}
+      className="max-h-[60vh] w-auto object-contain"
+      loading="eager"
+    />
+  </div>
+  {submission.profile_screenshot_path && (
+    <div className="text-center bg-blue-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium">
+      📸 Print da Postagem
+    </div>
+  )}
+</div>
             </div>
 
             {/* 🆕 Imagem do perfil (se existir) */}
