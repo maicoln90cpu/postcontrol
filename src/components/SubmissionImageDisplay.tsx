@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -14,7 +14,7 @@ interface SubmissionImageDisplayProps {
  * Component that displays submission screenshots by generating signed URLs on-demand
  * This prevents URL expiration issues and improves security
  */
-export const SubmissionImageDisplay = ({
+export const SubmissionImageDisplay = memo(({
   screenshotPath,
   screenshotUrl,
   alt = 'Screenshot',
@@ -78,4 +78,6 @@ export const SubmissionImageDisplay = ({
       onError={() => setError(true)}
     />
   );
-};
+});
+
+SubmissionImageDisplay.displayName = 'SubmissionImageDisplay';

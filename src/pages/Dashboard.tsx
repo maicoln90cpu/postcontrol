@@ -466,7 +466,7 @@ const Dashboard = () => {
         )}
 
         {/* Estatísticas Gerais */}
-        <div id="stats-section" className="grid md:grid-cols-3 gap-6 mb-8 mt-8">
+        <div id="stats-section" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 mt-8">
           <Card className="p-6 hover:shadow-glow transition-all">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">

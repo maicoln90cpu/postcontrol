@@ -9,6 +9,8 @@ import { Pencil, Save, X } from "lucide-react";
 import { z } from "zod";
 import { CSVImportExport } from "@/components/CSVImportExport";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 interface Profile {
   id: string;
@@ -303,6 +305,19 @@ export const UserManagement = () => {
     });
   }, [users, debouncedSearchTerm, genderFilter, eventFilter, userEvents, events]);
 
+  // Paginação
+  const {
+    paginatedItems: paginatedUsers,
+    currentPage,
+    totalPages,
+    goToPage,
+    hasNextPage,
+    hasPreviousPage,
+  } = usePagination({
+    items: filteredUsers,
+    itemsPerPage: 20,
+  });
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -367,8 +382,9 @@ export const UserManagement = () => {
         {filteredUsers.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado</p>
         ) : (
-          <div className="space-y-4">
-            {filteredUsers.map((user) => (
+          <>
+            <div className="space-y-4">
+              {paginatedUsers.map((user) => (
               <Card key={user.id} className="p-6">
                 {editingUser === user.id ? (
                   <div className="space-y-4">
@@ -482,8 +498,17 @@ export const UserManagement = () => {
                   </div>
                 )}
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+            
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              hasNextPage={hasNextPage}
+              hasPreviousPage={hasPreviousPage}
+            />
+          </>
         )}
       </Card>
     </div>

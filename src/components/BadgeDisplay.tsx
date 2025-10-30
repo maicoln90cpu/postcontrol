@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import { Card } from "@/components/ui/card";
@@ -80,7 +80,7 @@ const BADGE_CONFIG = {
   },
 };
 
-export const BadgeDisplay = () => {
+export const BadgeDisplay = memo(() => {
   const { user } = useAuthStore();
   const [badges, setBadges] = useState<Badge[]>([]);
   const [newBadge, setNewBadge] = useState<Badge | null>(null);
@@ -217,4 +217,6 @@ export const BadgeDisplay = () => {
       </AnimatePresence>
     </>
   );
-};
+});
+
+BadgeDisplay.displayName = 'BadgeDisplay';
