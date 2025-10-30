@@ -88,13 +88,19 @@ export const UserManagement = () => {
     setLoading(true);
 
     try {
-      // Carregar eventos
-      const { data: eventsData } = await sb
+      // Carregar eventos apenas da agência atual
+      let eventsQuery = sb
         .from("events")
         .select("id, title, is_active")
         .eq("is_active", true)
         .order("title");
+      
+      // Filtrar por agência se não for master admin
+      if (!isMasterAdmin && currentAgencyId) {
+        eventsQuery = eventsQuery.eq("agency_id", currentAgencyId);
+      }
 
+      const { data: eventsData } = await eventsQuery;
       setEvents(eventsData || []);
 
       if (isMasterAdmin) {

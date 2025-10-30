@@ -63,16 +63,17 @@ interface GenderDistribution {
 
 export const DashboardStats = () => {
   const [events, setEvents] = useState<any[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>("all");
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
   const [userStats, setUserStats] = useState<UserStats[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineData[]>([]);
   const [genderData, setGenderData] = useState<GenderDistribution[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportType, setExportType] = useState<'excel' | 'pdf'>('excel');
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedSections, setSelectedSections] = useState({
     essentialData: true,
     participationMetrics: true,
@@ -90,12 +91,6 @@ export const DashboardStats = () => {
   useEffect(() => {
     checkAgencyAndLoadEvents();
   }, []);
-
-  useEffect(() => {
-    if (selectedEventId && currentAgencyId) {
-      loadStats();
-    }
-  }, [selectedEventId, activeFilter, currentAgencyId]);
 
   const checkAgencyAndLoadEvents = async () => {
     const { data: { user } } = await sb.auth.getUser();
@@ -129,6 +124,15 @@ export const DashboardStats = () => {
     if (data && data.length > 0) {
       setSelectedEventId("all");
     }
+  };
+
+  const handleSearch = () => {
+    if (!selectedEventId) {
+      toast.error("Por favor, selecione um evento antes de buscar.");
+      return;
+    }
+    setHasSearched(true);
+    loadStats();
   };
 
   const loadStats = async () => {
@@ -868,14 +872,6 @@ export const DashboardStats = () => {
     setUserStats(userStatsData);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   const statusData = eventStats.length > 0 ? [
     { name: 'Aprovados', value: eventStats[0].approved_submissions, color: '#10b981' },
     { name: 'Pendentes', value: eventStats[0].pending_submissions, color: '#f59e0b' },
@@ -891,21 +887,22 @@ export const DashboardStats = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-bold">📊 Dashboard de Desempenho Completo</h2>
-        <div className="flex flex-wrap gap-2">
-          <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2"
-                onClick={() => {
-                  setExportType('excel');
-                  setShowExportDialog(true);
-                }}
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                Excel Completo
-              </Button>
-            </DialogTrigger>
+        {hasSearched && (
+          <div className="flex flex-wrap gap-2">
+            <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    setExportType('excel');
+                    setShowExportDialog(true);
+                  }}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Excel Completo
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Selecionar Seções do Relatório</DialogTitle>
@@ -1053,41 +1050,83 @@ export const DashboardStats = () => {
             <FileText className="w-4 h-4" />
             PDF Completo
           </Button>
-          
-          <Select value={activeFilter} onValueChange={setActiveFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="active">Somente ativos</SelectItem>
-              <SelectItem value="inactive">Somente inativos</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-            <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Selecione um evento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Eventos</SelectItem>
-              {events.map((event) => (
-                <SelectItem key={event.id} value={event.id}>
-                  {event.title} {!event.is_active && '(Inativo)'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
+        )}
       </div>
+      
+      {/* Filtros sempre visíveis */}
+      <Card className="p-6">
+        <p className="text-sm text-muted-foreground mb-4">
+          📊 Selecione os filtros abaixo e clique em "Buscar" para carregar as estatísticas do evento.
+        </p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[280px]">
+              <label className="text-sm font-medium mb-2 block">Evento</label>
+              <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Eventos</SelectItem>
+                  {events.map((event) => (
+                    <SelectItem key={event.id} value={event.id}>
+                      {event.title} {!event.is_active && '(Inativo)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <Select value={activeFilter} onValueChange={setActiveFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="active">Somente ativos</SelectItem>
+                  <SelectItem value="inactive">Somente inativos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button onClick={handleSearch} disabled={!selectedEventId} className="w-full md:w-auto">
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Carregando...
+              </>
+            ) : (
+              'Buscar Dados'
+            )}
+          </Button>
+        </div>
+      </Card>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="charts">Gráficos</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="ranking">Ranking</TabsTrigger>
-          <TabsTrigger value="alerts">Alertas</TabsTrigger>
-        </TabsList>
+      {/* Dados - só aparecem após buscar */}
+      {!hasSearched ? (
+        <Card className="p-12 text-center">
+          <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Selecione os filtros e clique em Buscar</h3>
+          <p className="text-muted-foreground">
+            Escolha um evento e clique no botão "Buscar Dados" para visualizar as estatísticas completas.
+          </p>
+        </Card>
+      ) : loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <>
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="charts">Gráficos</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              <TabsTrigger value="ranking">Ranking</TabsTrigger>
+              <TabsTrigger value="alerts">Alertas</TabsTrigger>
+            </TabsList>
 
         {/* Visão Geral */}
         <TabsContent value="overview" className="space-y-6">
@@ -1486,6 +1525,8 @@ export const DashboardStats = () => {
           </Card>
         </TabsContent>
       </Tabs>
+        </>
+      )}
     </div>
   );
 };

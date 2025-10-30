@@ -27,23 +27,18 @@ interface UserStats {
 
 export const UserPerformance = () => {
   const [events, setEvents] = useState<any[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>("all");
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [userStats, setUserStats] = useState<UserStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchName, setSearchName] = useState("");
   const [searchPhone, setSearchPhone] = useState("");
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
     checkAgencyAndLoadEvents();
   }, []);
-
-  useEffect(() => {
-    if (selectedEventId && currentAgencyId) {
-      loadStats();
-    }
-  }, [selectedEventId, activeFilter, currentAgencyId]);
 
   const checkAgencyAndLoadEvents = async () => {
     const { data: { user } } = await sb.auth.getUser();
@@ -77,6 +72,15 @@ export const UserPerformance = () => {
     if (data && data.length > 0) {
       setSelectedEventId("all");
     }
+  };
+
+  const handleSearch = () => {
+    if (!selectedEventId) {
+      toast.error("Por favor, selecione um evento antes de buscar.");
+      return;
+    }
+    setHasSearched(true);
+    loadStats();
   };
 
   const loadStats = async () => {
@@ -370,66 +374,112 @@ export const UserPerformance = () => {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="text-2xl font-bold">Desempenho por Usuário</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4" />
-              Excel
-            </Button>
-            <Button onClick={exportToPDF} variant="outline" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              PDF
-            </Button>
-            <Select value={activeFilter} onValueChange={setActiveFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrar status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="active">Somente ativos</SelectItem>
-                <SelectItem value="inactive">Somente inativos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-              <SelectTrigger className="w-[240px]">
-                <SelectValue placeholder="Selecione um evento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Eventos</SelectItem>
-                {events.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.title} {!event.is_active && '(Inativo)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {hasSearched && (
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2">
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel
+              </Button>
+              <Button onClick={exportToPDF} variant="outline" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                PDF
+              </Button>
+            </div>
+          )}
         </div>
         
-        <div className="flex gap-2">
-          <Input 
-            placeholder="Filtrar por nome..." 
-            value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
-            className="max-w-xs"
-          />
-          <Input 
-            placeholder="Filtrar por telefone..." 
-            value={searchPhone}
-            onChange={(e) => setSearchPhone(e.target.value)}
-            className="max-w-xs"
-          />
-        </div>
+        {/* Filtros sempre visíveis */}
+        <Card className="p-6">
+          <p className="text-sm text-muted-foreground mb-4">
+            📊 Selecione os filtros abaixo e clique em "Buscar" para carregar os dados de desempenho dos usuários.
+          </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[240px]">
+                <label className="text-sm font-medium mb-2 block">Evento</label>
+                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Eventos</SelectItem>
+                    {events.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.title} {!event.is_active && '(Inativo)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-[180px]">
+                <label className="text-sm font-medium mb-2 block">Status</label>
+                <Select value={activeFilter} onValueChange={setActiveFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="active">Somente ativos</SelectItem>
+                    <SelectItem value="inactive">Somente inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button onClick={handleSearch} disabled={!selectedEventId} className="w-full md:w-auto">
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Carregando...
+                </>
+              ) : (
+                'Buscar Dados'
+              )}
+            </Button>
+          </div>
+        </Card>
+
+        {/* Filtros de busca - só aparecem após buscar */}
+        {hasSearched && !loading && (
+          <div className="flex gap-2">
+            <Input 
+              placeholder="Filtrar por nome..." 
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="max-w-xs"
+            />
+            <Input 
+              placeholder="Filtrar por telefone..." 
+              value={searchPhone}
+              onChange={(e) => setSearchPhone(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
+        )}
       </div>
 
-      <div className="grid gap-4">
-        {filteredStats.length === 0 ? (
-          <Card className="p-6 text-center text-muted-foreground">
-            {userStats.length === 0 ? "Nenhum usuário com submissões ainda" : "Nenhum usuário encontrado com os filtros aplicados"}
-          </Card>
-        ) : (
-          filteredStats
-            .sort((a, b) => b.completion_percentage - a.completion_percentage)
-            .map((stat) => (
+      {/* Dados - só aparecem após buscar */}
+      {!hasSearched ? (
+        <Card className="p-12 text-center">
+          <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Selecione os filtros e clique em Buscar</h3>
+          <p className="text-muted-foreground">
+            Escolha um evento e clique no botão "Buscar Dados" para visualizar o desempenho dos usuários.
+          </p>
+        </Card>
+      ) : loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredStats.length === 0 ? (
+            <Card className="p-6 text-center text-muted-foreground">
+              {userStats.length === 0 ? "Nenhum usuário com submissões ainda" : "Nenhum usuário encontrado com os filtros aplicados"}
+            </Card>
+          ) : (
+            filteredStats
+              .sort((a, b) => b.completion_percentage - a.completion_percentage)
+              .map((stat) => (
               <Card key={stat.user_id} className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -488,10 +538,11 @@ export const UserPerformance = () => {
                     ></div>
                   </div>
                 </div>
-              </Card>
-            ))
-        )}
-      </div>
+                </Card>
+              ))
+          )}
+        </div>
+      )}
     </div>
   );
 };
