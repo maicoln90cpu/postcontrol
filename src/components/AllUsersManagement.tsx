@@ -426,16 +426,16 @@ export const AllUsersManagement = () => {
             <div className="space-y-2">
               <Label htmlFor="agency">Agência Vinculada</Label>
               <Select
-                value={editForm.agency_id}
+                value={editForm.agency_id || "none"}
                 onValueChange={(value) =>
-                  setEditForm({ ...editForm, agency_id: value })
+                  setEditForm({ ...editForm, agency_id: value === "none" ? null : value })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma agência" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma agência</SelectItem>
+                  <SelectItem value="none">Nenhuma agência</SelectItem>
                   {agencies.map((agency) => (
                     <SelectItem key={agency.id} value={agency.id}>
                       {agency.name}
