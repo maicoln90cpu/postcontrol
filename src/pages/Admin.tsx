@@ -758,7 +758,9 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
-      <AdminTutorialGuide />
+      <Suspense fallback={null}>
+        <AdminTutorialGuide />
+      </Suspense>
       {/* Admin Context Header */}
       <div className="bg-gradient-primary text-white py-4 px-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -1142,11 +1144,13 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               </div>
 
               {kanbanView ? (
-                <SubmissionKanban 
-                  submissions={getFilteredSubmissions()} 
-                  onUpdate={loadSubmissions}
-                  userId={user?.id}
-                />
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <SubmissionKanban 
+                    submissions={getFilteredSubmissions()} 
+                    onUpdate={loadSubmissions}
+                    userId={user?.id}
+                  />
+                </Suspense>
               ) : submissionEventFilter === "all" ? (
                 <Card className="p-12 text-center">
                   <div className="text-muted-foreground">
@@ -1270,12 +1274,14 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
 
                           {/* Screenshot */}
                           <div className="w-full sm:w-48 h-64 sm:h-48 flex-shrink-0 order-2 sm:order-2">
-                            <SubmissionImageDisplay
-                              screenshotPath={submission.screenshot_path}
-                              screenshotUrl={submission.screenshot_url}
-                              alt="Screenshot da postagem"
-                              className="w-full h-full object-cover rounded-lg border"
-                            />
+                            <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
+                              <SubmissionImageDisplay
+                                screenshotPath={submission.screenshot_path}
+                                screenshotUrl={submission.screenshot_url}
+                                alt="Screenshot da postagem"
+                                className="w-full h-full object-cover rounded-lg border"
+                              />
+                            </Suspense>
                           </div>
 
                           {/* Informações do usuário */}
@@ -1431,10 +1437,12 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                           </Button>
                           
                           {expandedComments.has(submission.id) && (
-                            <SubmissionComments 
-                              submissionId={submission.id}
-                              onCommentAdded={loadSubmissions}
-                            />
+                            <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+                              <SubmissionComments 
+                                submissionId={submission.id}
+                                onCommentAdded={loadSubmissions}
+                              />
+                            </Suspense>
                           )}
                         </div>
                       </div>
@@ -1503,7 +1511,9 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <UserManagement />
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <UserManagement />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6">
@@ -1514,49 +1524,60 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               </TabsList>
 
               <TabsContent value="events-stats">
-                <DashboardStats />
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <DashboardStats />
+                </Suspense>
               </TabsContent>
 
               <TabsContent value="user-performance">
-                <UserPerformance />
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <UserPerformance />
+                </Suspense>
               </TabsContent>
             </Tabs>
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            {isMasterAdmin ? (
-              <AdminSettings isMasterAdmin={true} />
-            ) : (
-              <AgencyAdminSettings />
-            )}
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              {isMasterAdmin ? (
+                <AdminSettings isMasterAdmin={true} />
+              ) : (
+                <AgencyAdminSettings />
+              )}
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
 
-      <EventDialog 
-        open={eventDialogOpen} 
-        onOpenChange={(open) => {
-          setEventDialogOpen(open);
-          if (!open) setSelectedEvent(null);
-        }}
-        onEventCreated={() => {
-          loadEvents();
-          if (submissionEventFilter !== "all") loadSubmissions();
-        }}
-        event={selectedEvent}
-      />
-      <PostDialog 
-        open={postDialogOpen} 
-        onOpenChange={(open) => {
-          setPostDialogOpen(open);
-          if (!open) setSelectedPost(null);
-        }}
-        onPostCreated={() => {
-          loadEvents();
-          if (submissionEventFilter !== "all") loadSubmissions();
-        }}
-        post={selectedPost}
-      />
+      <Suspense fallback={null}>
+        <EventDialog 
+          open={eventDialogOpen} 
+          onOpenChange={(open) => {
+            setEventDialogOpen(open);
+            if (!open) setSelectedEvent(null);
+          }}
+          onEventCreated={() => {
+            loadEvents();
+            if (submissionEventFilter !== "all") loadSubmissions();
+          }}
+          event={selectedEvent}
+        />
+      </Suspense>
+      
+      <Suspense fallback={null}>
+        <PostDialog 
+          open={postDialogOpen} 
+          onOpenChange={(open) => {
+            setPostDialogOpen(open);
+            if (!open) setSelectedPost(null);
+          }}
+          onPostCreated={() => {
+            loadEvents();
+            if (submissionEventFilter !== "all") loadSubmissions();
+          }}
+          post={selectedPost}
+        />
+      </Suspense>
 
       {/* Rejection Dialog */}
       <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
@@ -1632,7 +1653,9 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
           </DialogHeader>
           
           {auditLogSubmissionId && (
-            <SubmissionAuditLog submissionId={auditLogSubmissionId} />
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <SubmissionAuditLog submissionId={auditLogSubmissionId} />
+            </Suspense>
           )}
 
           <DialogFooter>

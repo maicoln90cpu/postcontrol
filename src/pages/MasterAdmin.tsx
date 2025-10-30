@@ -367,12 +367,14 @@ const MasterAdmin = () => {
         </Tabs>
       </div>
 
-      <EditAgencyDialog
-        open={editAgencyDialogOpen}
-        onOpenChange={setEditAgencyDialogOpen}
-        agency={selectedAgency}
-        onSuccess={loadAgencies}
-      />
+      <Suspense fallback={null}>
+        <EditAgencyDialog
+          open={editAgencyDialogOpen}
+          onOpenChange={setEditAgencyDialogOpen}
+          agency={selectedAgency}
+          onSuccess={loadAgencies}
+        />
+      </Suspense>
 
       {/* Create Agency Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
