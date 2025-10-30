@@ -9,8 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Building2, LogIn, UserPlus } from "lucide-react";
 
-export default function AgencySignup() {
-  const { token } = useParams<{ token: string }>();
+interface AgencySignupProps {
+  tokenFromSlug?: string;
+}
+
+export default function AgencySignup({ tokenFromSlug }: AgencySignupProps = {}) {
+  const { token: tokenFromParams } = useParams<{ token: string }>();
+  const token = tokenFromSlug || tokenFromParams;
   const navigate = useNavigate();
   const [agency, setAgency] = useState<any>(null);
   const [loading, setLoading] = useState(true);

@@ -216,7 +216,7 @@ const MasterAdmin = () => {
   };
 
   const getAgencyUrl = (agency: Agency) => {
-    return `${window.location.origin}/agency/${agency.signup_token}`;
+    return `${window.location.origin}/agency/signup/${agency.slug}`;
   };
 
   const copyAgencyUrl = (agency: Agency) => {

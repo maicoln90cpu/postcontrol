@@ -12,6 +12,7 @@ import Admin from "./pages/Admin";
 import Dashboard from "./pages/Dashboard";
 import MasterAdmin from "./pages/MasterAdmin";
 import AgencySignup from "./pages/AgencySignup";
+import AgencySignupBySlug from "./pages/AgencySignupBySlug";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => {
             <Route path="/admin" element={<Admin />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/master-admin" element={<MasterAdmin />} />
+            <Route path="/agency/signup/:slug" element={<AgencySignupBySlug />} />
             <Route path="/agency/:token" element={<AgencySignup />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

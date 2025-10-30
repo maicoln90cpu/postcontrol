@@ -1273,13 +1273,16 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                           </div>
 
                           {/* Screenshot */}
-                          <div className="w-full sm:w-48 h-64 sm:h-48 flex-shrink-0 order-2 sm:order-2">
+                          <div 
+                            className="w-full sm:w-48 h-64 sm:h-48 flex-shrink-0 order-2 sm:order-2 cursor-pointer"
+                            onClick={() => setSelectedImageForZoom(submission.screenshot_url)}
+                          >
                             <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
                               <SubmissionImageDisplay
                                 screenshotPath={submission.screenshot_path}
                                 screenshotUrl={submission.screenshot_url}
                                 alt="Screenshot da postagem"
-                                className="w-full h-full object-cover rounded-lg border"
+                                className="w-full h-full object-cover rounded-lg border hover:opacity-80 transition-opacity"
                               />
                             </Suspense>
                           </div>

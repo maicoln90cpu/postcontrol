@@ -11,6 +11,7 @@ import { CSVImportExport } from "@/components/CSVImportExport";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/ui/pagination-controls";
+import { useProfiles } from "@/hooks/useReactQuery";
 
 interface Profile {
   id: string;
@@ -36,8 +37,6 @@ const profileUpdateSchema = z.object({
 });
 
 export const UserManagement = () => {
-  const [users, setUsers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +47,10 @@ export const UserManagement = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [userEvents, setUserEvents] = useState<Record<string, string[]>>({});
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  // Usar React Query para cache de profiles
+  const { data: cachedProfiles, isLoading: loadingProfiles } = useProfiles(currentAgencyId || undefined);
+  const [users, setUsers] = useState<Profile[]>([]);
 
   useEffect(() => {
     checkAdminStatus();
@@ -60,6 +63,13 @@ export const UserManagement = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  // Atualizar users quando cachedProfiles mudar
+  useEffect(() => {
+    if (cachedProfiles) {
+      setUsers(cachedProfiles);
+    }
+  }, [cachedProfiles]);
 
   // Carregar usuários apenas quando isMasterAdmin e currentAgencyId estiverem definidos
   useEffect(() => {
@@ -97,8 +107,6 @@ export const UserManagement = () => {
   };
 
   const loadUsers = async () => {
-    setLoading(true);
-
     try {
       // Carregar eventos apenas da agência atual
       let eventsQuery = sb
@@ -162,7 +170,6 @@ export const UserManagement = () => {
         if (userIds.length === 0) {
           console.log("⚠️ Nenhum usuário encontrado com submissões");
           setUsers([]);
-          setLoading(false);
           return;
         }
 
@@ -196,8 +203,6 @@ export const UserManagement = () => {
       console.error("❌ Erro ao carregar usuários:", error);
       setUsers([]);
     }
-
-    setLoading(false);
   };
 
   const loadUserEvents = async (userIds: string[]) => {
@@ -318,7 +323,7 @@ export const UserManagement = () => {
     itemsPerPage: 20,
   });
 
-  if (loading) {
+  if (loadingProfiles) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
