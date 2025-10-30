@@ -64,6 +64,7 @@ interface Agency {
     totalSubmissions: number;
   };
   fullUrl?: string; // Add this to store computed URL
+  alternativeUrl?: string; // Alternative URL using token
 }
 
 export const AdminManager = () => {
@@ -185,7 +186,8 @@ export const AdminManager = () => {
               )
           ]);
 
-          const fullUrl = `${customDomain}/agency/${agency.signup_token}`;
+          const fullUrl = `${customDomain}/agencia/${agency.slug}`;
+          const alternativeUrl = `${customDomain}/agency/${agency.signup_token}`;
 
           return {
             ...agency,
@@ -196,7 +198,8 @@ export const AdminManager = () => {
               totalEvents: eventsCount.count || 0,
               totalSubmissions: submissionsCount.count || 0
             },
-            fullUrl
+            fullUrl,
+            alternativeUrl
           };
         })
       );
@@ -584,6 +587,7 @@ export const AdminManager = () => {
               planDetails={agency.plan || null}
               stats={agency.stats}
               fullUrl={agency.fullUrl || ''}
+              alternativeUrl={agency.alternativeUrl}
               onEdit={() => handleEditAgency(agency)}
               onDelete={() => handleDeleteAgency(agency.id, agency.name)}
               onViewDashboard={() => window.open(`/admin?agencyId=${agency.id}`, '_blank')}

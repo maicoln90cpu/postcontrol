@@ -33,6 +33,7 @@ interface AgencyAdminCardProps {
   onViewDashboard: () => void;
   onCopyLink: () => void;
   fullUrl: string;
+  alternativeUrl?: string;
 }
 
 export const AgencyAdminCard = ({
@@ -45,6 +46,7 @@ export const AgencyAdminCard = ({
   onViewDashboard,
   onCopyLink,
   fullUrl,
+  alternativeUrl,
 }: AgencyAdminCardProps) => {
   const getStatusBadge = () => {
     switch (agency.subscription_status) {
@@ -149,9 +151,17 @@ export const AgencyAdminCard = ({
       )}
 
       {/* Agency URL */}
-      <div className="bg-background rounded-lg p-3 mb-4 border">
-        <p className="text-xs text-muted-foreground mb-1">🔗 URL da Agência:</p>
-        <code className="text-xs break-all">{fullUrl}</code>
+      <div className="bg-background rounded-lg p-3 mb-4 border space-y-3">
+        <div>
+          <p className="text-xs font-semibold text-foreground mb-1">🔗 URL da Agência:</p>
+          <code className="text-xs break-all font-medium text-primary">{fullUrl}</code>
+        </div>
+        {alternativeUrl && (
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground mb-1">Link alternativo:</p>
+            <code className="text-xs break-all text-muted-foreground">{alternativeUrl}</code>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
