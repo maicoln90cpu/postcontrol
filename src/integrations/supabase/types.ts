@@ -853,6 +853,7 @@ export type Database = {
       }
       submissions: {
         Row: {
+          agency_id: string | null
           approved_at: string | null
           approved_by: string | null
           created_at: string
@@ -872,6 +873,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agency_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -891,6 +893,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agency_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -910,6 +913,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "submissions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "submissions_post_id_fkey"
             columns: ["post_id"]
@@ -1115,6 +1125,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_agency_admin_of: { Args: { agency_uuid: string }; Returns: boolean }
       is_guest_with_permission: {
         Args: {
           _event_id: string
