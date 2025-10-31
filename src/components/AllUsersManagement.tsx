@@ -36,6 +36,7 @@ interface UserProfile {
   full_name: string;
   email: string;
   phone?: string;
+  gender?: string;
   instagram?: string;
   agency_id?: string;
   created_at: string;
