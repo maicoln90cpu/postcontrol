@@ -221,12 +221,6 @@ export const UserPerformance = () => {
   });
 };
 
-  
-  toast.success("Relatório PDF exportado com sucesso!", {
-      description: "O arquivo foi baixado para seu computador."
-    });
-  };
-
   const loadAllStats = async () => {
     if (!currentAgencyId && !isMasterAdmin) {
       console.warn('⚠️ No agency ID available');
