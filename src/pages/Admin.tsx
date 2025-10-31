@@ -907,7 +907,11 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                     target.style.display = 'none';
                     const parent = target.parentElement;
                     if (parent && currentAgency?.name) {
-                      parent.innerHTML = `<span class="text-lg font-bold text-white">${currentAgency.name.charAt(0).toUpperCase()}</span>`;
+                      // Use textContent instead of innerHTML to prevent XSS
+                      const fallback = document.createElement('span');
+                      fallback.className = 'text-lg font-bold text-white';
+                      fallback.textContent = currentAgency.name.charAt(0).toUpperCase();
+                      parent.appendChild(fallback);
                     }
                   }}
                 />

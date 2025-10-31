@@ -64,7 +64,11 @@ export default function AgencySignupBySlug() {
                     target.style.display = 'none';
                     const parent = target.parentElement;
                     if (parent) {
-                      parent.innerHTML = `<span class="text-2xl font-bold text-muted-foreground">${agencyName.charAt(0).toUpperCase()}</span>`;
+                      // Use textContent instead of innerHTML to prevent XSS
+                      const fallback = document.createElement('span');
+                      fallback.className = 'text-2xl font-bold text-muted-foreground';
+                      fallback.textContent = agencyName.charAt(0).toUpperCase();
+                      parent.appendChild(fallback);
                     }
                   }}
                 />
