@@ -21,30 +21,19 @@ interface Profile {
   phone: string | null;
   created_at: string;
   gender?: string | null;
+    followers_range?: string | null; // ✅ ADICIONAR
+
 }
 
 // Validation schema
-// Validation schema
 const profileUpdateSchema = z.object({
-  full_name: z
-    .string()
-    .trim()
-    .min(2, "Nome deve ter no mínimo 2 caracteres")
-    .max(100, "Nome muito longo"),
-  email: z
-    .string()
-    .trim()
-    .email("Email inválido")
-    .max(255, "Email muito longo"),
-  instagram: z
-    .string()
-    .trim()
-    .min(1, "Instagram é obrigatório")
-    .max(50, "Instagram muito longo"),
+  full_name: z.string().trim().min(2, "Nome deve ter no mínimo 2 caracteres").max(100, "Nome muito longo"),
+  email: z.string().trim().email("Email inválido").max(255, "Email muito longo"),
+  instagram: z.string().trim().min(1, "Instagram é obrigatório").max(50, "Instagram muito longo"),
   phone: z
     .string()
     .trim()
-    .transform((val) => val.replace(/\D/g, "")) // Remove tudo que não é número
+    .regex(/^\(?(\d{2})\)?\s?(\d{4,5})-?(\d{4})$/, "Formato de telefone inválido. Use: (00) 00000-0000")
     .optional()
     .or(z.literal("")),
 });
@@ -224,7 +213,7 @@ export const UserManagement = () => {
     // Buscar usuários da mesma agência
     const { data: agencyUsers } = await sb
       .from('profiles')
-      .select('*, gender')
+.select('*, gender, followers_range')
       .eq('agency_id', profileData.agency_id)
       .order('created_at', { ascending: false });
     
@@ -533,12 +522,16 @@ export const UserManagement = () => {
                           <span className="text-muted-foreground">Telefone:</span>{" "}
                           <span className="font-medium">{user.phone || "Não definido"}</span>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Sexo:</span>{" "}
-                          <span className="font-medium">{user.gender || "Não definido"}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Cadastrado em:</span>{" "}
+                     <div>
+  <span className="text-muted-foreground">Sexo:</span>{" "}
+  <span className="font-medium">{user.gender || "Não definido"}</span>
+</div>
+<div>
+  <span className="text-muted-foreground">Seguidores:</span>{" "}
+  <span className="font-medium">{user.followers_range || "Não informado"}</span>
+</div>
+
+                        <span className="text-muted-foreground">Cadastrado em:</span>{" "}
                           <span className="font-medium">{new Date(user.created_at).toLocaleDateString("pt-BR")}</span>
                         </div>
                         {userEvents[user.id] && userEvents[user.id].length > 0 && (
