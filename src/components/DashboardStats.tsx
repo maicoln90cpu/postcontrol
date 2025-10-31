@@ -163,19 +163,37 @@ export const DashboardStats = () => {
     loadStats();
   };
 
-  const loadStats = async () => {
-    setLoading(true);
-    try {
-      if (selectedEventId === "all") {
-        await loadAllStats();
-      } else {
-        await loadEventSpecificStats(selectedEventId);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadStats = async () => {
+  setLoading(true);
+  try {
+    // Carregar todos os dados em paralelo
+    await Promise.all([
+      selectedEventId === "all" ? loadAllStats() : loadEventSpecificStats(selectedEventId),
+      loadTimelineData(),
+      loadGenderDistribution()
+    ]);
+  } finally {
+    setLoading(false);
+  }
+};
 
+  // Cache em memória para evitar recarregamentos desnecessários
+const statsCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutos
+
+const getCachedStats = (key: string) => {
+  const cached = statsCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedStats = (key: string, data: any) => {
+  statsCache.set(key, { data, timestamp: Date.now() });
+};
+
+  
   const exportEventStatsToExcel = () => {
     const eventName = selectedEventId === "all" 
       ? "Todos os Eventos" 
