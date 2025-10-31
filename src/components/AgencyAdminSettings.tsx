@@ -7,12 +7,9 @@ import { Save, Building2, User, Lock, Calendar, CreditCard, Upload, Image as Ima
 import { sb } from "@/lib/supabaseSafe";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "./ui/progress";
 import imageCompression from 'browser-image-compression';
-
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export const AgencyAdminSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -142,13 +139,20 @@ export const AgencyAdminSettings = () => {
   const saveLogo = async () => {
     if (!logoFile || !agencyId) return;
     
+    setUploadProgress(0);
+    
     try {
       console.log('📸 Iniciando upload de logo...');
       
       const fileExt = logoFile.name.split('.').pop();
       const fileName = `agency-logos/${agencyId}_${Date.now()}.${fileExt}`;
       
-      // Deletar logos antigos usando sb
+      // Simular progresso
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 100);
+      
+      // Deletar logos antigos
       const { data: oldFiles } = await sb.storage
         .from('screenshots')
         .list('agency-logos', { search: agencyId });
@@ -163,21 +167,24 @@ export const AgencyAdminSettings = () => {
         );
       }
       
-      // Upload usando sb
+      // Upload
       const { error: uploadError } = await sb.storage
         .from('screenshots')
         .upload(fileName, logoFile, { upsert: true });
       
+      clearInterval(progressInterval);
+      setUploadProgress(95);
+      
       if (uploadError) throw uploadError;
       
-      // Gerar URL assinada usando sb
+      // Gerar URL assinada
       const { data: signedData, error: signedError } = await sb.storage
         .from('screenshots')
-        .createSignedUrl(fileName, 31536000); // 1 ano
+        .createSignedUrl(fileName, 31536000);
       
       if (signedError) throw signedError;
       
-      // Atualizar agência usando sb (RLS já valida permissões)
+      // Atualizar agência
       const { error: updateError } = await sb
         .from('agencies')
         .update({ logo_url: signedData.signedUrl })
@@ -185,14 +192,19 @@ export const AgencyAdminSettings = () => {
       
       if (updateError) throw updateError;
       
+      setUploadProgress(100);
       setAgencyLogoUrl(signedData.signedUrl);
       setLogoPreview(signedData.signedUrl);
       
       toast.success("Logo atualizado com sucesso!");
       setLogoFile(null);
+      
+      // Resetar progresso após 1s
+      setTimeout(() => setUploadProgress(0), 1000);
     } catch (error: any) {
       console.error('❌ Erro ao salvar logo:', error);
       toast.error(error.message || "Erro ao salvar logo");
+      setUploadProgress(0);
     }
   };
 
@@ -311,43 +323,40 @@ export const AgencyAdminSettings = () => {
           />
         </div>
         
-        {/* Logo da Agência */}
-        <div className="space-y-3 pt-4 border-t">
-          <Label className="flex items-center gap-2">
-            <ImageIcon className="h-4 w-4" />
-            Logo da Agência
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Este logo aparecerá na página de cadastro da sua agência
-          </p>
-          
-          <div className="flex flex-col gap-3">
-            {(logoPreview || agencyLogoUrl) && (
-              <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
-                <img 
-                  src={logoPreview || agencyLogoUrl || ''} 
-                  alt="Logo preview" 
-                  className="w-full h-full object-contain"
+            <div className="space-y-2">
+              <Label htmlFor="logo">Logo (máx 2MB)</Label>
+              {(logoPreview || agencyLogoUrl) && (
+                <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+                  <img 
+                    src={logoPreview || agencyLogoUrl || ''} 
+                    alt="Logo preview" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              )}
+              
+              <div className="flex gap-2 items-start">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="max-w-xs"
                 />
+                {logoFile && (
+                  <Button onClick={saveLogo} size="sm">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Salvar Logo
+                  </Button>
+                )}
               </div>
-            )}
-            
-            <div className="flex gap-2">
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                className="max-w-xs"
-              />
-              {logoFile && (
-                <Button onClick={saveLogo} size="sm">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Salvar Logo
-                </Button>
+              
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <div className="space-y-1">
+                  <Progress value={uploadProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground">{uploadProgress}%</p>
+                </div>
               )}
             </div>
-          </div>
-        </div>
       </Card>
 
       {/* Personal Data */}

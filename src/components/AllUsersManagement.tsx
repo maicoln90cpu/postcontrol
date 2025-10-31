@@ -30,6 +30,8 @@ import { Label } from "@/components/ui/label";
 import { Pencil, Trash2, Search, Users } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
 import { useToast } from "@/hooks/use-toast";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePagination } from "@/hooks/usePagination";
 
 interface UserProfile {
   id: string;
@@ -276,6 +278,18 @@ export const AllUsersManagement = () => {
     return matchesSearch && matchesAgency && matchesRole;
   });
 
+  // Paginação
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems: paginatedUsers,
+    goToPage,
+    nextPage,
+    previousPage,
+    hasNextPage,
+    hasPreviousPage
+  } = usePagination({ items: filteredUsers, itemsPerPage: 20 });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -287,7 +301,7 @@ export const AllUsersManagement = () => {
         </div>
         <Badge variant="outline" className="text-lg px-4 py-2">
           <Users className="w-4 h-4 mr-2" />
-          {filteredUsers.length} usuários
+          {filteredUsers.length} usuários {totalPages > 1 && `(página ${currentPage} de ${totalPages})`}
         </Badge>
       </div>
 
@@ -366,7 +380,7 @@ export const AllUsersManagement = () => {
               </TableHeader>
 
               <TableBody>
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
                       {user.full_name || "—"}
@@ -423,6 +437,18 @@ export const AllUsersManagement = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="mt-6">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              hasNextPage={hasNextPage}
+              hasPreviousPage={hasPreviousPage}
+            />
           </div>
         )}
       </Card>
