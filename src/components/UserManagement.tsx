@@ -193,10 +193,28 @@ export const UserManagement = () => {
         if (profilesData && profilesData.length > 0) {
           await loadUserEvents(profilesData.map((u) => u.id));
         }
-      } else {
-        console.warn("⚠️ Agency admin sem currentAgencyId definido");
-        setUsers([]);
-      }
+} else {
+  // Agency admin SEM currentAgencyId definido - buscar diretamente do perfil
+  const { data: profileData } = await sb
+    .from('profiles')
+    .select('agency_id')
+    .eq('id', user?.id)
+    .maybeSingle();
+  
+  if (profileData?.agency_id) {
+    // Buscar usuários da mesma agência
+    const { data: agencyUsers } = await sb
+      .from('profiles')
+      .select('*, gender')
+      .eq('agency_id', profileData.agency_id)
+      .order('created_at', { ascending: false });
+    
+    setUsers(agencyUsers || []);
+  } else {
+    console.warn("⚠️ Agency admin sem agency_id no perfil");
+    setUsers([]);
+  }
+}
     } catch (error) {
       toast.error("Erro ao carregar usuários", {
         description: "Não foi possível carregar a lista de usuários. Tente novamente."
