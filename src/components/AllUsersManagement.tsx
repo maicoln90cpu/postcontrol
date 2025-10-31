@@ -53,7 +53,7 @@ export const AllUsersManagement = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [agencies, setAgencies] = useState<Agency[]>([]);
-  const [genderOptions, setGenderOptions] = useState<string[]>([]); // ✅ novos gêneros do banco
+  const [genderOptions, setGenderOptions] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [agencyFilter, setAgencyFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -65,7 +65,7 @@ export const AllUsersManagement = () => {
     phone: "",
     instagram: "",
     agency_id: "",
-    gender: "", // ✅ campo novo
+    gender: "",
   });
   const [submissionCounts, setSubmissionCounts] = useState<Record<string, number>>({});
 
@@ -76,7 +76,7 @@ export const AllUsersManagement = () => {
   const loadData = async () => {
     console.log("🔄 Carregando usuários...");
 
-    // Load users
+    // Load users first
     const { data: usersData, error: usersError } = await sb
       .from("profiles")
       .select("*, gender")
@@ -85,6 +85,7 @@ export const AllUsersManagement = () => {
     console.log("📊 Usuários carregados:", usersData?.length, "Error:", usersError);
 
     if (usersData) {
+      // Load roles separately for each user
       const usersWithRoles = await Promise.all(
         usersData.map(async (user: any) => {
           const { data: rolesData } = await sb
@@ -99,8 +100,10 @@ export const AllUsersManagement = () => {
         })
       );
 
+      console.log("✅ Usuários com roles:", usersWithRoles.length);
       setUsers(usersWithRoles);
 
+      // Load submission counts for each user
       const counts: Record<string, number> = {};
       await Promise.all(
         usersWithRoles.map(async (user) => {
@@ -120,16 +123,22 @@ export const AllUsersManagement = () => {
       .select("id, name, slug")
       .order("name", { ascending: true });
 
-    if (agenciesData) setAgencies(agenciesData);
+    if (agenciesData) {
+      setAgencies(agenciesData);
+    }
 
-    // ✅ Load gender options dynamically
+    // ✅ Load gender options dynamically (corrigido para TypeScript)
     const { data: genderData, error: genderError } = await sb
       .from("profiles")
       .select("gender", { distinct: true });
 
     if (!genderError && genderData) {
-      const uniqueGenders = Array.from(
-        new Set(genderData.map((item) => item.gender).filter(Boolean))
+      const uniqueGenders: string[] = Array.from(
+        new Set(
+          (genderData as { gender: string | null }[])
+            .map((item) => item.gender)
+            .filter((g): g is string => Boolean(g))
+        )
       );
       setGenderOptions(uniqueGenders);
     }
@@ -143,7 +152,7 @@ export const AllUsersManagement = () => {
       phone: user.phone || "",
       instagram: user.instagram || "",
       agency_id: user.agency_id || "",
-      gender: user.gender || "", // ✅ novo
+      gender: user.gender || "",
     });
     setEditDialogOpen(true);
   };
@@ -160,7 +169,7 @@ export const AllUsersManagement = () => {
           phone: editForm.phone || null,
           instagram: editForm.instagram || null,
           agency_id: editForm.agency_id || null,
-          gender: editForm.gender ? editForm.gender.toLowerCase() : null, // ✅ salva o gênero
+          gender: editForm.gender || null,
         })
         .eq("id", selectedUser.id);
 
@@ -184,13 +193,13 @@ export const AllUsersManagement = () => {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     const confirm = window.confirm(
-      `⚠️ Deseja realmente excluir o usuário "${userName}"?\n\nTODAS as submissões deste usuário também serão excluídas.\n\nEsta ação NÃO pode ser desfeita.`
+      `⚠️ ATENÇÃO: Deseja realmente excluir o usuário "${userName}"?\n\nTODAS as submissões deste usuário também serão excluídas.\n\nEsta ação NÃO pode ser desfeita.`
     );
 
     if (!confirm) return;
 
     try {
-      const { error } = await sb.functions.invoke("delete-user", {
+      const { data, error } = await sb.functions.invoke("delete-user", {
         body: { userId },
       });
 
@@ -318,7 +327,9 @@ export const AllUsersManagement = () => {
             <h3 className="text-lg font-semibold mb-2">
               Nenhum usuário encontrado
             </h3>
-            <p className="text-muted-foreground">Tente ajustar os filtros</p>
+            <p className="text-muted-foreground">
+              Tente ajustar os filtros de busca
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -364,7 +375,6 @@ export const AllUsersManagement = () => {
                         {submissionCounts[user.id] || 0}
                       </Badge>
                     </TableCell>
-
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
@@ -416,7 +426,6 @@ export const AllUsersManagement = () => {
                 }
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -428,7 +437,6 @@ export const AllUsersManagement = () => {
                 }
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>
               <Input
@@ -439,8 +447,17 @@ export const AllUsersManagement = () => {
                 }
               />
             </div>
-
-            {/* ✅ Novo campo dinâmico de gênero */}
+            <div className="space-y-2">
+              <Label htmlFor="instagram">Instagram</Label>
+              <Input
+                id="instagram"
+                value={editForm.instagram}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, instagram: e.target.value })
+                }
+                placeholder="@usuario"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="gender">Gênero</Label>
               <Select
@@ -453,36 +470,14 @@ export const AllUsersManagement = () => {
                   <SelectValue placeholder="Selecione o gênero" />
                 </SelectTrigger>
                 <SelectContent>
-                  {genderOptions.length > 0 ? (
-                    genderOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <>
-                      <SelectItem value="masculino">Masculino</SelectItem>
-                      <SelectItem value="feminino">Feminino</SelectItem>
-                      <SelectItem value="outro">Outro</SelectItem>
-                    </>
-                  )}
-                  <SelectItem value="">Não informar</SelectItem>
+                  {genderOptions.map((g) => (
+                    <SelectItem key={g} value={g}>
+                      {g.charAt(0).toUpperCase() + g.slice(1)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="instagram">Instagram</Label>
-              <Input
-                id="instagram"
-                value={editForm.instagram}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, instagram: e.target.value })
-                }
-                placeholder="@usuario"
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="agency">Agência Vinculada</Label>
               <Select
