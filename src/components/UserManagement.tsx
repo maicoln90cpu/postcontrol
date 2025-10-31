@@ -207,43 +207,57 @@ export const UserManagement = () => {
   };
 
   const loadUserEvents = async (userIds: string[]) => {
-    // Buscar eventos únicos por usuário via submissions
-    const eventsMap: Record<string, string[]> = {};
-    const salesMap: Record<string, number> = {};
+  if (userIds.length === 0) {
+    setUserEvents({});
+    setUserSalesCount({});
+    return;
+  }
 
-    for (const userId of userIds) {
-      const { data } = await sb
-        .from("submissions")
-        .select(
-          `
-          posts!inner(
-            events!inner(
-              id,
-              title
-            )
-          ),
-          submission_type,
-          status
-        `,
+  // ✅ UMA ÚNICA QUERY para todos os usuários
+  const { data } = await sb
+    .from("submissions")
+    .select(`
+      user_id,
+      posts!inner(
+        events!inner(
+          id,
+          title
         )
-        .eq("user_id", userId);
+      ),
+      submission_type,
+      status
+    `)
+    .in("user_id", userIds);
 
-      if (data && data.length > 0) {
-        const eventTitles = Array.from(new Set(data.map((s: any) => s.posts?.events?.title).filter(Boolean)));
-        eventsMap[userId] = eventTitles as string[];
-        
-        // Contar vendas aprovadas
-        const salesCount = data.filter((s: any) => s.submission_type === 'sale' && s.status === 'approved').length;
-        salesMap[userId] = salesCount;
-      } else {
-        eventsMap[userId] = [];
-        salesMap[userId] = 0;
+  // Processar dados em memória (muito mais rápido)
+  const eventsMap: Record<string, string[]> = {};
+  const salesMap: Record<string, number> = {};
+
+  userIds.forEach(userId => {
+    eventsMap[userId] = [];
+    salesMap[userId] = 0;
+  });
+
+  if (data) {
+    data.forEach((submission: any) => {
+      const userId = submission.user_id;
+      const eventTitle = submission.posts?.events?.title;
+      
+      // Adicionar evento único
+      if (eventTitle && !eventsMap[userId].includes(eventTitle)) {
+        eventsMap[userId].push(eventTitle);
       }
-    }
+      
+      // Contar vendas aprovadas
+      if (submission.submission_type === 'sale' && submission.status === 'approved') {
+        salesMap[userId] = (salesMap[userId] || 0) + 1;
+      }
+    });
+  }
 
-    setUserEvents(eventsMap);
-    setUserSalesCount(salesMap);
-  };
+  setUserEvents(eventsMap);
+  setUserSalesCount(salesMap);
+};
 
   const startEdit = (user: Profile) => {
     setEditingUser(user.id);
