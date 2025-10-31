@@ -19,6 +19,7 @@ const SubmissionKanban = lazy(() => import("@/components/SubmissionKanban").then
 const SubmissionAuditLog = lazy(() => import("@/components/SubmissionAuditLog").then(m => ({ default: m.SubmissionAuditLog })));
 const SubmissionComments = lazy(() => import("@/components/SubmissionComments").then(m => ({ default: m.SubmissionComments })));
 const SubmissionImageDisplay = lazy(() => import("@/components/SubmissionImageDisplay").then(m => ({ default: m.SubmissionImageDisplay })));
+const GuestManager = lazy(() => import("@/components/GuestManager").then(m => ({ default: m.GuestManager })));
 
 // FASE 2: Componentes memoizados para performance
 const MemoizedDashboardStats = lazy(() => import("@/components/memoized/MemoizedDashboardStats").then(m => ({ default: m.MemoizedDashboardStats })));
@@ -1047,11 +1048,12 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
 
         {/* Main Content */}
         <Tabs defaultValue="events" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-1 h-auto">
             <TabsTrigger value="events" className="text-xs sm:text-sm py-2">Eventos</TabsTrigger>
             <TabsTrigger value="posts" className="text-xs sm:text-sm py-2">Postagens</TabsTrigger>
             <TabsTrigger id="submissions-tab" value="submissions" className="text-xs sm:text-sm py-2">Submissões</TabsTrigger>
             <TabsTrigger id="users-tab" value="users" className="text-xs sm:text-sm py-2">Usuários</TabsTrigger>
+            <TabsTrigger value="guests" className="text-xs sm:text-sm py-2">Convidados</TabsTrigger>
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2">Dashboard</TabsTrigger>
             <TabsTrigger id="settings-tab" value="settings" className="text-xs sm:text-sm py-2">Configurações</TabsTrigger>
           </TabsList>
@@ -1742,6 +1744,12 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
           <TabsContent value="users" className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
               <MemoizedUserManagement />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="guests" className="space-y-6">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              {currentAgency && <GuestManager agencyId={currentAgency.id} />}
             </Suspense>
           </TabsContent>
 
