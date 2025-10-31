@@ -317,15 +317,15 @@ const Dashboard = () => {
       
       console.log('📁 Nome do arquivo:', fileName);
       
-      // Deletar arquivos antigos
-      const { data: oldFiles } = await supabase.storage
+      // Deletar arquivos antigos usando sb
+      const { data: oldFiles } = await sb.storage
         .from('screenshots')
         .list('avatars', { search: user.id });
       
       if (oldFiles && oldFiles.length > 0) {
         await Promise.all(
           oldFiles.map(file => 
-            supabase.storage
+            sb.storage
               .from('screenshots')
               .remove([`avatars/${file.name}`])
           )
@@ -333,8 +333,8 @@ const Dashboard = () => {
         console.log('🗑️ Arquivos antigos removidos');
       }
       
-      // Upload
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Upload usando sb
+      const { data: uploadData, error: uploadError } = await sb.storage
         .from('screenshots')
         .upload(fileName, avatarFile, { upsert: true });
       
@@ -345,8 +345,8 @@ const Dashboard = () => {
       
       console.log('✅ Upload concluído');
       
-      // Usar createSignedUrl
-      const { data: signedData, error: signedError } = await supabase.storage
+      // Gerar URL assinada usando sb
+      const { data: signedData, error: signedError } = await sb.storage
         .from('screenshots')
         .createSignedUrl(fileName, 31536000); // 1 ano
       
@@ -358,7 +358,7 @@ const Dashboard = () => {
       const avatarUrl = signedData.signedUrl;
       console.log('🔗 URL gerada');
       
-      // Usar sb ao invés de supabase para respeitar RLS
+      // Atualizar perfil usando sb
       const { error: updateError } = await sb
         .from('profiles')
         .update({ avatar_url: avatarUrl })

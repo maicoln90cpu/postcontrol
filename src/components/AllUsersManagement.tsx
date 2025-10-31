@@ -398,8 +398,10 @@ export const AllUsersManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditUser(user)}
+                          title="Editar usuário"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil className="w-4 h-4 mr-1" />
+                          <span className="sr-only md:not-sr-only">Editar</span>
                         </Button>
                         <Button
                           variant="destructive"
@@ -410,8 +412,10 @@ export const AllUsersManagement = () => {
                               user.full_name || user.email
                             )
                           }
+                          title="Excluir usuário"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          <span className="sr-only md:not-sr-only">Excluir</span>
                         </Button>
                       </div>
                     </TableCell>

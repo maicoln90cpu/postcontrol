@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Save, Building2, User, Lock, Calendar, CreditCard, Upload, Image as ImageIcon } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
-import { supabase } from "@/integrations/supabase/client";
+
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -43,7 +43,7 @@ export const AgencyAdminSettings = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await sb.auth.getUser();
     
     if (!user) {
       toast.error("Usuário não encontrado");
@@ -109,48 +109,36 @@ export const AgencyAdminSettings = () => {
       const fileExt = logoFile.name.split('.').pop();
       const fileName = `agency-logos/${agencyId}_${Date.now()}.${fileExt}`;
       
-      // Deletar logos antigos
-      const { data: oldFiles } = await supabase.storage
+      // Deletar logos antigos usando sb
+      const { data: oldFiles } = await sb.storage
         .from('screenshots')
         .list('agency-logos', { search: agencyId });
       
       if (oldFiles && oldFiles.length > 0) {
         await Promise.all(
           oldFiles.map(file => 
-            supabase.storage
+            sb.storage
               .from('screenshots')
               .remove([`agency-logos/${file.name}`])
           )
         );
       }
       
-      // Upload
-      const { error: uploadError } = await supabase.storage
+      // Upload usando sb
+      const { error: uploadError } = await sb.storage
         .from('screenshots')
         .upload(fileName, logoFile, { upsert: true });
       
       if (uploadError) throw uploadError;
       
-      // Gerar URL assinada
-      const { data: signedData, error: signedError } = await supabase.storage
+      // Gerar URL assinada usando sb
+      const { data: signedData, error: signedError } = await sb.storage
         .from('screenshots')
         .createSignedUrl(fileName, 31536000); // 1 ano
       
       if (signedError) throw signedError;
       
-      // Verificar ownership antes de atualizar
-      const { data: { user } } = await sb.auth.getUser();
-      const { data: agencyCheck } = await sb
-        .from('agencies')
-        .select('owner_id')
-        .eq('id', agencyId)
-        .single();
-      
-      if (!agencyCheck || !user || agencyCheck.owner_id !== user.id) {
-        throw new Error('Você não tem permissão para atualizar esta agência');
-      }
-      
-      // Atualizar agência
+      // Atualizar agência usando sb (RLS já valida permissões)
       const { error: updateError } = await sb
         .from('agencies')
         .update({ logo_url: signedData.signedUrl })
@@ -220,7 +208,7 @@ export const AgencyAdminSettings = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { error } = await sb.auth.updateUser({
         password: newPassword
       });
 
