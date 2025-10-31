@@ -166,11 +166,34 @@ export const DashboardStats = () => {
 const loadStats = async () => {
   setLoading(true);
   try {
+    // ✅ Verificar cache primeiro
+    const cacheKey = `stats_${selectedEventId}`;
+    const cached = getCachedStats(cacheKey);
+    
+    if (cached) {
+      console.log('📦 Usando dados em cache');
+      setEventStats(cached.eventStats || []);
+      setUserStats(cached.userStats || []);
+      setTimelineData(cached.timelineData || []);
+      setGenderData(cached.genderData || []);
+      setLoading(false);
+      return;
+    }
+
+    // ✅ Carregar dados em paralelo quando possível
     if (selectedEventId === "all") {
       await loadAllStats();
     } else {
       await loadEventSpecificStats(selectedEventId);
     }
+    
+    // ✅ Salvar no cache
+    setCachedStats(cacheKey, {
+      eventStats,
+      userStats,
+      timelineData,
+      genderData
+    });
   } finally {
     setLoading(false);
   }

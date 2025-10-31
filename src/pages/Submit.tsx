@@ -16,7 +16,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Upload, ArrowLeft, X, AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Upload, ArrowLeft, X, AlertCircle, HelpCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/authStore";
@@ -760,6 +761,7 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
   const selectedEventData = events.find((e) => e.id === selectedEvent);
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <Link to="/">
@@ -965,7 +967,17 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="instagram">Instagram *</Label>
+              <Label htmlFor="instagram" className="flex items-center gap-2">
+                Instagram *
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="w-56">Digite apenas seu usuário do Instagram, sem @ e sem espaços. Exemplo: seunome</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <Input
                 id="instagram"
                 placeholder="@seuinstagram"
@@ -977,7 +989,17 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone *</Label>
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                Telefone *
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="w-56">Digite seu número com DDD. Formato: (00) 00000-0000</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <Input
                 id="phone"
                 type="tel"
@@ -1265,6 +1287,7 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </TooltipProvider>
   );
 };
 

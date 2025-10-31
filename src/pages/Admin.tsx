@@ -39,6 +39,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const [currentAgency, setCurrentAgency] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [agencySlug, setAgencySlug] = useState<string>("");
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [postDialogOpen, setPostDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -172,9 +173,10 @@ const Admin = () => {
         .eq('slug', agencySlug)
         .maybeSingle();
       
-      console.log('🏢 Loaded agency from URL:', data);
-      setCurrentAgency(data);
-      return;
+        console.log('🏢 Loaded agency from URL:', data);
+        setCurrentAgency(data);
+        setAgencySlug(data?.slug || "");
+        return;
     }
 
     // If agency admin, load their own agency
@@ -233,6 +235,14 @@ const Admin = () => {
 
     const { count } = await countQuery;
     setUsersCount(count || 0);
+  };
+
+  const copySlugUrl = () => {
+    const url = `${window.location.origin}/agency/signup/${agencySlug}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado!", {
+      description: "URL de cadastro copiada para a área de transferência"
+    });
   };
 
   const loadEvents = async () => {
@@ -894,9 +904,28 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                   </Button>
                 </Link>
               )}
-              <h1 className="text-xl md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                Painel Agência
-              </h1>
+              <div className="flex flex-col gap-2">
+                <h1 className="text-xl md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  Painel Agência
+                </h1>
+                {agencySlug && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-sm">
+                      <Building2 className="h-3 w-3 mr-1" />
+                      {agencySlug}
+                    </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={copySlugUrl}
+                      className="h-6 w-6 p-0"
+                      title="Copiar link de cadastro"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Link to="/submit" className="flex-1 sm:flex-initial">

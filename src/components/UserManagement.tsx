@@ -195,10 +195,16 @@ export const UserManagement = () => {
         }
 } else {
   // Agency admin SEM currentAgencyId definido - buscar diretamente do perfil
+  const { data: { user: currentUser } } = await sb.auth.getUser();
+  if (!currentUser) {
+    setUsers([]);
+    return;
+  }
+  
   const { data: profileData } = await sb
     .from('profiles')
     .select('agency_id')
-    .eq('id', user?.id)
+    .eq('id', currentUser.id)
     .maybeSingle();
   
   if (profileData?.agency_id) {
