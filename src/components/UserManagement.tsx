@@ -21,8 +21,6 @@ interface Profile {
   phone: string | null;
   created_at: string;
   gender?: string | null;
-    followers_range?: string | null; // ✅ ADICIONAR
-
 }
 
 // Validation schema
@@ -213,7 +211,7 @@ export const UserManagement = () => {
     // Buscar usuários da mesma agência
     const { data: agencyUsers } = await sb
       .from('profiles')
-.select('*, gender, followers_range')
+      .select('*, gender')
       .eq('agency_id', profileData.agency_id)
       .order('created_at', { ascending: false });
     
@@ -522,16 +520,12 @@ export const UserManagement = () => {
                           <span className="text-muted-foreground">Telefone:</span>{" "}
                           <span className="font-medium">{user.phone || "Não definido"}</span>
                         </div>
-                     <div>
-  <span className="text-muted-foreground">Sexo:</span>{" "}
-  <span className="font-medium">{user.gender || "Não definido"}</span>
-</div>
-<div>
-  <span className="text-muted-foreground">Seguidores:</span>{" "}
-  <span className="font-medium">{user.followers_range || "Não informado"}</span>
-</div>
-
-                        <span className="text-muted-foreground">Cadastrado em:</span>{" "}
+                        <div>
+                          <span className="text-muted-foreground">Sexo:</span>{" "}
+                          <span className="font-medium">{user.gender || "Não definido"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Cadastrado em:</span>{" "}
                           <span className="font-medium">{new Date(user.created_at).toLocaleDateString("pt-BR")}</span>
                         </div>
                         {userEvents[user.id] && userEvents[user.id].length > 0 && (
