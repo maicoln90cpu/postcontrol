@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUserRole } from '@/hooks/useUserRole';
+import { useUserRoleQuery } from '@/hooks/useUserRoleQuery';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,7 +19,7 @@ export const ProtectedRoute = ({
   requireAgencyAdmin,
   requireMasterAdmin,
 }: ProtectedRouteProps) => {
-  const { hasRole, isAgencyAdmin, isMasterAdmin, loading } = useUserRole();
+  const { hasRole, isAgencyAdmin, isMasterAdmin, loading } = useUserRoleQuery();
   const navigate = useNavigate();
 
   useEffect(() => {

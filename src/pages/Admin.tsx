@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
 import { useNavigate, Link } from "react-router-dom";
 
 // Lazy loading de componentes pesados
@@ -41,7 +41,7 @@ import confetti from "canvas-confetti";
 
 const Admin = () => {
   const { user, loading, signOut } = useAuthStore();
-  const { isAgencyAdmin, isMasterAdmin } = useUserRole();
+  const { isAgencyAdmin, isMasterAdmin } = useUserRoleQuery();
   const navigate = useNavigate();
   const [currentAgency, setCurrentAgency] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
