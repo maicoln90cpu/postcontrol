@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
+import { sb } from "@/lib/supabaseSafe";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 import { z } from "zod";
@@ -101,6 +102,24 @@ const Auth = () => {
             setLoading(false);
             return;
           }
+        }
+
+        // Rate limit: 3 cadastros por hora por IP (simulado por email)
+        const { data: rateLimitCheck } = await sb.rpc('check_rate_limit', {
+          p_user_id: '00000000-0000-0000-0000-000000000000', // Usuário genérico para cadastros
+          p_action_type: 'signup',
+          p_max_count: 3,
+          p_window_minutes: 60
+        });
+
+        if (!rateLimitCheck) {
+          toast({
+            title: "Limite atingido",
+            description: "Muitas tentativas de cadastro. Tente novamente em 1 hora.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
         }
 
         const { error } = await supabase.auth.signUp({

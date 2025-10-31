@@ -7,6 +7,8 @@ import { Clock, User, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { SubmissionImageDisplay } from "./SubmissionImageDisplay";
 import { useUpdateSubmissionStatus } from "@/hooks/useReactQuery";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "./ui/pagination-controls";
 
 interface Submission {
   id: string;
@@ -76,13 +78,23 @@ const DroppableColumn = ({
   id, 
   title, 
   color, 
-  count, 
+  count,
+  currentPage,
+  totalPages,
+  onPageChange,
+  hasNextPage,
+  hasPreviousPage,
   children 
 }: { 
   id: string; 
   title: string; 
   color: string; 
-  count: number; 
+  count: number;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
   children: React.ReactNode;
 }) => {
   const { setNodeRef, isOver } = useDroppable({
@@ -99,11 +111,23 @@ const DroppableColumn = ({
         <Badge variant="secondary">{count}</Badge>
       </div>
 
-      <ScrollArea className="h-[600px] pr-4">
+      <ScrollArea className="h-[500px] pr-4">
         <div className="space-y-3">
           {children}
         </div>
       </ScrollArea>
+
+      {totalPages > 1 && (
+        <div className="mt-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            hasNextPage={hasNextPage}
+            hasPreviousPage={hasPreviousPage}
+          />
+        </div>
+      )}
     </Card>
   );
 };
@@ -115,6 +139,20 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
   // Mutation com cache automático
   const updateStatusMutation = useUpdateSubmissionStatus();
 
+  // Paginação para cada coluna
+  const pendingPagination = usePagination({ 
+    items: submissions.filter(s => s.status === 'pending'), 
+    itemsPerPage: 10 
+  });
+  const approvedPagination = usePagination({ 
+    items: submissions.filter(s => s.status === 'approved'), 
+    itemsPerPage: 10 
+  });
+  const rejectedPagination = usePagination({ 
+    items: submissions.filter(s => s.status === 'rejected'), 
+    itemsPerPage: 10 
+  });
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -124,13 +162,24 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
   );
 
   const columns = {
-    pending: { title: "Pendente", status: "pending", color: "bg-yellow-500/10 border-yellow-500/30" },
-    approved: { title: "Aprovado", status: "approved", color: "bg-green-500/10 border-green-500/30" },
-    rejected: { title: "Rejeitado", status: "rejected", color: "bg-red-500/10 border-red-500/30" },
-  };
-
-  const getSubmissionsByStatus = (status: string) => {
-    return submissions.filter((s) => s.status === status);
+    pending: { 
+      title: "Pendente", 
+      status: "pending", 
+      color: "bg-yellow-500/10 border-yellow-500/30",
+      pagination: pendingPagination
+    },
+    approved: { 
+      title: "Aprovado", 
+      status: "approved", 
+      color: "bg-green-500/10 border-green-500/30",
+      pagination: approvedPagination
+    },
+    rejected: { 
+      title: "Rejeitado", 
+      status: "rejected", 
+      color: "bg-red-500/10 border-red-500/30",
+      pagination: rejectedPagination
+    },
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -173,7 +222,7 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {Object.entries(columns).map(([key, column]) => {
-          const columnSubmissions = getSubmissionsByStatus(column.status);
+          const allColumnSubmissions = submissions.filter(s => s.status === column.status);
           
           return (
             <DroppableColumn
@@ -181,9 +230,14 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
               id={column.status}
               title={column.title}
               color={column.color}
-              count={columnSubmissions.length}
+              count={allColumnSubmissions.length}
+              currentPage={column.pagination.currentPage}
+              totalPages={column.pagination.totalPages}
+              onPageChange={column.pagination.goToPage}
+              hasNextPage={column.pagination.hasNextPage}
+              hasPreviousPage={column.pagination.hasPreviousPage}
             >
-              {columnSubmissions.map((submission) => (
+              {column.pagination.paginatedItems.map((submission) => (
                 <DraggableSubmissionCard 
                   key={submission.id}
                   submission={submission}

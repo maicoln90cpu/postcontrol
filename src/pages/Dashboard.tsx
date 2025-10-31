@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserAgencies, useAdminSettings, useEvents } from "@/hooks/useReactQuery";
+import imageCompression from 'browser-image-compression';
 
 interface Submission {
   id: string;
@@ -73,6 +74,8 @@ const Dashboard = () => {
   } | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedGender, setSelectedGender] = useState<string>("");
@@ -279,35 +282,62 @@ const Dashboard = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      if (file.size > 2 * 1024 * 1024) {
-        toast({
-          title: "Arquivo muito grande",
-          description: "A foto deve ter no máximo 2MB.",
-          variant: "destructive",
+      // Validar com backend
+      try {
+        const validation = await sb.functions.invoke('validate-image', {
+          body: {
+            fileSize: file.size,
+            fileType: file.type,
+            fileName: file.name
+          }
         });
-        return;
+
+        if (validation.error || !validation.data?.valid) {
+          toast({
+            title: "Arquivo inválido",
+            description: validation.data?.error || "Erro ao validar imagem",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Erro ao validar imagem:', error);
       }
       
-      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+      // Comprimir avatar
+      try {
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 512,
+          useWebWorker: true,
+          fileType: 'image/jpeg'
+        };
+        
+        const compressedFile = await imageCompression(file, options);
+        console.log(`📦 Avatar comprimido: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`);
+        
+        setAvatarFile(compressedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Erro ao comprimir:', error);
         toast({
-          title: "Formato inválido",
-          description: "Use apenas JPG, PNG ou WEBP.",
+          title: "Erro ao processar imagem",
+          description: "Tente novamente",
           variant: "destructive",
         });
-        return;
       }
-      
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
   const saveAvatar = async () => {
     if (!avatarFile || !user) return;
+    
+    setUploading(true);
+    setUploadProgress(0);
     
     try {
       console.log('📸 Iniciando upload de avatar...');
@@ -315,9 +345,12 @@ const Dashboard = () => {
       const fileExt = avatarFile.name.split('.').pop();
       const fileName = `avatars/${user.id}_${Date.now()}.${fileExt}`;
       
-      console.log('📁 Nome do arquivo:', fileName);
+      // Simular progresso
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 100);
       
-      // Deletar arquivos antigos usando sb
+      // Deletar arquivos antigos
       const { data: oldFiles } = await sb.storage
         .from('screenshots')
         .list('avatars', { search: user.id });
@@ -330,48 +363,35 @@ const Dashboard = () => {
               .remove([`avatars/${file.name}`])
           )
         );
-        console.log('🗑️ Arquivos antigos removidos');
       }
       
-      // Upload usando sb
-      const { data: uploadData, error: uploadError } = await sb.storage
+      // Upload
+      const { error: uploadError } = await sb.storage
         .from('screenshots')
         .upload(fileName, avatarFile, { upsert: true });
       
-      if (uploadError) {
-        console.error('❌ Erro no upload:', uploadError);
-        throw uploadError;
-      }
+      clearInterval(progressInterval);
+      setUploadProgress(95);
       
-      console.log('✅ Upload concluído');
+      if (uploadError) throw uploadError;
       
-      // Gerar URL assinada usando sb
+      // Gerar URL assinada
       const { data: signedData, error: signedError } = await sb.storage
         .from('screenshots')
-        .createSignedUrl(fileName, 31536000); // 1 ano
+        .createSignedUrl(fileName, 31536000);
       
-      if (signedError) {
-        console.error('❌ Erro ao gerar URL:', signedError);
-        throw signedError;
-      }
+      if (signedError) throw signedError;
       
-      const avatarUrl = signedData.signedUrl;
-      console.log('🔗 URL gerada');
-      
-      // Atualizar perfil usando sb
+      // Atualizar perfil
       const { error: updateError } = await sb
         .from('profiles')
-        .update({ avatar_url: avatarUrl })
+        .update({ avatar_url: signedData.signedUrl })
         .eq('id', user.id);
       
-      if (updateError) {
-        console.error('❌ Erro ao atualizar perfil:', updateError);
-        throw updateError;
-      }
+      if (updateError) throw updateError;
       
-      console.log('✅ Perfil atualizado');
-      
-      setAvatarPreview(avatarUrl);
+      setUploadProgress(100);
+      setAvatarPreview(signedData.signedUrl);
       
       toast({
         title: "Foto atualizada!",
@@ -381,12 +401,15 @@ const Dashboard = () => {
       setAvatarFile(null);
       await loadSubmissionsData();
     } catch (error: any) {
-      console.error('❌ Erro completo ao salvar avatar:', error);
+      console.error('❌ Erro ao salvar avatar:', error);
       toast({
         title: "Erro ao salvar foto",
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 

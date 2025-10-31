@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { Save, Building2, User, Lock, Calendar, CreditCard, Upload, Image as ImageIcon } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "./ui/progress";
+import imageCompression from 'browser-image-compression';
 
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +25,7 @@ export const AgencyAdminSettings = () => {
   const [agencyLogoUrl, setAgencyLogoUrl] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // Personal Data
   const [fullName, setFullName] = useState("");
@@ -88,15 +93,49 @@ export const AgencyAdminSettings = () => {
     setLoading(false);
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setLogoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Validar com backend
+      try {
+        const validation = await sb.functions.invoke('validate-image', {
+          body: {
+            fileSize: file.size,
+            fileType: file.type,
+            fileName: file.name
+          }
+        });
+
+        if (validation.error || !validation.data?.valid) {
+          toast.error(validation.data?.error || "Erro ao validar imagem");
+          return;
+        }
+      } catch (error) {
+        console.error('Erro ao validar imagem:', error);
+      }
+      
+      // Comprimir logo
+      try {
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 512,
+          useWebWorker: true,
+          fileType: 'image/png'
+        };
+        
+        const compressedFile = await imageCompression(file, options);
+        console.log(`📦 Logo comprimido: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`);
+        
+        setLogoFile(compressedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Erro ao comprimir:', error);
+        toast.error("Erro ao processar imagem");
+      }
     }
   };
 
