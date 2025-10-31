@@ -108,7 +108,7 @@ const Admin = () => {
   const loadAgencyById = async (id: string) => {
     const { data } = await sb
       .from('agencies')
-      .select('id, name, slug')
+      .select('id, name, slug, logo_url, subscription_plan')
       .eq('id', id)
       .maybeSingle();
     
@@ -156,7 +156,7 @@ const Admin = () => {
     // Load user profile
     const { data: profileData } = await sb
       .from('profiles')
-      .select('*, agencies(id, name, slug)')
+      .select('*, agencies(id, name, slug, logo_url)')
       .eq('id', user.id)
       .maybeSingle();
     
@@ -169,7 +169,7 @@ const Admin = () => {
     if (agencySlug) {
       const { data } = await sb
         .from('agencies')
-        .select('*')
+        .select('id, name, slug, logo_url, subscription_plan')
         .eq('slug', agencySlug)
         .maybeSingle();
       
@@ -190,7 +190,7 @@ const Admin = () => {
   const loadAgencyBySlug = async (slug: string) => {
     const { data } = await sb
       .from('agencies')
-      .select('id, name, slug')
+      .select('id, name, slug, logo_url, subscription_plan')
       .eq('slug', slug)
       .maybeSingle();
     
@@ -834,21 +834,33 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
       {/* Admin Context Header */}
       <div className="bg-gradient-primary text-white py-4 px-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold">
-              {profile?.full_name || 'Admin'}
-            </h2>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
-              <span>{profile?.email}</span>
-              {currentAgency && (
-                <>
-                  <span>•</span>
-                  <span className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    {currentAgency.name}
-                  </span>
-                </>
-              )}
+          <div className="flex items-center gap-4">
+            {currentAgency?.logo_url && (
+              <img 
+                src={currentAgency.logo_url} 
+                alt={`Logo ${currentAgency.name}`}
+                className="h-12 w-12 object-contain rounded-lg bg-white/10 p-1"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            )}
+            <div>
+              <h2 className="text-xl font-bold">
+                {profile?.full_name || 'Admin'}
+              </h2>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
+                <span>{profile?.email}</span>
+                {currentAgency && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      {currentAgency.name}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           {currentAgency && (
@@ -864,12 +876,24 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
         <div className="bg-primary/10 border-b border-primary/20">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Visualizando dados de:</p>
-                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  {currentAgency.name}
-                </h3>
+              <div className="flex items-center gap-3">
+                {currentAgency.logo_url && (
+                  <img 
+                    src={currentAgency.logo_url} 
+                    alt={`Logo ${currentAgency.name}`}
+                    className="h-10 w-10 object-contain rounded-lg bg-card p-1"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Visualizando dados de:</p>
+                  <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    {currentAgency.name}
+                  </h3>
+                </div>
               </div>
               {isMasterAdmin && (
                 <Button 

@@ -351,7 +351,7 @@ export const AllUsersManagement = () => {
       </Card>
 
       {/* Users Table */}
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         {filteredUsers.length === 0 ? (
           <div className="text-center py-8">
             <Users className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
@@ -363,80 +363,94 @@ export const AllUsersManagement = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Instagram</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Sexo</TableHead>
-                  <TableHead>Nível de Acesso</TableHead>
-                  <TableHead>Agência</TableHead>
-                  <TableHead className="text-center">Submissões</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {paginatedUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.full_name || "—"}
-                    </TableCell>
-                    <TableCell>{user.email || "—"}</TableCell>
-                    <TableCell>
-                      {user.instagram ? `@${user.instagram}` : "—"}
-                    </TableCell>
-                    <TableCell>{user.phone || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {user.gender || "Não informado"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.roles)}>
-                        {getUserRole(user.roles)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{getAgencyName(user.agency_id)}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary">
-                        {submissionCounts[user.id] || 0}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                          title="Editar usuário"
-                        >
-                          <Pencil className="w-4 h-4 mr-1" />
-                          <span className="sr-only md:not-sr-only">Editar</span>
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteUser(
-                              user.id,
-                              user.full_name || user.email
-                            )
-                          }
-                          title="Excluir usuário"
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          <span className="sr-only md:not-sr-only">Excluir</span>
-                        </Button>
-                      </div>
-                    </TableCell>
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[180px] min-w-[180px]">Nome</TableHead>
+                    <TableHead className="w-[200px] min-w-[200px]">Email</TableHead>
+                    <TableHead className="w-[130px] min-w-[130px]">Instagram</TableHead>
+                    <TableHead className="w-[120px] min-w-[120px] hidden lg:table-cell">Telefone</TableHead>
+                    <TableHead className="w-[100px] min-w-[100px] hidden xl:table-cell">Sexo</TableHead>
+                    <TableHead className="w-[140px] min-w-[140px]">Acesso</TableHead>
+                    <TableHead className="w-[150px] min-w-[150px] hidden lg:table-cell">Agência</TableHead>
+                    <TableHead className="w-[90px] min-w-[90px] text-center">Posts</TableHead>
+                    <TableHead className="w-[140px] min-w-[140px] sticky right-0 bg-card">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+
+                <TableBody>
+                  {paginatedUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium w-[180px] min-w-[180px]">
+                        <div className="truncate max-w-[170px]" title={user.full_name || "—"}>
+                          {user.full_name || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[200px] min-w-[200px]">
+                        <div className="truncate max-w-[190px]" title={user.email || "—"}>
+                          {user.email || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[130px] min-w-[130px]">
+                        <div className="truncate max-w-[120px]">
+                          {user.instagram ? `@${user.instagram}` : "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[120px] min-w-[120px] hidden lg:table-cell">{user.phone || "—"}</TableCell>
+                      <TableCell className="w-[100px] min-w-[100px] hidden xl:table-cell">
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">
+                          {user.gender || "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="w-[140px] min-w-[140px]">
+                        <Badge variant={getRoleBadgeVariant(user.roles)} className="text-xs whitespace-nowrap">
+                          {getUserRole(user.roles)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="w-[150px] min-w-[150px] hidden lg:table-cell">
+                        <div className="truncate max-w-[140px]" title={getAgencyName(user.agency_id)}>
+                          {getAgencyName(user.agency_id)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[90px] min-w-[90px] text-center">
+                        <Badge variant="secondary" className="text-xs">
+                          {submissionCounts[user.id] || 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="w-[140px] min-w-[140px] sticky right-0 bg-card shadow-[-4px_0_8px_rgba(0,0,0,0.05)]">
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                            title="Editar usuário"
+                            className="h-8"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              handleDeleteUser(
+                                user.id,
+                                user.full_name || user.email
+                              )
+                            }
+                            title="Excluir usuário"
+                            className="h-8"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
 
