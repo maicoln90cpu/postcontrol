@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TrendingUp, Award, Calendar, LogOut, MessageCircle, Building2, ChevronDown } from "lucide-react";
+import { ArrowLeft, TrendingUp, Award, Calendar, LogOut, MessageCircle, Building2, ChevronDown, Camera, User, Lock } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,7 +65,15 @@ const Dashboard = () => {
     email: string;
     instagram: string;
     agency_id?: string;
+    phone?: string;
+    gender?: string;
+    avatar_url?: string;
   } | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [selectedGender, setSelectedGender] = useState<string>("");
   const [agencyName, setAgencyName] = useState<string>("");
   const [agencyPlan, setAgencyPlan] = useState<string>("");
   const [selectedHistoryEvent, setSelectedHistoryEvent] = useState<string>("all");
@@ -137,11 +148,15 @@ const Dashboard = () => {
     // Carregar perfil
     const { data: profileData } = await sb
       .from("profiles")
-      .select("full_name, email, instagram")
+      .select("full_name, email, instagram, phone, gender, avatar_url")
       .eq("id", user.id)
       .maybeSingle();
 
-    setProfile(profileData);
+    if (profileData) {
+      setProfile(profileData);
+      setSelectedGender(profileData.gender || "");
+      setAvatarPreview(profileData.avatar_url || null);
+    }
 
     // Atualizar last_accessed_at
     await sb
@@ -256,6 +271,144 @@ const Dashboard = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "A foto deve ter no máximo 2MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+        toast({
+          title: "Formato inválido",
+          description: "Use apenas JPG, PNG ou WEBP.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const saveAvatar = async () => {
+    if (!avatarFile || !user) return;
+    
+    try {
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `avatars/${user.id}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('screenshots')
+        .upload(fileName, avatarFile, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('screenshots')
+        .getPublicUrl(fileName);
+      
+      const { error: updateError } = await sb
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+      
+      if (updateError) throw updateError;
+      
+      toast({
+        title: "Foto atualizada!",
+        description: "Sua foto de perfil foi salva com sucesso.",
+      });
+      
+      setAvatarFile(null);
+      await loadSubmissionsData();
+    } catch (error) {
+      console.error('Erro ao salvar avatar:', error);
+      toast({
+        title: "Erro ao salvar foto",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveGender = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await sb
+        .from('profiles')
+        .update({ gender: selectedGender })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Gênero atualizado!",
+        description: "Suas informações foram salvas.",
+      });
+    } catch (error) {
+      console.error('Erro ao salvar gênero:', error);
+      toast({
+        title: "Erro ao salvar",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const changePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Senhas não conferem",
+        description: "Digite a mesma senha nos dois campos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "Use no mínimo 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Senha alterada!",
+        description: "Sua nova senha já está ativa.",
+      });
+      
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      console.error('Erro ao mudar senha:', error);
+      toast({
+        title: "Erro ao alterar senha",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -374,12 +527,20 @@ const Dashboard = () => {
         {/* Perfil do Usuário */}
         <Card id="welcome-card" className="p-4 md:p-6 mb-8 border-2">
           <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent break-words">
-                Olá, {profile?.full_name || "Usuário"}!
-              </h1>
-              <p className="text-sm md:text-base text-muted-foreground mb-2 break-words">{profile?.email}</p>
-              <p className="text-sm text-muted-foreground break-words">Instagram: {profile?.instagram}</p>
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <Avatar className="h-16 w-16 border-2 border-primary/20">
+                <AvatarImage src={avatarPreview || undefined} />
+                <AvatarFallback className="bg-primary/10 text-xl font-semibold">
+                  {profile?.full_name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent break-words">
+                  Olá, {profile?.full_name || "Usuário"}!
+                </h1>
+                <p className="text-sm md:text-base text-muted-foreground mb-2 break-words">{profile?.email}</p>
+                <p className="text-sm text-muted-foreground break-words">Instagram: {profile?.instagram}</p>
+              </div>
             </div>
             <Link
               to={`/submit${currentAgencyId ? `?agency=${currentAgencyId}` : ""}`}
@@ -485,9 +646,13 @@ const Dashboard = () => {
         </div>
 
         <Tabs defaultValue="stats" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
+            <TabsTrigger value="cadastro" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Cadastro
+            </TabsTrigger>
           </TabsList>
 
           {/* Aba de Estatísticas */}
@@ -632,6 +797,112 @@ const Dashboard = () => {
                 </AnimatePresence>
               </div>
             )}
+          </TabsContent>
+
+          {/* Aba de Cadastro */}
+          <TabsContent value="cadastro" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-6">Meu Cadastro</h3>
+              
+              {/* Avatar Upload */}
+              <div className="mb-8">
+                <Label className="text-base font-semibold mb-4 block">Foto de Perfil</Label>
+                <div className="flex items-center gap-6">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={avatarPreview || undefined} />
+                    <AvatarFallback className="bg-primary/10 text-2xl">
+                      {profile?.full_name?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleAvatarChange}
+                      className="mb-2"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      JPG, PNG ou WEBP. Máximo 2MB.
+                    </p>
+                    {avatarFile && (
+                      <Button onClick={saveAvatar} size="sm" className="mt-2">
+                        <Camera className="h-4 w-4 mr-2" />
+                        Salvar Foto
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Dados Somente Leitura */}
+              <div className="grid gap-4 mb-6">
+                <div>
+                  <Label>Email</Label>
+                  <Input value={profile?.email || ''} disabled className="bg-muted" />
+                </div>
+                <div>
+                  <Label>Instagram</Label>
+                  <Input value={profile?.instagram || ''} disabled className="bg-muted" />
+                </div>
+                {profile?.phone && (
+                  <div>
+                    <Label>WhatsApp</Label>
+                    <Input value={profile.phone} disabled className="bg-muted" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Gênero Editável */}
+              <div className="mb-6">
+                <Label>Gênero</Label>
+                <Select value={selectedGender} onValueChange={setSelectedGender}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione seu gênero" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="feminino">Feminino</SelectItem>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                    <SelectItem value="prefiro-nao-informar">Prefiro não informar</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={saveGender} size="sm" className="mt-2">
+                  Salvar Gênero
+                </Button>
+              </div>
+              
+              {/* Trocar Senha */}
+              <div className="border-t pt-6">
+                <Label className="text-base font-semibold mb-4 block flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Alterar Senha
+                </Label>
+                <div className="grid gap-4 max-w-md">
+                  <div>
+                    <Label>Nova Senha</Label>
+                    <Input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                  </div>
+                  <div>
+                    <Label>Confirmar Senha</Label>
+                    <Input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Digite novamente"
+                    />
+                  </div>
+                  <Button onClick={changePassword} disabled={!newPassword || !confirmPassword}>
+                    Alterar Senha
+                  </Button>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

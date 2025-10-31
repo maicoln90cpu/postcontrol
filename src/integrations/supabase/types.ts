@@ -471,6 +471,7 @@ export type Database = {
       profiles: {
         Row: {
           agency_id: string | null
+          avatar_url: string | null
           created_at: string
           email: string | null
           full_name: string | null
@@ -484,6 +485,7 @@ export type Database = {
         }
         Insert: {
           agency_id?: string | null
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -497,6 +499,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string | null
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null

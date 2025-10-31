@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Upload, ArrowLeft, X, AlertCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,6 +83,7 @@ const instagramLinkSchema = z
 const Submit = () => {
   const { toast } = useToast();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -731,6 +732,9 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
           ? "Sua postagem foi enviada com sucesso e está em análise."
           : "Seu comprovante de venda foi enviado com sucesso e está em análise.",
       });
+
+      // Redirecionar para dashboard
+      navigate('/dashboard');
 
       setSelectedFile(null);
       setPreviewUrl(null);
