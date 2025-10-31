@@ -138,6 +138,18 @@ export const AgencyAdminSettings = () => {
       
       if (signedError) throw signedError;
       
+      // Verificar ownership antes de atualizar
+      const { data: { user } } = await sb.auth.getUser();
+      const { data: agencyCheck } = await sb
+        .from('agencies')
+        .select('owner_id')
+        .eq('id', agencyId)
+        .single();
+      
+      if (!agencyCheck || !user || agencyCheck.owner_id !== user.id) {
+        throw new Error('Você não tem permissão para atualizar esta agência');
+      }
+      
       // Atualizar agência
       const { error: updateError } = await sb
         .from('agencies')

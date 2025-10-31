@@ -156,7 +156,7 @@ const Admin = () => {
     // Load user profile
     const { data: profileData } = await sb
       .from('profiles')
-      .select('*, agencies(*)')
+      .select('*, agencies(id, name, slug)')
       .eq('id', user.id)
       .maybeSingle();
     
@@ -183,6 +183,7 @@ const Admin = () => {
     if (isAgencyAdmin && !isMasterAdmin && profileData?.agencies) {
       console.log('🏢 Agency admin profile:', profileData.agencies);
       setCurrentAgency(profileData.agencies);
+      setAgencySlug(profileData.agencies?.slug || "");
     }
   };
 

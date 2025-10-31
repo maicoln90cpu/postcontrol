@@ -161,23 +161,35 @@ export const AllUsersManagement = () => {
   const handleSaveUser = async () => {
     if (!selectedUser) return;
 
+    console.log('💾 [Master] Salvando usuário:', selectedUser.id);
+    console.log('📝 [Master] Dados do formulário:', editForm);
+
     try {
       // Limpar telefone removendo caracteres especiais
       const cleanPhone = editForm.phone ? editForm.phone.replace(/\D/g, '') : null;
       
+      const updateData = {
+        full_name: editForm.full_name,
+        email: editForm.email,
+        phone: cleanPhone,
+        instagram: editForm.instagram || null,
+        agency_id: editForm.agency_id || null,
+        gender: editForm.gender || null,
+      };
+      
+      console.log('📤 [Master] Enviando update:', updateData);
+      
       const { error } = await sb
         .from("profiles")
-        .update({
-          full_name: editForm.full_name,
-          email: editForm.email,
-          phone: cleanPhone,
-          instagram: editForm.instagram || null,
-          agency_id: editForm.agency_id || null,
-          gender: editForm.gender || null,
-        })
+        .update(updateData)
         .eq("id", selectedUser.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [Master] Erro no update:', error);
+        throw error;
+      }
+
+      console.log('✅ [Master] Update bem-sucedido');
 
       toast({
         title: "Usuário atualizado",
@@ -187,6 +199,7 @@ export const AllUsersManagement = () => {
       setEditDialogOpen(false);
       await loadData();
     } catch (error: any) {
+      console.error('❌ [Master] Exception:', error);
       toast({
         title: "Erro ao atualizar",
         description: error.message,

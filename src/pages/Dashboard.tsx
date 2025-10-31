@@ -356,7 +356,8 @@ const Dashboard = () => {
       const avatarUrl = signedData.signedUrl;
       console.log('🔗 URL gerada');
       
-      const { error: updateError } = await supabase
+      // Usar sb ao invés de supabase para respeitar RLS
+      const { error: updateError } = await sb
         .from('profiles')
         .update({ avatar_url: avatarUrl })
         .eq('id', user.id);

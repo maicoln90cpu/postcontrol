@@ -51,6 +51,7 @@ export const UserManagement = () => {
   const [userEvents, setUserEvents] = useState<Record<string, string[]>>({});
   const [userSalesCount, setUserSalesCount] = useState<Record<string, number>>({});
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [itemsPerPage, setItemsPerPage] = useState(30);
 
   // Usar React Query para cache de profiles
   const { data: cachedProfiles, isLoading: loadingProfiles } = useProfiles(currentAgencyId || undefined);
@@ -303,16 +304,21 @@ export const UserManagement = () => {
   };
 
   const saveEdit = async (userId: string) => {
+    console.log('💾 Salvando edição para usuário:', userId);
+    console.log('📝 Dados do formulário:', editForm);
+    
     // Validate inputs before saving
     try {
-      profileUpdateSchema.parse({
+      const validatedData = profileUpdateSchema.parse({
         full_name: editForm.full_name,
         email: editForm.email,
-        instagram: editForm.instagram,
+        instagram: editForm.instagram || "",
         phone: editForm.phone || "",
       });
+      console.log('✅ Validação passou:', validatedData);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error('❌ Erro de validação:', error.errors);
         toast.error(error.errors[0].message);
         return;
       }
@@ -321,23 +327,28 @@ export const UserManagement = () => {
     // Limpar telefone antes de salvar
     const cleanPhone = editForm.phone ? editForm.phone.replace(/\D/g, '') : '';
     
+    const updateData = {
+      email: editForm.email,
+      phone: cleanPhone,
+      full_name: editForm.full_name,
+      instagram: editForm.instagram || '',
+      gender: editForm.gender || null,
+    };
+    
+    console.log('📤 Enviando update:', updateData);
+    
     const { error } = await sb
       .from("profiles")
-      .update({
-        email: editForm.email,
-        phone: cleanPhone,
-        full_name: editForm.full_name,
-        instagram: editForm.instagram,
-        gender: editForm.gender,
-      })
+      .update(updateData)
       .eq("id", userId);
 
     if (error) {
+      console.error('❌ Erro no update:', error);
       toast.error("Erro ao atualizar usuário", {
-        description: "Não foi possível salvar as alterações. Verifique os dados e tente novamente."
+        description: error.message || "Não foi possível salvar as alterações. Verifique os dados e tente novamente."
       });
-      console.error(error);
     } else {
+      console.log('✅ Update bem-sucedido');
       toast.success("Usuário atualizado com sucesso", {
         description: "As informações do usuário foram salvas."
       });
@@ -375,7 +386,7 @@ export const UserManagement = () => {
     hasPreviousPage,
   } = usePagination({
     items: filteredUsers,
-    itemsPerPage: 20,
+    itemsPerPage: itemsPerPage,
   });
 
   if (loadingProfiles) {
@@ -405,11 +416,16 @@ export const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Gerenciador de Usuários</h2>
+          <div>
+            <h2 className="text-2xl font-bold">Gerenciador de Usuários</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {filteredUsers.length} usuário{filteredUsers.length !== 1 ? 's' : ''} encontrado{filteredUsers.length !== 1 ? 's' : ''}
+            </p>
+          </div>
           <CSVImportExport onImportComplete={loadUsers} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <Input placeholder="Buscar usuário..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
 
           <select
@@ -429,18 +445,38 @@ export const UserManagement = () => {
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
             <option value="all">Todos os eventos</option>
-            <option value="none">Sem evento</option>
-            {events.map((event) => (
+            <option value="no_event">Sem evento</option>
+            {events.map((event: any) => (
               <option key={event.id} value={event.id}>
                 {event.title}
               </option>
             ))}
           </select>
+          
+          <select
+            value={itemsPerPage.toString()}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              goToPage(1);
+            }}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="30">30 por página</option>
+            <option value="50">50 por página</option>
+            <option value="100">100 por página</option>
+          </select>
         </div>
       </div>
 
-      <Card className="p-6">
-        {filteredUsers.length === 0 ? (
+      {loadingProfiles ? (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full" />
+          ))}
+        </div>
+      ) : (
+        <Card className="p-6">
+          {filteredUsers.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado</p>
         ) : (
           <>
@@ -588,6 +624,7 @@ export const UserManagement = () => {
           </>
         )}
       </Card>
+      )}
     </div>
   );
 };
