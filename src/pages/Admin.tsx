@@ -399,7 +399,18 @@ const copySlugUrl = () => {
     
     // Load posts with detailed logging
     console.log('📡 [loadEvents] Iniciando query de posts...');
-    let postsQuery = supabase.from('posts').select('*, events(title)');
+    console.log('🔐 [loadEvents] Auth context:', {
+      userId: user.id,
+      userEmail: user.email,
+      isMasterAdmin,
+      isAgencyAdmin,
+      profileAgencyId: profile?.agency_id,
+      currentAgencyId: currentAgency?.id,
+      agencyIdFilter
+    });
+    
+    // SIMPLIFIED: Query posts without JOIN to avoid RLS permission issues
+    let postsQuery = supabase.from('posts').select('*');
     
     if (agencyIdFilter) {
       console.log('🔧 [loadEvents] Adicionando filtro .eq(agency_id, ' + agencyIdFilter + ')');
