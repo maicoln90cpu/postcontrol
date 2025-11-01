@@ -88,15 +88,22 @@ const Admin = () => {
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
   const [zoomSubmissionIndex, setZoomSubmissionIndex] = useState(0);
 
-  // Helper para obter título do evento de forma robusta
+  // ✅ FASE 2: Map memoizado para lookups O(1) de eventos
+  const eventsById = useMemo(() => {
+    const map = new Map();
+    events.forEach(event => map.set(event.id, event));
+    return map;
+  }, [events]);
+
+  // Helper para obter título do evento de forma robusta (agora O(1))
   const getEventTitle = (post: any): string => {
     // Método 1: Tentar pelo objeto events
     if (post.events?.title) return post.events.title;
     if (Array.isArray(post.events) && post.events[0]?.title) return post.events[0].title;
     
-    // Método 2: Lookup manual usando event_id
+    // Método 2: Lookup O(1) usando Map
     if (post.event_id) {
-      const foundEvent = events.find(e => e.id === post.event_id);
+      const foundEvent = eventsById.get(post.event_id);
       if (foundEvent) return foundEvent.title;
     }
     
@@ -619,8 +626,7 @@ const confirmRejection = async () => {
 
   // Funções de navegação do zoom
   const handleOpenZoom = (submissionId: string) => {
-    const filtered = getFilteredSubmissions();
-    const index = filtered.findIndex(s => s.id === submissionId);
+    const index = getFilteredSubmissions.findIndex(s => s.id === submissionId);
     if (index !== -1) {
       setZoomSubmissionIndex(index);
       setZoomDialogOpen(true);
@@ -628,8 +634,7 @@ const confirmRejection = async () => {
   };
 
   const handleZoomNext = () => {
-    const filtered = getFilteredSubmissions();
-    if (zoomSubmissionIndex < filtered.length - 1) {
+    if (zoomSubmissionIndex < getFilteredSubmissions.length - 1) {
       setZoomSubmissionIndex(prev => prev + 1);
     }
   };
@@ -712,15 +717,15 @@ const confirmRejection = async () => {
   };
 
   const toggleSelectAll = () => {
-    const paginated = getPaginatedSubmissions();
-    if (selectedSubmissions.size === paginated.length && paginated.length > 0) {
+    if (selectedSubmissions.size === getPaginatedSubmissions.length && getPaginatedSubmissions.length > 0) {
       setSelectedSubmissions(new Set());
     } else {
-      setSelectedSubmissions(new Set(paginated.map((s: any) => s.id)));
+      setSelectedSubmissions(new Set(getPaginatedSubmissions.map((s: any) => s.id)));
     }
   };
 
-  const getFilteredSubmissions = () => {
+  // ✅ FASE 2: Filtros memoizados para evitar recálculo desnecessário
+  const getFilteredSubmissions = useMemo(() => {
     let filtered = submissions;
 
     // Filtro de evento
@@ -781,15 +786,24 @@ const confirmRejection = async () => {
     }
 
     return filtered;
-  };
+  }, [
+    submissions,
+    submissionEventFilter,
+    submissionPostFilter,
+    submissionStatusFilter,
+    submissionTypeFilter,
+    eventPurposeFilter,
+    debouncedSearch,
+    dateFilterStart,
+    dateFilterEnd
+  ]);
 
-  const getPaginatedSubmissions = () => {
-    const filtered = getFilteredSubmissions();
+  const getPaginatedSubmissions = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filtered.slice(startIndex, startIndex + itemsPerPage);
-  };
+    return getFilteredSubmissions.slice(startIndex, startIndex + itemsPerPage);
+  }, [getFilteredSubmissions, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(getFilteredSubmissions().length / itemsPerPage);
+  const totalPages = Math.ceil(getFilteredSubmissions.length / itemsPerPage);
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
@@ -1463,7 +1477,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               {kanbanView ? (
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <SubmissionKanban 
-                    submissions={getFilteredSubmissions()} 
+                    submissions={getFilteredSubmissions} 
                     onUpdate={loadSubmissions}
                     userId={user?.id}
                   />
@@ -1560,7 +1574,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                 </div>
               
               <Card className="p-6">
-                {getFilteredSubmissions().length === 0 ? (
+                {getFilteredSubmissions.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
                     Nenhuma submissão encontrada com os filtros selecionados
                   </p>
@@ -1569,14 +1583,14 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                     <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-4 border-b">
                       <Checkbox
-                        checked={selectedSubmissions.size === getPaginatedSubmissions().length && getPaginatedSubmissions().length > 0}
+                        checked={selectedSubmissions.size === getPaginatedSubmissions.length && getPaginatedSubmissions.length > 0}
                         onCheckedChange={toggleSelectAll}
                       />
                       <span className="text-sm text-muted-foreground">
-                        Selecionar todos desta página ({getPaginatedSubmissions().length})
+                        Selecionar todos desta página ({getPaginatedSubmissions.length})
                       </span>
                     </div>
-                    {getPaginatedSubmissions().map((submission: any) => (
+                    {getPaginatedSubmissions.map((submission: any) => (
                     <Card key={submission.id} className="p-4 sm:p-6">
                       <div className="space-y-4">
                         {/* Layout Mobile e Desktop */}
@@ -1815,7 +1829,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-6 pt-4 border-t">
                     <div className="text-sm text-muted-foreground">
-                      Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, getFilteredSubmissions().length)} de {getFilteredSubmissions().length} submissões
+                      Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, getFilteredSubmissions.length)} de {getFilteredSubmissions.length} submissões
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -2138,16 +2152,16 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
       </Suspense>
 
       {/* Zoom Dialog com navegação */}
-      {getFilteredSubmissions().length > 0 && (
+      {getFilteredSubmissions.length > 0 && (
         <SubmissionZoomDialog
           open={zoomDialogOpen}
           onOpenChange={setZoomDialogOpen}
-          submission={getFilteredSubmissions()[zoomSubmissionIndex]}
+          submission={getFilteredSubmissions[zoomSubmissionIndex]}
           onApprove={handleApproveSubmission}
           onReject={handleRejectSubmission}
           onNext={handleZoomNext}
           onPrevious={handleZoomPrevious}
-          hasNext={zoomSubmissionIndex < getFilteredSubmissions().length - 1}
+          hasNext={zoomSubmissionIndex < getFilteredSubmissions.length - 1}
           hasPrevious={zoomSubmissionIndex > 0}
         />
       )}
