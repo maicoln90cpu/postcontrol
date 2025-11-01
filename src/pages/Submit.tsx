@@ -179,6 +179,12 @@ const Submit = () => {
 
       setAgencyId(contextAgencyId);
 
+      console.log("✅ Agência detectada:", {
+        agency_id: contextAgencyId,
+        source: urlParams.get("agency") ? "URL query param" : "Última acessada",
+        user_id: user.id,
+      });
+
       // 2. Atualizar last_accessed_at
       await sb
         .from("user_agencies")
@@ -216,6 +222,12 @@ const Submit = () => {
         setEvents([]);
         return;
       }
+
+      console.log("📋 Eventos carregados:", {
+        agency_id: contextAgencyId,
+        total: data?.length || 0,
+        events: data?.map((e) => e.title) || [],
+      });
 
       setEvents(data);
     } catch (error) {
