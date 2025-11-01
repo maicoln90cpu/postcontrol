@@ -18,62 +18,34 @@ export const useUserRoleQuery = (): UseUserRoleQueryReturn => {
   const { data: roles = [], isLoading, isFetching } = useQuery({
     queryKey: ['userRoles', user?.id],
     queryFn: async () => {
-      console.log('🔐 [useUserRoleQuery] === INICIANDO FETCH DE ROLES ===');
-      console.log('🔐 [useUserRoleQuery] User ID:', user?.id);
-      console.log('🔐 [useUserRoleQuery] User Email:', user?.email);
-
       if (!user) {
-        console.warn('⚠️ [useUserRoleQuery] SEM USUÁRIO AUTENTICADO');
         return [];
       }
 
       // Verificar sessão antes de buscar roles
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('🔐 [useUserRoleQuery] Session check:', {
-        hasSession: !!session,
-        sessionError: sessionError?.message || null
-      });
+      const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
-        console.error('❌ [useUserRoleQuery] SESSÃO INVÁLIDA');
         return [];
       }
 
-      console.log('🔐 [useUserRoleQuery] Buscando roles do user_roles...');
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('❌ [useUserRoleQuery] ERRO ao buscar roles:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
+        console.error('❌ [useUserRoleQuery] Erro ao buscar roles:', error.message);
         return [];
       }
 
-      const fetchedRoles = data?.map(r => r.role as UserRole) || [];
-      console.log('✅ [useUserRoleQuery] Roles encontradas:', fetchedRoles);
-      console.log('✅ [useUserRoleQuery] isAgencyAdmin:', fetchedRoles.includes('agency_admin'));
-      console.log('✅ [useUserRoleQuery] isMasterAdmin:', fetchedRoles.includes('master_admin'));
-
-      return fetchedRoles;
+      return data?.map(r => r.role as UserRole) || [];
     },
     enabled: !!user,
-    staleTime: 0, // ✅ SEMPRE REFETCH - sem cache
-    gcTime: 5 * 60 * 1000, // 5 minutos - cache mantido na memória
-    refetchOnWindowFocus: true, // ✅ Refetch ao focar janela
-    refetchOnReconnect: true, // Refetch ao reconectar internet
-  });
-
-  console.log('🔐 [useUserRoleQuery] Status:', {
-    isLoading,
-    isFetching,
-    roles,
-    isUsingCache: !isFetching && roles.length > 0
+    staleTime: 5 * 60 * 1000, // ✅ FASE 1: Cache de 5 minutos
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const hasRole = (role: UserRole): boolean => {

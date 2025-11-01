@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +93,7 @@ const Dashboard = () => {
   const [badgesEnabled, setBadgesEnabled] = useState(true);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const isLoadingRef = useRef(false); // ✅ FASE 4: Prevenir chamadas duplicadas
 
   // React Query hooks com cache
   const { data: userAgenciesData, isLoading: isLoadingAgencies } = useUserAgencies(user?.id);
@@ -110,7 +111,7 @@ const Dashboard = () => {
     events: dashboardEvents, 
     loading: isLoadingDashboard,
     loadDashboardData 
-  } = useDashboardData(user?.id, currentAgencyId);
+  } = useDashboardData(user?.id, currentAgencyId, isMasterAdmin, isAgencyAdmin);
 
   // ✅ FASE 2: Verificar se usuário tem agência vinculada
   const hasAgency = useMemo(() => {
@@ -182,8 +183,12 @@ const Dashboard = () => {
     }
     
     // ✅ FASE 3: Carregar dados sem condição !profile (permite reload)
-    if (currentAgencyId && user && !isLoadingDashboard) {
-      loadSubmissionsData();
+    // ✅ FASE 4: Prevenir chamadas duplicadas
+    if (currentAgencyId && user && !isLoadingDashboard && !isLoadingRef.current) {
+      isLoadingRef.current = true;
+      loadSubmissionsData().finally(() => {
+        isLoadingRef.current = false;
+      });
     }
   }, [user, navigate, userAgenciesData, adminSettingsData, eventsData, currentAgencyId, isLoadingAgencies, isLoadingSettings, isLoadingDashboard, profile, searchParams, queryClient]);
 

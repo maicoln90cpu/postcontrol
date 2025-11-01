@@ -29,7 +29,12 @@ interface Submission {
   } | null;
 }
 
-export const useDashboardData = (userId: string | undefined, currentAgencyId: string | null) => {
+export const useDashboardData = (
+  userId: string | undefined, 
+  currentAgencyId: string | null,
+  isMasterAdmin: boolean = false,
+  isAgencyAdmin: boolean = false
+) => {
   const { toast } = useToast();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
@@ -45,17 +50,7 @@ export const useDashboardData = (userId: string | undefined, currentAgencyId: st
     setLoading(true);
 
     try {
-      // ✅ FASE 2: Verificar se é master ou agency admin
-      const { data: rolesData } = await sb
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-      
-      const roles = rolesData?.map(r => r.role) || [];
-      const isMasterAdmin = roles.includes('master_admin');
-      const isAgencyAdmin = roles.includes('agency_admin');
-
-      // ✅ FASE 2: Buscar agências baseado em role
+      // ✅ FASE 2: Usar roles passados como parâmetro (sem query duplicada)
       let agenciesToFetch: string[] = [];
       
       if (isMasterAdmin) {
@@ -182,7 +177,7 @@ export const useDashboardData = (userId: string | undefined, currentAgencyId: st
     } finally {
       setLoading(false);
     }
-  }, [userId, currentAgencyId, toast]);
+  }, [userId, currentAgencyId, isMasterAdmin, isAgencyAdmin, toast]);
 
   return {
     submissions,
