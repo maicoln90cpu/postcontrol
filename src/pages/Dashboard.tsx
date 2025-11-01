@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TrendingUp, Award, Calendar, LogOut, MessageCircle, Building2, ChevronDown, Camera, User, Lock } from "lucide-react";
+import { ArrowLeft, TrendingUp, Award, Calendar, LogOut, MessageCircle, Building2, ChevronDown, Camera, User, Lock, RefreshCw } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserAgencies, useAdminSettings, useEvents } from "@/hooks/useReactQuery";
+import { useQueryClient } from '@tanstack/react-query';
 import imageCompression from 'browser-image-compression';
 
 interface Submission {
@@ -60,6 +61,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +104,10 @@ const Dashboard = () => {
       navigate("/auth");
       return;
     }
+
+    // ✅ Forçar refetch de roles ao carregar Dashboard
+    console.log('🔄 [Dashboard] Invalidando cache de userRoles');
+    queryClient.invalidateQueries({ queryKey: ['userRoles'] });
     
     // Processar dados das agencies do cache
     if (userAgenciesData && !isLoadingAgencies) {
@@ -572,9 +578,23 @@ const Dashboard = () => {
               </Button>
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             {user && <NotificationBell userId={user.id} />}
             <ThemeToggle />
+            {/* 🔄 Botão de debug temporário para limpar cache */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                console.log('🔄 Limpando cache manualmente');
+                queryClient.invalidateQueries({ queryKey: ['userRoles'] });
+                window.location.reload();
+              }}
+              className="border-dashed"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Atualizar Roles
+            </Button>
             {isMasterAdmin && (
               <Link to="/master-admin">
                 <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">🎯 Painel Master</Button>

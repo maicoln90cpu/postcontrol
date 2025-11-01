@@ -15,7 +15,7 @@ interface UseUserRoleQueryReturn {
 export const useUserRoleQuery = (): UseUserRoleQueryReturn => {
   const { user } = useAuthStore();
 
-  const { data: roles = [], isLoading } = useQuery({
+  const { data: roles = [], isLoading, isFetching } = useQuery({
     queryKey: ['userRoles', user?.id],
     queryFn: async () => {
       console.log('🔐 [useUserRoleQuery] === INICIANDO FETCH DE ROLES ===');
@@ -63,10 +63,17 @@ export const useUserRoleQuery = (): UseUserRoleQueryReturn => {
       return fetchedRoles;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados frescos
-    gcTime: 10 * 60 * 1000, // 10 minutos - cache mantido na memória
-    refetchOnWindowFocus: false, // Não refetch ao focar janela
+    staleTime: 0, // ✅ SEMPRE REFETCH - sem cache
+    gcTime: 5 * 60 * 1000, // 5 minutos - cache mantido na memória
+    refetchOnWindowFocus: true, // ✅ Refetch ao focar janela
     refetchOnReconnect: true, // Refetch ao reconectar internet
+  });
+
+  console.log('🔐 [useUserRoleQuery] Status:', {
+    isLoading,
+    isFetching,
+    roles,
+    isUsingCache: !isFetching && roles.length > 0
   });
 
   const hasRole = (role: UserRole): boolean => {
