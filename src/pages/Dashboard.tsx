@@ -420,7 +420,7 @@ const Dashboard = () => {
 
   // Cálculos de estatísticas
   const approvedSubmissionsCount = submissions.filter((s) => s.status === "approved").length;
-  const activeEventsCount = events.length;
+  const activeEventsCount = eventStats.length; // ✅ Item 3: Mostrar apenas eventos com submissão
   const lastSubmission = submissions[0];
 
   // Filtrar submissões por evento (inline, sem useMemo para evitar problemas com early returns)
@@ -435,18 +435,18 @@ const Dashboard = () => {
         {/* Header Card */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <Card className="bg-card/80 backdrop-blur-lg border-primary/20 shadow-xl overflow-hidden">
-            <div className="relative p-8 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                <div className="flex items-center gap-6">
-                  <Avatar className="h-24 w-24 ring-4 ring-primary/20 shadow-lg">
+            <div className="relative p-4 sm:p-6 md:p-8 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 sm:gap-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full overflow-hidden">
+                  <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 ring-4 ring-primary/20 shadow-lg flex-shrink-0">
                     <AvatarImage src={avatarPreview || undefined} alt={profile.full_name} />
                     <AvatarFallback className="text-2xl font-bold bg-primary/10">
                       {profile.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  <div className="space-y-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent truncate">
                         Olá, {profile.full_name || "Usuário"}!
                       </h1>
                       {isMasterAdmin && (
@@ -460,8 +460,8 @@ const Dashboard = () => {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-muted-foreground">{profile.email}</p>
-                    {profile.instagram && <p className="text-sm text-muted-foreground">📱 @{profile.instagram}</p>}
+                    <p className="text-muted-foreground text-sm sm:text-base break-all">{profile.email}</p>
+                    {profile.instagram && <p className="text-xs sm:text-sm text-muted-foreground">📱 @{profile.instagram}</p>}
                   </div>
                 </div>
 
@@ -688,6 +688,49 @@ const Dashboard = () => {
                           </Suspense>
                         )}
                       </div>
+                      {/* ✅ Item 5: Botão para deletar submissão pendente */}
+                      {submission.status === "pending" && (
+                        <div className="mt-3 pt-3 border-t">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto"
+                            onClick={async () => {
+                              if (confirm("Tem certeza que deseja deletar esta submissão? Esta ação não pode ser desfeita.")) {
+                                try {
+                                  const { error } = await sb
+                                    .from('submissions')
+                                    .delete()
+                                    .eq('id', submission.id)
+                                    .eq('user_id', user!.id);
+                                  
+                                  if (error) throw error;
+                                  
+                                  toast({
+                                    title: "Submissão deletada",
+                                    description: "A submissão foi removida com sucesso.",
+                                  });
+                                  
+                                  refetch();
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Erro ao deletar",
+                                    description: error.message || "Tente novamente mais tarde.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                              <path d="M3 6h18"></path>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            </svg>
+                            Deletar Submissão
+                          </Button>
+                        </div>
+                      )}
                     </Card>
                   ))
                 ) : (
@@ -741,11 +784,7 @@ const Dashboard = () => {
                     <div>
                       <Label>Nome Completo</Label>
                       <Input
-                        value={profile.full_name || ""}
-                        onChange={(e) => {
-                          // Atualizar estado local temporário
-                          setProfile({ ...profile, full_name: e.target.value });
-                        }}
+                        defaultValue={profile.full_name || ""}
                         onBlur={async (e) => {
                           // Salvar ao perder foco
                           const newName = e.target.value.trim();

@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft } from "lucide-react";
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
 import { useNavigate, Link } from "react-router-dom";
@@ -87,6 +87,7 @@ const Admin = () => {
   const [usersCount, setUsersCount] = useState(0);
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
   const [zoomSubmissionIndex, setZoomSubmissionIndex] = useState(0);
+  const [eventActiveFilter, setEventActiveFilter] = useState<string>("all");
 
   // ✅ FASE 2: Map memoizado para lookups O(1) de eventos
   const eventsById = useMemo(() => {
@@ -805,6 +806,45 @@ const confirmRejection = async () => {
 
   const totalPages = Math.ceil(getFilteredSubmissions.length / itemsPerPage);
 
+  // ✅ Item 7: Estatísticas filtradas por agência
+  const agencyFilteredStats = useMemo(() => {
+    if (!currentAgency) {
+      return {
+        events: events.length,
+        posts: posts.length,
+        submissions: submissions.length,
+        users: usersCount,
+        sales: submissions.filter(s => s.submission_type === 'sale' && s.status === 'approved').length
+      };
+    }
+    
+    const agencyId = currentAgency.id;
+    return {
+      events: events.filter(e => e.agency_id === agencyId).length,
+      posts: posts.filter(p => p.agency_id === agencyId).length,
+      submissions: submissions.filter(s => s.agency_id === agencyId).length,
+      users: usersCount,
+      sales: submissions.filter(s => 
+        s.agency_id === agencyId && 
+        s.submission_type === 'sale' && 
+        s.status === 'approved'
+      ).length
+    };
+  }, [events, posts, submissions, usersCount, currentAgency]);
+
+  // ✅ Item 9: Filtrar eventos por ativo/inativo
+  const filteredEvents = useMemo(() => {
+    if (eventActiveFilter === "all") return events;
+    if (eventActiveFilter === "active") return events.filter(e => e.is_active === true);
+    return events.filter(e => e.is_active === false);
+  }, [events, eventActiveFilter]);
+
+  // ✅ Item 10: Filtrar postagens por evento
+  const filteredPosts = useMemo(() => {
+    if (postEventFilter === "all") return posts;
+    return posts.filter(p => p.event_id === postEventFilter);
+  }, [posts, postEventFilter]);
+
   const handleDeleteEvent = async (eventId: string) => {
     try {
       const { error } = await sb
@@ -1128,7 +1168,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Eventos Ativos</p>
-                <p className="text-2xl font-bold">{events.length}</p>
+                <p className="text-2xl font-bold">{agencyFilteredStats.events}</p>
               </div>
             </div>
           </Card>
@@ -1140,7 +1180,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Postagens</p>
-                <p className="text-2xl font-bold">{posts.length}</p>
+                <p className="text-2xl font-bold">{agencyFilteredStats.posts}</p>
               </div>
             </div>
           </Card>
@@ -1152,7 +1192,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Submissões</p>
-                <p className="text-2xl font-bold">{submissions.length}</p>
+                <p className="text-2xl font-bold">{agencyFilteredStats.submissions}</p>
               </div>
             </div>
           </Card>
@@ -1164,7 +1204,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Usuários</p>
-                <p className="text-2xl font-bold">{usersCount}</p>
+                <p className="text-2xl font-bold">{agencyFilteredStats.users}</p>
               </div>
             </div>
           </Card>
@@ -1177,7 +1217,7 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
               <div>
                 <p className="text-sm text-muted-foreground">Vendas Totais</p>
                 <p className="text-2xl font-bold">
-                  {submissions.filter(s => s.submission_type === 'sale' && s.status === 'approved').length}
+                  {agencyFilteredStats.sales}
                 </p>
               </div>
             </div>
@@ -1193,30 +1233,47 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
             <TabsTrigger id="users-tab" value="users" className="text-xs sm:text-sm py-2">Usuários</TabsTrigger>
             <TabsTrigger value="guests" className="text-xs sm:text-sm py-2">Convidados</TabsTrigger>
             <TabsTrigger value="audit" className="text-xs sm:text-sm py-2">Auditoria</TabsTrigger>
-            <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2">Dashboard</TabsTrigger>
+            <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2">Gerenciamento</TabsTrigger>
             <TabsTrigger id="settings-tab" value="settings" className="text-xs sm:text-sm py-2">Configurações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="events" className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h2 className="text-2xl font-bold">Gerenciar Eventos</h2>
-              <Button id="create-event-button" className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
-                setSelectedEvent(null);
-                setEventDialogOpen(true);
-              }}>
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Evento
-              </Button>
+              <div>
+                <h2 className="text-2xl font-bold">Gerenciar Eventos</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {filteredEvents.length} evento{filteredEvents.length !== 1 ? 's' : ''} encontrado{filteredEvents.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Select value={eventActiveFilter} onValueChange={setEventActiveFilter}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os eventos</SelectItem>
+                    <SelectItem value="active">✅ Apenas Ativos</SelectItem>
+                    <SelectItem value="inactive">❌ Apenas Inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button id="create-event-button" className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
+                  setSelectedEvent(null);
+                  setEventDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Evento
+                </Button>
+              </div>
             </div>
 
             <Card className="p-6">
-              {events.length === 0 ? (
+              {filteredEvents.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
-                  Nenhum evento cadastrado ainda
+                  {eventActiveFilter === "all" ? "Nenhum evento cadastrado ainda" : "Nenhum evento encontrado com este filtro"}
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {events.map((event) => (
+                  {filteredEvents.map((event) => (
                     <Card key={event.id} className="p-4">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                         <div className="flex-1 w-full">
@@ -1304,13 +1361,13 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
             </div>
 
             <Card className="p-6">
-              {posts.filter((p) => postEventFilter === "all" || p.event_id === postEventFilter).length === 0 ? (
+              {filteredPosts.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
                   {postEventFilter === "all" ? "Nenhuma postagem cadastrada ainda" : "Nenhuma postagem para este evento"}
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {posts.filter((p) => postEventFilter === "all" || p.event_id === postEventFilter).map((post) => (
+                  {filteredPosts.map((post) => (
                     <Card key={post.id} className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
@@ -1352,16 +1409,26 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
 
           <TabsContent value="submissions" className="space-y-6">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Submissões de Usuários</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setKanbanView(!kanbanView)}
-                >
-                  <Columns3 className="mr-2 h-4 w-4" />
-                  {kanbanView ? "Ver Lista" : "Ver Kanban"}
-                </Button>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Submissões de Usuários</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Total: {getFilteredSubmissions.length} submiss{getFilteredSubmissions.length === 1 ? 'ão' : 'ões'}
+                    {submissionEventFilter !== "all" && (
+                      <span className="text-xs ml-1">(filtrado por evento)</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setKanbanView(!kanbanView)}
+                  >
+                    <Columns3 className="mr-2 h-4 w-4" />
+                    {kanbanView ? "Ver Lista" : "Ver Kanban"}
+                  </Button>
+                </div>
               </div>
 
               {/* Filtros sempre visíveis */}
@@ -1463,14 +1530,53 @@ if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
                 </div>
                 
                 {submissionEventFilter !== "all" && (
-                  <Button 
-                    onClick={() => setAddSubmissionDialogOpen(true)}
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionar Submissão Manual
-                  </Button>
+                  <>
+                    <Button 
+                      onClick={() => setAddSubmissionDialogOpen(true)}
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Adicionar Submissão Manual
+                    </Button>
+                    
+                    {/* ✅ Item 11: Export de submissões filtradas */}
+                    <Button 
+                      onClick={async () => {
+                        try {
+                          const XLSX = await import('xlsx');
+                          const eventName = events.find(e => e.id === submissionEventFilter)?.title || 'evento';
+                          
+                          const filteredData = getFilteredSubmissions.map(s => ({
+                            'Data': new Date(s.submitted_at).toLocaleString('pt-BR'),
+                            'Usuário': s.profiles?.full_name || s.profiles?.email || 'N/A',
+                            'Email': s.profiles?.email || 'N/A',
+                            'Instagram': s.profiles?.instagram || 'N/A',
+                            'Evento': getEventTitle(s.posts) || 'N/A',
+                            'Post #': s.posts?.post_number || 'N/A',
+                            'Status': s.status === 'approved' ? 'Aprovado' : s.status === 'rejected' ? 'Rejeitado' : 'Pendente',
+                            'Tipo': s.submission_type === 'post' ? 'Postagem' : 'Venda',
+                          }));
+                          
+                          const ws = XLSX.utils.json_to_sheet(filteredData);
+                          const wb = XLSX.utils.book_new();
+                          XLSX.utils.book_append_sheet(wb, ws, "Submissões");
+                          
+                          XLSX.writeFile(wb, `submissoes_${eventName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+                          
+                          toast.success(`Planilha com ${filteredData.length} submissões exportada!`);
+                        } catch (error) {
+                          console.error('Erro ao exportar:', error);
+                          toast.error("Erro ao exportar planilha");
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Exportar Submissões ({getFilteredSubmissions.length})
+                    </Button>
+                  </>
                 )}
               </div>
 
