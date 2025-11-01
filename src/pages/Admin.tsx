@@ -112,16 +112,53 @@ const Admin = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-
-  // Handle Master Admin viewing specific agency via querystring agencyId
+  // ✅ FASE 1: Consolidação de useEffects para evitar múltiplas chamadas
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const agencySlug = urlParams.get('agency');
     const agencyId = urlParams.get('agencyId');
     
-    if (agencyId && isMasterAdmin) {
-      loadAgencyById(agencyId);
+    const initializeData = async () => {
+      if (!user || (!isAgencyAdmin && !isMasterAdmin)) return;
+      
+      console.log('🚀 [Admin] Inicializando dados...');
+      
+      // 1. Carregar agência se houver slug/id na URL
+      if (agencyId && isMasterAdmin) {
+        await loadAgencyById(agencyId);
+      } else if (agencySlug && (isAgencyAdmin || isMasterAdmin)) {
+        await loadAgencyBySlug(agencySlug);
+      } else {
+        await loadCurrentAgency();
+      }
+      
+      // 2. Carregar dados complementares
+      loadRejectionTemplates();
+      loadUsersCount();
+    };
+    
+    initializeData();
+  }, [user, isAgencyAdmin, isMasterAdmin]);
+
+  // Recarregar eventos quando currentAgency estiver disponível
+  useEffect(() => {
+    if (currentAgency) {
+      console.log('✅ [Admin] currentAgency carregado, recarregando eventos...', currentAgency.name);
+      loadEvents();
+      loadUsersCount();
     }
-  }, [isMasterAdmin]);
+  }, [currentAgency]);
+
+  // Carregar submissions apenas quando filtro ou agência mudarem
+  useEffect(() => {
+    if (user && (isAgencyAdmin || isMasterAdmin) && currentAgency) {
+      console.log('🔄 [Admin] Recarregando submissões...', {
+        currentAgency: currentAgency.name,
+        submissionEventFilter
+      });
+      loadSubmissions();
+    }
+  }, [submissionEventFilter, currentAgency?.id]);
 
   const loadAgencyById = async (id: string) => {
     const { data } = await sb
@@ -136,44 +173,6 @@ const Admin = () => {
     }
   };
 
-  useEffect(() => {
-    // Detect agency from URL query param (legacy support for slug)
-    const urlParams = new URLSearchParams(window.location.search);
-    const agencySlug = urlParams.get('agency');
-    
-    if (agencySlug && (isAgencyAdmin || isMasterAdmin)) {
-      loadAgencyBySlug(agencySlug);
-    }
-  }, [isAgencyAdmin, isMasterAdmin]);
-
-  useEffect(() => {
-    if (user && (isAgencyAdmin || isMasterAdmin)) {
-      console.log('🚀 [Admin] Carregando dados iniciais...');
-      loadCurrentAgency();
-      loadRejectionTemplates();
-      loadUsersCount();
-    }
-  }, [user, isAgencyAdmin, isMasterAdmin]);
-
-  // Recarregar eventos quando currentAgency estiver disponível
-  useEffect(() => {
-    if (currentAgency) {
-      console.log('✅ [Admin] currentAgency carregado, recarregando eventos...', currentAgency.name);
-      loadEvents();
-      loadUsersCount();
-    }
-  }, [currentAgency]);
-
-  // Carregar submissions apenas quando um evento específico for selecionado
-  useEffect(() => {
-    if (user && (isAgencyAdmin || isMasterAdmin) && currentAgency) {
-      console.log('🔄 [Admin] Recarregando submissões...', {
-        currentAgency: currentAgency.name,
-        submissionEventFilter
-      });
-      loadSubmissions();
-    }
-  }, [submissionEventFilter, user, isAgencyAdmin, isMasterAdmin, currentAgency]);
 
   const loadCurrentAgency = async () => {
     if (!user) return;
@@ -487,50 +486,47 @@ const copySlugUrl = () => {
     const { data: submissionsData } = await submissionsQuery
       .order('submitted_at', { ascending: false });
 
-    // Buscar perfis em lote (admins têm permissão para ver todos)
+    // ✅ FASE 1: Otimização - Buscar perfis e contagens em paralelo
     const userIds = Array.from(new Set((submissionsData || []).map((s: any) => s.user_id)));
-    let profilesById: Record<string, any> = {};
-    if (userIds.length) {
-      const { data: profilesData } = await sb
-        .from('profiles')
-        .select('id, full_name, email, instagram')
-        .in('id', userIds);
-      (profilesData || []).forEach((p: any) => { profilesById[p.id] = p; });
-    }
+    
+    const [profilesData, countsData] = await Promise.all([
+      // Buscar perfis em lote
+      userIds.length > 0
+        ? sb.from('profiles')
+            .select('id, full_name, email, instagram')
+            .in('id', userIds)
+        : Promise.resolve({ data: [] }),
+      
+      // ✅ FASE 1: Query agregada para contagens (evita N+1)
+      userIds.length > 0
+        ? sb.from('submissions')
+            .select('user_id')
+            .in('user_id', userIds)
+            .then(({ data }) => {
+              // Agregar contagens no cliente
+              const counts: Record<string, number> = {};
+              (data || []).forEach((s: any) => {
+                counts[s.user_id] = (counts[s.user_id] || 0) + 1;
+              });
+              return counts;
+            })
+        : Promise.resolve({})
+    ]);
 
-    // Contar postagens por usuário
-    const countsById: Record<string, number> = {};
-    await Promise.all(userIds.map(async (uid: string) => {
-      const { count } = await sb
-        .from('submissions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', uid);
-      countsById[uid as string] = count || 0;
+    // Indexar perfis por ID
+    const profilesById: Record<string, any> = {};
+    (profilesData.data || []).forEach((p: any) => { 
+      profilesById[p.id] = p; 
+    });
+
+    // ✅ FASE 1: NÃO gerar signed URLs aqui - fazer lazy loading depois
+    const enrichedSubmissions = (submissionsData || []).map((s: any) => ({
+      ...s,
+      profiles: profilesById[s.user_id] || null,
+      total_submissions: countsData[s.user_id] || 0,
     }));
 
-    // Gerar signed URLs para os screenshots
-    const submissionsWithSignedUrls = await Promise.all((submissionsData || []).map(async (s: any) => {
-      let signedUrl = s.screenshot_url;
-      if (s.screenshot_url) {
-        const path = s.screenshot_url.split('/screenshots/')[1];
-        if (path) {
-          const { data } = await supabase.storage
-            .from('screenshots')
-            .createSignedUrl(path, 31536000); // 1 year
-          if (data?.signedUrl) {
-            signedUrl = data.signedUrl;
-          }
-        }
-      }
-      return {
-        ...s,
-        screenshot_url: signedUrl,
-        profiles: profilesById[s.user_id] || null,
-        total_submissions: countsById[s.user_id] || 0,
-      };
-    }));
-
-    setSubmissions(submissionsWithSignedUrls);
+    setSubmissions(enrichedSubmissions);
     setSelectedSubmissions(new Set());
     setLoadingSubmissions(false);
   };
