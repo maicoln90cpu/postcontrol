@@ -367,70 +367,101 @@ const copySlugUrl = () => {
       console.log('✅ [loadEvents] Cenário 5: Master Admin sem filtro (ver todos)');
     }
 
-    console.log('🔍 [loadEvents] FILTRO FINAL:', {
-      agencyIdFilter,
+    // ========================================================================
+    // CONTEXTO DE AUTENTICAÇÃO COMPLETO
+    // ========================================================================
+    console.log('🔐 [loadEvents] === AUTH CONTEXT ===', {
+      userId: user?.id || 'NO_USER',
+      userEmail: user?.email || 'NO_EMAIL',
+      isMasterAdmin,
+      isAgencyAdmin,
+      profileAgencyId: profile?.agency_id || 'NO_PROFILE_AGENCY',
+      currentAgencyName: currentAgency?.name || 'NO_CURRENT_AGENCY',
+      currentAgencyId: currentAgency?.id || 'NO_CURRENT_AGENCY_ID',
+      agencyIdFilter: agencyIdFilter || 'NO_FILTER',
       willFilterByAgency: !!agencyIdFilter
     });
 
-    // Load events with detailed logging
-    console.log('📡 [loadEvents] Iniciando query de eventos...');
+    // ========================================================================
+    // QUERY 1: EVENTS
+    // ========================================================================
+    console.log('📡 [loadEvents] === QUERY EVENTOS ===');
+    console.log('🔍 [loadEvents] Construindo query de eventos...');
     let eventsQuery = supabase.from('events').select('*');
     
     if (agencyIdFilter) {
-      console.log('🔧 [loadEvents] Adicionando filtro .eq(agency_id, ' + agencyIdFilter + ')');
+      console.log('🔧 [loadEvents] ✅ Aplicando filtro .eq(agency_id):', agencyIdFilter);
       eventsQuery = eventsQuery.eq('agency_id', agencyIdFilter);
     } else {
-      console.log('🔧 [loadEvents] SEM filtro de agency_id (Master Admin vendo tudo)');
+      console.log('🔧 [loadEvents] ⚠️ SEM filtro de agency_id (Master Admin ou erro)');
     }
     
+    console.log('⏱️ [loadEvents] Executando query eventos...');
+    const eventsStart = performance.now();
     const { data: eventsData, error: eventsError } = await eventsQuery.order('created_at', { ascending: false });
+    const eventsEnd = performance.now();
     
-    console.log('📡 [loadEvents] Resposta da query de eventos:', {
-      success: !eventsError,
+    console.log('✅ [loadEvents] Query eventos concluída:', {
+      duracao_ms: (eventsEnd - eventsStart).toFixed(2),
+      sucesso: !eventsError,
       count: eventsData?.length || 0,
-      error: eventsError,
-      sampleData: eventsData?.slice(0, 2)
+      hasError: !!eventsError,
+      firstEventId: eventsData?.[0]?.id || null,
+      firstEventTitle: eventsData?.[0]?.title || null
     });
 
     if (eventsError) {
-      console.error('❌ [loadEvents] Erro ao carregar eventos:', eventsError);
-      toast.error('Erro ao carregar eventos');
+      console.error('❌ [loadEvents] !!!! ERRO CRÍTICO AO CARREGAR EVENTOS !!!!', {
+        errorCode: eventsError.code,
+        errorMessage: eventsError.message,
+        errorDetails: eventsError.details || 'N/A',
+        errorHint: eventsError.hint || 'N/A',
+        fullError: eventsError,
+        stackTrace: new Error().stack
+      });
+      toast.error(`Erro ao carregar eventos: ${eventsError.code} - ${eventsError.message}`);
+      return; // Early return para não continuar com dados quebrados
     }
     
-    // Load posts with detailed logging
-    console.log('📡 [loadEvents] Iniciando query de posts...');
-    console.log('🔐 [loadEvents] Auth context:', {
-      userId: user.id,
-      userEmail: user.email,
-      isMasterAdmin,
-      isAgencyAdmin,
-      profileAgencyId: profile?.agency_id,
-      currentAgencyId: currentAgency?.id,
-      agencyIdFilter
-    });
-    
-    // SIMPLIFIED: Query posts without JOIN to avoid RLS permission issues
+    // ========================================================================
+    // QUERY 2: POSTS
+    // ========================================================================
+    console.log('📡 [loadEvents] === QUERY POSTS ===');
+    console.log('🔍 [loadEvents] Construindo query de posts...');
     let postsQuery = supabase.from('posts').select('*');
     
     if (agencyIdFilter) {
-      console.log('🔧 [loadEvents] Adicionando filtro .eq(agency_id, ' + agencyIdFilter + ')');
+      console.log('🔧 [loadEvents] ✅ Aplicando filtro .eq(agency_id):', agencyIdFilter);
       postsQuery = postsQuery.eq('agency_id', agencyIdFilter);
     } else {
-      console.log('🔧 [loadEvents] SEM filtro de agency_id');
+      console.log('🔧 [loadEvents] ⚠️ SEM filtro de agency_id');
     }
     
+    console.log('⏱️ [loadEvents] Executando query posts...');
+    const postsStart = performance.now();
     const { data: postsData, error: postsError } = await postsQuery.order('created_at', { ascending: false });
+    const postsEnd = performance.now();
 
-    console.log('📡 [loadEvents] Resposta da query de posts:', {
-      success: !postsError,
+    console.log('✅ [loadEvents] Query posts concluída:', {
+      duracao_ms: (postsEnd - postsStart).toFixed(2),
+      sucesso: !postsError,
       count: postsData?.length || 0,
-      error: postsError,
-      sampleData: postsData?.slice(0, 2)
+      hasError: !!postsError,
+      firstPostId: postsData?.[0]?.id || null,
+      firstPostEventId: postsData?.[0]?.event_id || null
     });
 
     if (postsError) {
-      console.error('❌ [loadEvents] Erro ao carregar posts:', postsError);
-      toast.error('Erro ao carregar posts');
+      console.error('❌ [loadEvents] !!!! ERRO CRÍTICO AO CARREGAR POSTS !!!!', {
+        errorCode: postsError.code,
+        errorMessage: postsError.message,
+        errorDetails: postsError.details || 'N/A',
+        errorHint: postsError.hint || 'N/A',
+        fullError: postsError,
+        stackTrace: new Error().stack
+      });
+      toast.error(`Erro ao carregar posts: ${postsError.code} - ${postsError.message}`);
+      return; // Early return para não continuar com dados quebrados
     }
 
     console.log('✅ [loadEvents] Atualizando state...');
