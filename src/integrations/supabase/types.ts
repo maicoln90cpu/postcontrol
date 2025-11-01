@@ -1117,6 +1117,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      current_user_has_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
       expire_old_guest_invites: { Args: never; Returns: undefined }
       has_role: {
         Args: {
@@ -1127,6 +1131,8 @@ export type Database = {
       }
       is_agency_admin_for: { Args: { _agency_id: string }; Returns: boolean }
       is_agency_admin_of: { Args: { agency_uuid: string }; Returns: boolean }
+      is_current_user_agency_admin: { Args: never; Returns: boolean }
+      is_current_user_master_admin: { Args: never; Returns: boolean }
       is_guest_with_permission: {
         Args: {
           _event_id: string
