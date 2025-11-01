@@ -150,10 +150,14 @@ const Admin = () => {
 
   // Carregar submissions apenas quando um evento específico for selecionado
   useEffect(() => {
-    if (user && (isAgencyAdmin || isMasterAdmin) && submissionEventFilter !== "all") {
+    if (user && (isAgencyAdmin || isMasterAdmin) && currentAgency) {
+      console.log('🔄 [Admin] Recarregando submissões...', {
+        currentAgency: currentAgency.name,
+        submissionEventFilter
+      });
       loadSubmissions();
     }
-  }, [submissionEventFilter, user, isAgencyAdmin, isMasterAdmin]);
+  }, [submissionEventFilter, user, isAgencyAdmin, isMasterAdmin, currentAgency]);
 
   const loadCurrentAgency = async () => {
     if (!user) return;
@@ -495,6 +499,13 @@ const copySlugUrl = () => {
   const loadSubmissions = async () => {
     if (!user) return;
 
+    console.log('📥 [loadSubmissions] === INÍCIO ===', {
+      submissionEventFilter,
+      currentAgency: currentAgency?.name,
+      isMasterAdmin,
+      isAgencyAdmin
+    });
+
     setLoadingSubmissions(true);
 
     let agencyIdFilter = null;
@@ -535,7 +546,12 @@ const copySlugUrl = () => {
       `);
     
     if (agencyIdFilter) {
-      submissionsQuery = submissionsQuery.eq('posts.agency_id', agencyIdFilter);
+      submissionsQuery = submissionsQuery.eq('agency_id', agencyIdFilter);
+    }
+    
+    // Filtrar por evento específico se não for "all"
+    if (submissionEventFilter !== "all") {
+      submissionsQuery = submissionsQuery.eq('posts.event_id', submissionEventFilter);
     }
     
     const { data: submissionsData } = await submissionsQuery
