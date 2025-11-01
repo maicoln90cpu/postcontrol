@@ -232,6 +232,14 @@ const Submit = () => {
 
     const isProfileSelection = eventData?.event_purpose === 'selecao_perfil';
     
+    // ✅ Log para confirmar tipo do evento
+    console.log('📋 Tipo do evento:', {
+      eventId,
+      eventPurpose: eventData?.event_purpose,
+      isProfileSelection,
+      currentTime: new Date().toISOString()
+    });
+    
     // 1. Buscar IDs dos posts do evento
     const { data: eventPosts } = await sb
       .from('posts')
@@ -265,11 +273,8 @@ const Submit = () => {
       .select('id, post_number, deadline, event_id')
       .eq('event_id', eventId);
 
-    // Para seleção de perfil, não verificar deadline (permite envio a qualquer momento)
-    // Para divulgação, verificar deadline
-    if (!isProfileSelection) {
-      query = query.gte('deadline', new Date().toISOString());
-    }
+    // ✅ TODOS os eventos devem respeitar deadline
+    query = query.gte('deadline', new Date().toISOString());
 
     query = query
       .order('deadline', { ascending: true })
@@ -291,6 +296,17 @@ const Submit = () => {
       });
       return;
     }
+
+    // ✅ Log para mostrar posts encontrados
+    console.log('📍 Posts disponíveis:', {
+      total: data?.length || 0,
+      posts: data?.map(p => ({
+        id: p.id,
+        number: p.post_number,
+        deadline: p.deadline,
+        isPastDeadline: new Date(p.deadline) < new Date()
+      }))
+    });
 
     setPosts(data || []);
     
@@ -564,6 +580,25 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
         variant: "destructive",
       });
       return;
+    }
+
+    // ✅ Validar deadline do post selecionado (dupla verificação de segurança)
+    if (submissionType === "post" && selectedPost) {
+      const selectedPostData = posts.find(p => p.id === selectedPost);
+      
+      if (selectedPostData) {
+        const postDeadline = new Date(selectedPostData.deadline);
+        const now = new Date();
+        
+        if (now > postDeadline) {
+          toast({
+            title: "⏰ Prazo Expirado",
+            description: `O prazo para a postagem #${selectedPostData.post_number} expirou em ${postDeadline.toLocaleString('pt-BR')}.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
     }
 
     // 🆕 Validação para eventos de seleção de perfil
@@ -968,7 +1003,7 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
                     ) : (
                       <div className="bg-muted/50 border border-border rounded-lg p-4">
                         <p className="text-sm text-muted-foreground text-center">
-                          Não há postagens disponíveis para este evento no momento ou você já completou todas as postagens! 🎉
+                          ⏰ Nenhuma postagem dentro do prazo disponível no momento ou você já completou todas as postagens! 🎉
                         </p>
                       </div>
                     )}
