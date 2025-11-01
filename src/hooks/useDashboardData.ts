@@ -42,90 +42,81 @@ export const useDashboardData = (userId: string | undefined, currentAgencyId: st
     setLoading(true);
 
     try {
-      // Carregar eventos ativos da agência atual
-      const { data: eventsData } = await sb
-        .from("events")
-        .select("id, title")
-        .eq("is_active", true)
-        .eq("agency_id", currentAgencyId)
-        .order("event_date", { ascending: false });
+      // QUERY OTIMIZADA: Usar Promise.all para carregar em paralelo
+      const [eventsData, submissionsData] = await Promise.all([
+        // Query 1: Eventos ativos (usando índice idx_events_agency_active)
+        sb
+          .from("events")
+          .select("id, title, total_required_posts, is_approximate_total")
+          .eq("is_active", true)
+          .eq("agency_id", currentAgencyId)
+          .order("event_date", { ascending: false })
+          .then(res => res.data),
+        
+        // Query 2: Submissões (usando índice idx_submissions_user_status)
+        sb
+          .from("submissions")
+          .select(`
+            id,
+            submitted_at,
+            screenshot_url,
+            screenshot_path,
+            status,
+            rejection_reason,
+            posts!inner (
+              post_number,
+              deadline,
+              event_id,
+              events!inner (
+                title,
+                required_posts,
+                id,
+                is_active,
+                agency_id,
+                total_required_posts,
+                is_approximate_total
+              )
+            )
+          `)
+          .eq("user_id", userId)
+          .eq("posts.events.is_active", true)
+          .eq("posts.events.agency_id", currentAgencyId)
+          .order("submitted_at", { ascending: false })
+          .then(res => res.data)
+      ]);
 
       setEvents(eventsData || []);
-
-      // Carregar submissões
-      const { data: submissionsData } = await sb
-        .from("submissions")
-        .select(
-          `
-          id,
-          submitted_at,
-          screenshot_url,
-          screenshot_path,
-          status,
-          rejection_reason,
-          posts!inner (
-            post_number,
-            deadline,
-            event_id,
-            events!inner (
-              title,
-              required_posts,
-              id,
-              is_active,
-              agency_id
-            )
-          )
-        `
-        )
-        .eq("user_id", userId)
-        .eq("posts.events.is_active", true)
-        .eq("posts.events.agency_id", currentAgencyId)
-        .order("submitted_at", { ascending: false });
-
       setSubmissions(submissionsData || []);
 
-      // Calcular estatísticas por evento
+      // OTIMIZAÇÃO: Calcular estatísticas sem queries adicionais
+      // Os dados já vêm completos do JOIN acima
       if (submissionsData) {
         const eventMap = new Map<
           string,
           { title: string; totalPosts: number; approvedCount: number; isApproximate: boolean }
         >();
 
-        const uniqueEventIds = new Set<string>();
         submissionsData.forEach((sub) => {
           if (sub.posts?.events) {
             const eventId = (sub.posts.events as any).id;
-            uniqueEventIds.add(eventId);
+            const eventData = sub.posts.events as any;
+            
+            if (!eventMap.has(eventId)) {
+              eventMap.set(eventId, {
+                title: eventData.title,
+                totalPosts: eventData.total_required_posts || 0,
+                approvedCount: 0,
+                isApproximate: eventData.is_approximate_total || false,
+              });
+            }
+            
+            // Contar aprovações
+            if (sub.status === "approved") {
+              const current = eventMap.get(eventId)!;
+              current.approvedCount++;
+            }
           }
         });
-
-        for (const eventId of Array.from(uniqueEventIds)) {
-          const eventData = submissionsData.find(
-            (sub) => sub.posts?.events && (sub.posts.events as any).id === eventId
-          )?.posts?.events;
-
-          if (eventData) {
-            const { data: fullEventData } = await sb
-              .from("events")
-              .select("total_required_posts, is_approximate_total")
-              .eq("id", eventId)
-              .single();
-
-            const totalRequiredPosts = fullEventData?.total_required_posts || 0;
-            const isApproximate = fullEventData?.is_approximate_total || false;
-
-            const approvedCount = submissionsData.filter(
-              (sub) => sub.status === "approved" && sub.posts?.events && (sub.posts.events as any).id === eventId
-            ).length;
-
-            eventMap.set(eventId, {
-              title: eventData.title,
-              totalPosts: totalRequiredPosts,
-              approvedCount: approvedCount,
-              isApproximate: isApproximate,
-            });
-          }
-        }
 
         const stats: EventStats[] = Array.from(eventMap.entries()).map(([eventId, data]) => ({
           eventId,
