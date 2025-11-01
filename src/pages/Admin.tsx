@@ -311,9 +311,16 @@ const copySlugUrl = () => {
 };
 
   const loadEvents = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('❌ [loadEvents] User não definido');
+      return;
+    }
 
-    console.log('📊 [loadEvents] Iniciando carregamento de eventos...');
+    console.log('📊 [loadEvents] === INÍCIO ===');
+    console.log('📊 [loadEvents] User ID:', user.id);
+    console.log('📊 [loadEvents] isMasterAdmin:', isMasterAdmin);
+    console.log('📊 [loadEvents] isAgencyAdmin:', isAgencyAdmin);
+    console.log('📊 [loadEvents] currentAgency:', currentAgency);
 
     let agencyIdFilter = null;
 
@@ -321,75 +328,104 @@ const copySlugUrl = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const queryAgencyId = urlParams.get('agencyId');
 
-    // Determine which agency's data to load
+    console.log('📊 [loadEvents] Query Params:', { queryAgencyId });
+
+    // SIMPLIFICADO: Determine which agency's data to load
     if (queryAgencyId && isMasterAdmin) {
-      // Master Admin viewing specific agency by ID
       agencyIdFilter = queryAgencyId;
-      console.log('👑 Master Admin visualizando agência específica:', agencyIdFilter);
-    } else if (isMasterAdmin && !currentAgency) {
-      // Master admin without specific agency = see all data
-      agencyIdFilter = null;
-      console.log('👑 Master Admin - Visualizando todos os dados');
-    } else if (currentAgency) {
-      // Viewing specific agency (master admin or agency admin)
+      console.log('✅ [loadEvents] Cenário 1: Master Admin com queryAgencyId:', agencyIdFilter);
+    } else if (currentAgency?.id) {
       agencyIdFilter = currentAgency.id;
-      console.log('🏢 Visualizando agência:', currentAgency.name, 'ID:', agencyIdFilter);
-    } else if (isAgencyAdmin) {
-      // Agency admin - load their own agency
-      console.log('⚠️ [loadEvents] Agency Admin sem currentAgency, buscando do profile...');
-      const { data: profileData } = await sb
+      console.log('✅ [loadEvents] Cenário 2: currentAgency.id:', agencyIdFilter);
+    } else if (isAgencyAdmin && profile?.agency_id) {
+      agencyIdFilter = profile.agency_id;
+      console.log('✅ [loadEvents] Cenário 3: Agency Admin com profile.agency_id:', agencyIdFilter);
+    } else if (isAgencyAdmin && !profile) {
+      console.log('⚠️ [loadEvents] Cenário 4: Agency Admin sem profile carregado, buscando...');
+      const { data: profileData, error: profileError } = await sb
         .from('profiles')
         .select('agency_id')
         .eq('id', user.id)
         .maybeSingle();
       
+      if (profileError) {
+        console.error('❌ [loadEvents] Erro ao buscar profile:', profileError);
+        toast.error("Erro ao carregar dados do usuário");
+        return;
+      }
+
       agencyIdFilter = profileData?.agency_id;
+      console.log('✅ [loadEvents] Profile carregado, agency_id:', agencyIdFilter);
       
       if (!agencyIdFilter) {
-        console.error('❌ Agency Admin sem agency_id');
+        console.error('❌ [loadEvents] Agency Admin sem agency_id no profile');
         toast.error("Erro: Usuário não está associado a nenhuma agência.");
         return;
       }
-      console.log('👤 Agency Admin - agency_id:', agencyIdFilter);
+    } else if (isMasterAdmin) {
+      agencyIdFilter = null;
+      console.log('✅ [loadEvents] Cenário 5: Master Admin sem filtro (ver todos)');
     }
 
-    console.log('🔍 [loadEvents] DEBUG ISOLAMENTO:', {
-      userId: user.id,
-      isMasterAdmin,
-      isAgencyAdmin,
+    console.log('🔍 [loadEvents] FILTRO FINAL:', {
       agencyIdFilter,
-      queryAgencyId,
-      currentAgency: currentAgency?.name
+      willFilterByAgency: !!agencyIdFilter
     });
 
-    // Load events
-    let eventsQuery = sb.from('events').select('*');
+    // Load events with detailed logging
+    console.log('📡 [loadEvents] Iniciando query de eventos...');
+    let eventsQuery = supabase.from('events').select('*');
+    
     if (agencyIdFilter) {
+      console.log('🔧 [loadEvents] Adicionando filtro .eq(agency_id, ' + agencyIdFilter + ')');
       eventsQuery = eventsQuery.eq('agency_id', agencyIdFilter);
+    } else {
+      console.log('🔧 [loadEvents] SEM filtro de agency_id (Master Admin vendo tudo)');
     }
+    
     const { data: eventsData, error: eventsError } = await eventsQuery.order('created_at', { ascending: false });
     
+    console.log('📡 [loadEvents] Resposta da query de eventos:', {
+      success: !eventsError,
+      count: eventsData?.length || 0,
+      error: eventsError,
+      sampleData: eventsData?.slice(0, 2)
+    });
+
     if (eventsError) {
       console.error('❌ [loadEvents] Erro ao carregar eventos:', eventsError);
-    } else {
-      console.log(`✅ [loadEvents] ${eventsData?.length || 0} eventos carregados`);
+      toast.error('Erro ao carregar eventos');
     }
     
-    // Load posts
-    let postsQuery = sb.from('posts').select('*, events(title)');
+    // Load posts with detailed logging
+    console.log('📡 [loadEvents] Iniciando query de posts...');
+    let postsQuery = supabase.from('posts').select('*, events(title)');
+    
     if (agencyIdFilter) {
+      console.log('🔧 [loadEvents] Adicionando filtro .eq(agency_id, ' + agencyIdFilter + ')');
       postsQuery = postsQuery.eq('agency_id', agencyIdFilter);
+    } else {
+      console.log('🔧 [loadEvents] SEM filtro de agency_id');
     }
+    
     const { data: postsData, error: postsError } = await postsQuery.order('created_at', { ascending: false });
+
+    console.log('📡 [loadEvents] Resposta da query de posts:', {
+      success: !postsError,
+      count: postsData?.length || 0,
+      error: postsError,
+      sampleData: postsData?.slice(0, 2)
+    });
 
     if (postsError) {
       console.error('❌ [loadEvents] Erro ao carregar posts:', postsError);
-    } else {
-      console.log(`✅ [loadEvents] ${postsData?.length || 0} posts carregados`);
+      toast.error('Erro ao carregar posts');
     }
 
+    console.log('✅ [loadEvents] Atualizando state...');
     setEvents(eventsData || []);
     setPosts(postsData || []);
+    console.log('✅ [loadEvents] === FIM ===');
   };
 
   const loadSubmissions = async () => {
