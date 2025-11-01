@@ -252,9 +252,10 @@ export default function AgencySignup({ tokenFromSlug }: AgencySignupProps = {}) 
                 <Select 
                   value={formData.gender} 
                   onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  disabled={false}
                   required
                 >
-                  <SelectTrigger id="gender">
+                  <SelectTrigger id="gender" disabled={false}>
                     <SelectValue placeholder="Selecione seu gênero" />
                   </SelectTrigger>
                   <SelectContent>
@@ -292,8 +293,9 @@ export default function AgencySignup({ tokenFromSlug }: AgencySignupProps = {}) 
                 <Select 
                   value={formData.followers_range} 
                   onValueChange={(value) => setFormData({ ...formData, followers_range: value })}
+                  disabled={false}
                 >
-                  <SelectTrigger id="followers">
+                  <SelectTrigger id="followers" disabled={false}>
                     <SelectValue placeholder="Selecione sua faixa de seguidores" />
                   </SelectTrigger>
                   <SelectContent>
