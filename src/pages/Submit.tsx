@@ -267,7 +267,7 @@ const Submit = () => {
       submittedPostIds = (userSubmissions || []).map((s: any) => s.post_id);
     }
     
-    // 3. Buscar próxima postagem disponível
+    // 3. Buscar postagens disponíveis
     let query = sb
       .from('posts')
       .select('id, post_number, deadline, event_id')
@@ -276,13 +276,17 @@ const Submit = () => {
     // ✅ TODOS os eventos devem respeitar deadline
     query = query.gte('deadline', new Date().toISOString());
 
-    query = query
-      .order('deadline', { ascending: true })
-      .limit(1);
-    
-    // Excluir posts já enviados (apenas para não seleção de perfil)
-    if (submittedPostIds.length > 0) {
+    // Excluir posts já enviados (apenas para eventos de divulgação)
+    if (submittedPostIds.length > 0 && !isProfileSelection) {
       query = query.not('id', 'in', `(${submittedPostIds.join(',')})`);
+    }
+
+    query = query.order('deadline', { ascending: true });
+
+    // Para divulgação: retornar apenas o primeiro post disponível
+    // Para seleção de perfil: retornar TODOS os posts disponíveis
+    if (!isProfileSelection) {
+      query = query.limit(1);
     }
     
     const { data, error } = await query;
@@ -299,7 +303,9 @@ const Submit = () => {
 
     // ✅ Log para mostrar posts encontrados
     console.log('📍 Posts disponíveis:', {
+      eventType: isProfileSelection ? 'Seleção de Perfil' : 'Divulgação',
       total: data?.length || 0,
+      submittedByUser: submittedPostIds.length,
       posts: data?.map(p => ({
         id: p.id,
         number: p.post_number,
@@ -310,9 +316,13 @@ const Submit = () => {
 
     setPosts(data || []);
     
-    // Auto-selecionar se houver apenas 1 post
-    if (data && data.length === 1) {
+    // Auto-selecionar apenas para eventos de divulgação com 1 post
+    // Para seleção de perfil, deixar usuário escolher
+    if (data && data.length === 1 && !isProfileSelection) {
       setSelectedPost(data[0].id);
+      console.log('✅ Post auto-selecionado:', data[0].post_number);
+    } else if (data && data.length > 0) {
+      console.log(`ℹ️ ${data.length} posts disponíveis. Usuário deve selecionar manualmente.`);
     }
   };
 
@@ -1003,7 +1013,7 @@ const compressImage = async (file: File, maxWidth: number = 1080, quality: numbe
                     ) : (
                       <div className="bg-muted/50 border border-border rounded-lg p-4">
                         <p className="text-sm text-muted-foreground text-center">
-                          ⏰ Nenhuma postagem dentro do prazo disponível no momento ou você já completou todas as postagens! 🎉
+                          ⏰ Nenhuma postagem dentro do prazo disponível
                         </p>
                       </div>
                     )}
