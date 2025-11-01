@@ -37,32 +37,54 @@ export const useDashboardData = (userId: string | undefined, currentAgencyId: st
   const [loading, setLoading] = useState(true);
 
   const loadDashboardData = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
     try {
-      // Buscar IDs das agências do usuário via user_agencies
-      const { data: userAgencyData } = await sb
-        .from('user_agencies')
-        .select('agency_id')
+      // ✅ FASE 2: Verificar se é master ou agency admin
+      const { data: rolesData } = await sb
+        .from('user_roles')
+        .select('role')
         .eq('user_id', userId);
       
-      const userAgencyIds = userAgencyData?.map(ua => ua.agency_id) || [];
+      const roles = rolesData?.map(r => r.role) || [];
+      const isMasterAdmin = roles.includes('master_admin');
+      const isAgencyAdmin = roles.includes('agency_admin');
+
+      // ✅ FASE 2: Buscar agências baseado em role
+      let agenciesToFetch: string[] = [];
       
-      // Se não tem nenhuma agência, carregar dados vazios mas não falhar
-      if (userAgencyIds.length === 0 && !currentAgencyId) {
+      if (isMasterAdmin) {
+        // Master admin vê TODAS as agências
+        const { data: allAgencies } = await sb
+          .from('agencies')
+          .select('id')
+          .eq('subscription_status', 'active');
+        agenciesToFetch = allAgencies?.map(a => a.id) || [];
+      } else if (isAgencyAdmin && currentAgencyId) {
+        // Agency admin vê apenas sua agência
+        agenciesToFetch = [currentAgencyId];
+      } else {
+        // User comum vê agências de user_agencies
+        const { data: userAgencyData } = await sb
+          .from('user_agencies')
+          .select('agency_id')
+          .eq('user_id', userId);
+        agenciesToFetch = userAgencyData?.map(ua => ua.agency_id) || [];
+      }
+
+      // Se AINDA não tem agências, carregar dados vazios
+      if (agenciesToFetch.length === 0) {
         setEvents([]);
         setSubmissions([]);
         setEventStats([]);
         setLoading(false);
         return;
       }
-
-      // Determinar quais agências buscar
-      const agenciesToFetch = currentAgencyId 
-        ? [currentAgencyId] 
-        : userAgencyIds;
 
       // QUERY OTIMIZADA: Usar Promise.all para carregar em paralelo
       const [eventsData, submissionsData] = await Promise.all([

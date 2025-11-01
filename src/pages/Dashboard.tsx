@@ -117,14 +117,16 @@ const Dashboard = () => {
     return userAgencies.length > 0 || currentAgencyId !== null;
   }, [userAgencies, currentAgencyId]);
 
-  // ✅ FASE 1: Loading derivado de múltiplos estados (previne tela cinza)
+  // ✅ FASE 1: Loading derivado APENAS de queries, SEM lógica condicional de dados
   const loading = useMemo(() => {
-    return isLoadingAgencies || 
-           isLoadingSettings || 
-           isLoadingEvents || 
-           isLoadingDashboard ||
-           (currentAgencyId !== null && !profile && submissions.length === 0);
-  }, [isLoadingAgencies, isLoadingSettings, isLoadingEvents, isLoadingDashboard, currentAgencyId, profile, submissions]);
+    // Apenas checar estados de queries, SEM lógica condicional de dados
+    const queriesLoading = isLoadingAgencies || isLoadingSettings || isLoadingEvents || isLoadingDashboard;
+    
+    // Se timeout já passou, forçar false
+    if (loadingTimeout) return false;
+    
+    return queriesLoading;
+  }, [isLoadingAgencies, isLoadingSettings, isLoadingEvents, isLoadingDashboard, loadingTimeout]);
 
   // ✅ FASE 1: Timeout de segurança (10 segundos)
   useEffect(() => {
@@ -179,8 +181,8 @@ const Dashboard = () => {
       // Eventos já vêm do useDashboardData, mas mantemos para compatibilidade
     }
     
-    // ✅ Carregar dados APENAS 1x ao final (evita redundância)
-    if (currentAgencyId && user && !profile && !isLoadingDashboard) {
+    // ✅ FASE 3: Carregar dados sem condição !profile (permite reload)
+    if (currentAgencyId && user && !isLoadingDashboard) {
       loadSubmissionsData();
     }
   }, [user, navigate, userAgenciesData, adminSettingsData, eventsData, currentAgencyId, isLoadingAgencies, isLoadingSettings, isLoadingDashboard, profile, searchParams, queryClient]);
@@ -450,6 +452,76 @@ const Dashboard = () => {
           </div>
           <Skeleton className="h-64 w-full rounded-lg" />
         </div>
+      </div>
+    );
+  }
+
+  // ✅ FASE 5: Fallback UI para usuários sem agência
+  if (!loading && !hasAgency && submissions.length === 0 && eventStats.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-8">
+        <Card className="max-w-7xl mx-auto p-12 text-center">
+          <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-2">Nenhuma Agência Vinculada</h2>
+          <p className="text-muted-foreground mb-6">
+            Você precisa estar vinculado a uma agência para ver os eventos e enviar postagens.
+          </p>
+          <Button onClick={() => navigate("/")}>
+            Voltar para Home
+          </Button>
+        </Card>
+        
+        {/* Ainda permite editar perfil */}
+        <Card className="max-w-7xl mx-auto mt-6 p-6">
+          <Tabs defaultValue="cadastro">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="cadastro">Meu Cadastro</TabsTrigger>
+              <TabsTrigger value="senha">Alterar Senha</TabsTrigger>
+            </TabsList>
+            <TabsContent value="cadastro" className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label>Nome Completo</Label>
+                  <Input value={profile?.full_name || ""} disabled />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input value={profile?.email || ""} disabled />
+                </div>
+                <div>
+                  <Label>Instagram</Label>
+                  <Input value={profile?.instagram || ""} disabled />
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="senha" className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="new-password">Nova Senha</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+                <Button onClick={changePassword} className="w-full">
+                  <Lock className="mr-2 h-4 w-4" />
+                  Alterar Senha
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </Card>
       </div>
     );
   }
