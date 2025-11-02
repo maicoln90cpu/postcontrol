@@ -8,36 +8,24 @@ import { useRef } from "react";
 
 interface CSVImportExportProps {
   onImportComplete?: () => void;
-  users?: any[]; // ✅ Item 13: Aceitar usuários filtrados
-  currentAgencyId?: string | null;
-  isMasterAdmin?: boolean;
 }
 
-export const CSVImportExport = ({ onImportComplete, users, currentAgencyId, isMasterAdmin }: CSVImportExportProps) => {
+export const CSVImportExport = ({ onImportComplete }: CSVImportExportProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
-    let profilesToExport;
-    
-    // ✅ Item 13: Usar users filtrados se fornecidos, senão buscar do DB
-    if (users && users.length > 0) {
-      profilesToExport = users;
-    } else {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("full_name, email, instagram, phone, gender, followers_range, created_at")
-        .order("created_at", { ascending: false });
-      
-      profilesToExport = profiles || [];
-    }
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("full_name, email, instagram, phone, gender, followers_range, created_at")
+      .order("created_at", { ascending: false });
 
-    if (!profilesToExport || profilesToExport.length === 0) {
+    if (!profiles || profiles.length === 0) {
       toast.error("Nenhum usuário para exportar");
       return;
     }
 
     // Formatar dados para export
-    const formattedProfiles = profilesToExport.map((profile) => ({
+    const formattedProfiles = profiles.map((profile) => ({
       full_name: profile.full_name,
       email: profile.email,
       instagram_arroba: profile.instagram ? `@${profile.instagram.replace("@", "")}` : "",

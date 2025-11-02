@@ -369,7 +369,7 @@ export const UserManagement = () => {
 
       const matchesEvent =
         eventFilter === "all" ||
-        (eventFilter === "no_event" && (!userEvents[user.id] || userEvents[user.id].length === 0)) ||
+        (eventFilter === "none" && (!userEvents[user.id] || userEvents[user.id].length === 0)) ||
         userEvents[user.id]?.some((eventTitle) => events.find((e) => e.title === eventTitle)?.id === eventFilter);
 
       return matchesSearch && matchesGender && matchesEvent;
@@ -415,22 +415,14 @@ export const UserManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Gerenciador de Usuários</h2>
             <p className="text-sm text-muted-foreground mt-1">
               {filteredUsers.length} usuário{filteredUsers.length !== 1 ? 's' : ''} encontrado{filteredUsers.length !== 1 ? 's' : ''}
-              {(eventFilter !== "all" || genderFilter !== "all" || debouncedSearchTerm) && (
-                <span className="text-xs ml-1">de {users.length} total</span>
-              )}
             </p>
           </div>
-          <CSVImportExport 
-            users={filteredUsers} 
-            onImportComplete={loadUsers} 
-            currentAgencyId={currentAgencyId}
-            isMasterAdmin={isMasterAdmin}
-          />
+          <CSVImportExport onImportComplete={loadUsers} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">

@@ -22,12 +22,6 @@ export const useDashboard = (agencyId: string | null) => {
         return null;
       }
 
-      console.log('🔄 [useDashboard] Iniciando query:', {
-        userId: user.id,
-        agencyId,
-        enabled: !!user && !!agencyId
-      });
-
       console.log('🔄 [useDashboard] Carregando dados em paralelo...');
       const startTime = performance.now();
 

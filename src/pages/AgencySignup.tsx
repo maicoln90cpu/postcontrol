@@ -126,10 +126,9 @@ export default function AgencySignup({ tokenFromSlug }: AgencySignupProps = {}) 
         }
       }
 
-      // ✅ LINHA 131-134 (Cadastro) - NOVO
       toast({
         title: "Cadastro realizado!",
-        description: `Bem-vindo à ${agency.name}! Redirecionando para eventos...`,
+        description: `Bem-vindo à ${agency.name}`,
       });
 
       // ✅ LINHA 137-139 (Cadastro) - NOVO
@@ -184,11 +183,11 @@ export default function AgencySignup({ tokenFromSlug }: AgencySignupProps = {}) 
           console.log("✅ Agência vinculada com sucesso!");
         }
       }
-      // ✅ LINHA 180-183 (Login) - NOVO
       toast({
         title: "Login realizado!",
-        description: `Carregando eventos de ${agency.name}...`,
+        description: "Redirecionando...",
       });
+
       // ✅ LINHA 186 (Login) - NOVO
       setTimeout(() => {
         navigate(`/submit?agency=${agency.id}`);
