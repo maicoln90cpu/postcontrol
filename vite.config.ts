@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    sourcemap: true,
     cssCodeSplit: true,
     cssMinify: true,
     minify: 'esbuild',
