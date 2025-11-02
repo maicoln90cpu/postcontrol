@@ -17,10 +17,49 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     cssCodeSplit: true,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production',
+        drop_debugger: mode === 'production',
+        pure_funcs: mode === 'production' ? ['console.log', 'console.info'] : [],
+      },
+    },
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
+        manualChunks: (id) => {
+          // React core
+          if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+            return 'react-vendor';
+          }
+          // Router
+          if (id.includes('react-router')) {
+            return 'router';
+          }
+          // UI Components (Radix UI)
+          if (id.includes('@radix-ui')) {
+            return 'ui-vendor';
+          }
+          // Forms and validation
+          if (id.includes('react-hook-form') || id.includes('zod') || id.includes('@hookform')) {
+            return 'forms';
+          }
+          // Data fetching
+          if (id.includes('@tanstack/react-query') || id.includes('@supabase')) {
+            return 'data-vendor';
+          }
+          // Charts and visualizations
+          if (id.includes('recharts') || id.includes('d3-')) {
+            return 'charts';
+          }
+          // Utilities
+          if (id.includes('date-fns') || id.includes('clsx') || id.includes('class-variance')) {
+            return 'utils';
+          }
+          // Icons
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
         },
       },
     },
