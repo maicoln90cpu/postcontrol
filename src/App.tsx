@@ -22,7 +22,17 @@ const AcceptInvite = lazy(() => import("./pages/AcceptInvite").then(m => ({ defa
 const GuestDashboard = lazy(() => import("./pages/GuestDashboard").then(m => ({ default: m.GuestDashboard })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => {
   useAuth(); // Inicializa o listener de autenticação
