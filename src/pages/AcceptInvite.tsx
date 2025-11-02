@@ -91,32 +91,28 @@ export const AcceptInvite = () => {
       return;
     }
 
-    if (!invite || !token) return;
+    if (!invite) return;
+
+    // Verificar se o email do usuário logado corresponde ao email do convite
+    if (user.email !== invite.guest_email) {
+      toast.error('Este convite foi enviado para ' + invite.guest_email);
+      return;
+    }
 
     setAccepting(true);
 
     try {
-      // Chamar função RPC com validação server-side completa
-      const { data, error } = await supabase.rpc('accept_guest_invite', {
-        p_invite_token: token
-      });
+      const { error } = await supabase
+        .from('agency_guests')
+        .update({
+          guest_user_id: user.id,
+          status: 'accepted',
+          accepted_at: new Date().toISOString(),
+          last_accessed_at: new Date().toISOString(),
+        })
+        .eq('id', invite.id);
 
-      if (error) {
-        // Mensagens de erro genéricas para não expor estrutura do sistema
-        if (error.message.includes('não autenticado')) {
-          toast.error('Sessão expirada. Faça login novamente.');
-          navigate('/auth?redirect=' + encodeURIComponent(window.location.pathname + window.location.search));
-        } else if (error.message.includes('outro endereço')) {
-          toast.error('Este convite não corresponde à sua conta.');
-        } else if (error.message.includes('já foi processado')) {
-          toast.error('Este convite já foi utilizado.');
-        } else if (error.message.includes('expirou')) {
-          toast.error('Este convite não é mais válido.');
-        } else {
-          toast.error('Não foi possível aceitar o convite. Tente novamente.');
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       toast.success('Convite aceito com sucesso!');
       
@@ -126,6 +122,7 @@ export const AcceptInvite = () => {
       }, 1500);
     } catch (err: any) {
       console.error('Error accepting invite:', err);
+      toast.error('Erro ao aceitar convite: ' + err.message);
       setAccepting(false);
     }
   };
@@ -221,7 +218,7 @@ export const AcceptInvite = () => {
                 Fazer Login para Aceitar
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                Você precisa fazer login com o email do convite
+                Você precisa fazer login com o email {invite.guest_email}
               </p>
             </div>
           ) : user.email === invite.guest_email ? (
@@ -242,7 +239,7 @@ export const AcceptInvite = () => {
           ) : (
             <div className="w-full space-y-2">
               <p className="text-sm text-destructive text-center">
-                Este convite foi enviado para outro endereço de email.
+                Você está logado com {user.email}, mas este convite foi enviado para {invite.guest_email}
               </p>
               <Button 
                 onClick={() => {

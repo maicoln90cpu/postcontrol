@@ -1119,7 +1119,6 @@ export type Database = {
       }
     }
     Functions: {
-      accept_guest_invite: { Args: { p_invite_token: string }; Returns: Json }
       check_rate_limit: {
         Args: {
           p_action_type: string
