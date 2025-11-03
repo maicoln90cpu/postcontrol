@@ -2,7 +2,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { SubmissionImageDisplay } from "./SubmissionImageDisplay";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SubmissionZoomDialogProps {
   open: boolean;
@@ -45,6 +46,8 @@ export const SubmissionZoomDialog = ({
   hasNext,
   hasPrevious
 }: SubmissionZoomDialogProps) => {
+  const isMobile = useIsMobile();
+  const touchStartX = useRef<number>(0);
   
   // Keyboard navigation
   useEffect(() => {
@@ -64,12 +67,52 @@ export const SubmissionZoomDialog = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, hasNext, hasPrevious, onNext, onPrevious, onOpenChange]);
 
+  // Touch navigation for mobile
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+    };
+    
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchStartX.current - touchEndX;
+      
+      // Swipe threshold: 50px
+      if (Math.abs(diff) > 50) {
+        if (diff > 0 && hasNext) {
+          // Swipe left → next
+          onNext();
+        } else if (diff < 0 && hasPrevious) {
+          // Swipe right → previous
+          onPrevious();
+        }
+      }
+    };
+    
+    const container = document.querySelector('[data-swipe-container]');
+    if (container) {
+      container.addEventListener('touchstart', handleTouchStart as any);
+      container.addEventListener('touchend', handleTouchEnd as any);
+      
+      return () => {
+        container.removeEventListener('touchstart', handleTouchStart as any);
+        container.removeEventListener('touchend', handleTouchEnd as any);
+      };
+    }
+  }, [open, isMobile, hasNext, hasPrevious, onNext, onPrevious]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 flex flex-col">
         <div className="flex flex-col h-full overflow-hidden">
           {/* Imagens lado a lado com legendas visíveis */}
-          <div className="flex flex-row gap-2 sm:gap-4 p-2 sm:p-4 bg-black relative" style={{ height: 'calc(95vh - 200px)' }}>
+          <div 
+            data-swipe-container
+            className="flex flex-row gap-2 sm:gap-4 p-2 sm:p-4 bg-black relative" 
+            style={{ height: 'calc(95vh - 200px)' }}
+          >
             {/* Imagem do Perfil (se existir) - 65% mobile, 50% desktop */}
             {submission.profile_screenshot_path && (
               <div className="flex flex-col gap-2 min-w-0" style={{ width: 'clamp(65%, 65%, 50%)' }}>
@@ -189,7 +232,10 @@ export const SubmissionZoomDialog = ({
             
             {/* Hint de navegação */}
             <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-              Use as setas ← → do teclado para navegar | ESC para fechar
+              {isMobile 
+                ? "Arraste para os lados para navegar entre submissões | Toque fora para fechar"
+                : "Use as setas ← → do teclado para navegar | ESC para fechar"
+              }
             </p>
           </div>
         </div>
