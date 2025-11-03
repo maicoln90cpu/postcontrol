@@ -11,7 +11,7 @@ import { CSVImportExport } from "@/components/CSVImportExport";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "@/components/ui/pagination-controls";
-import { useProfiles } from "@/hooks/useReactQuery";
+import { useUserManagement } from "@/hooks/useUserManagement";
 
 interface Profile {
   id: string;
@@ -43,14 +43,13 @@ export const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState<string>("all");
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
   const { 
     users, 
-    loading: loadingProfiles, 
+    loading, 
     loadingEvents, 
     currentAgencyId, 
     isMasterAdmin, 
@@ -71,211 +70,7 @@ export const UserManagement = () => {
     if (isMasterAdmin !== null && (isMasterAdmin || currentAgencyId)) {
       loadUsers();
     }
-  }, [isMasterAdmin, currentAgencyId]);
-
-  const checkAdminStatus = async () => {
-    const {
-      data: { user },
-    } = await sb.auth.getUser();
-    if (!user) return;
-
-    // Check if master admin
-    const { data: masterCheck } = await sb
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "master_admin")
-      .maybeSingle();
-
-    setIsMasterAdmin(!!masterCheck);
-
-    // Se não for master admin, buscar agência onde é owner
-    if (!masterCheck) {
-      const { data: agencyData } = await sb.from("agencies").select("id").eq("owner_id", user.id).maybeSingle();
-
-      setCurrentAgencyId(agencyData?.id || null);
-      console.log("👤 Agency Admin - agência:", agencyData?.id);
-    } else {
-      console.log("👑 Master Admin");
-    }
-    // Não chamar loadUsers() aqui - será chamado pelo useEffect
-  };
-
-  const loadUsers = async () => {
-    try {
-      // Carregar eventos apenas da agência atual
-      let eventsQuery = sb
-        .from("events")
-        .select("id, title, is_active")
-        .eq("is_active", true)
-        .order("title");
-      
-      // Filtrar por agência se não for master admin
-      if (!isMasterAdmin && currentAgencyId) {
-        eventsQuery = eventsQuery.eq("agency_id", currentAgencyId);
-      }
-
-      const { data: eventsData } = await eventsQuery;
-      setEvents(eventsData || []);
-
-      if (isMasterAdmin) {
-        // Master admin vê todos os usuários
-        console.log("👑 Master Admin - carregando todos os usuários");
-        const { data, error } = await sb.from("profiles").select("*, gender, followers_range").order("created_at", { ascending: false });
-
-        if (error) throw error;
-        console.log(`📊 Loaded ${data?.length || 0} users (master admin)`);
-        setUsers(data || []);
-
-        // Carregar eventos por usuário
-        if (data && data.length > 0) {
-          await loadUserEvents(data.map((u) => u.id));
-        }
-      } else if (currentAgencyId) {
-        // Agency admin vê apenas usuários que fizeram submissões em eventos da sua agência
-        console.log("👤 Agency Admin - carregando usuários com submissões da agência:", currentAgencyId);
-
-        // Primeiro, buscar os IDs dos usuários que fizeram submissões
-        const { data: submissionsData, error: submissionsError } = await sb
-          .from("submissions")
-          .select(
-            `
-            user_id,
-            posts!inner(
-              event_id,
-              events!inner(
-                agency_id
-              )
-            )
-          `,
-          )
-          .eq("posts.events.agency_id", currentAgencyId);
-
-        if (submissionsError) {
-          console.error("❌ Erro ao buscar submissões:", submissionsError);
-          throw submissionsError;
-        }
-
-        console.log("📋 Submissões encontradas:", submissionsData?.length || 0);
-
-        // Extrair IDs únicos de usuários
-        const userIds = Array.from(new Set((submissionsData || []).map((s: any) => s.user_id)));
-        console.log("👥 User IDs únicos:", userIds.length, userIds);
-
-        if (userIds.length === 0) {
-          console.log("⚠️ Nenhum usuário encontrado com submissões");
-          setUsers([]);
-          return;
-        }
-
-        // Buscar os perfis desses usuários
-        const { data: profilesData, error: profilesError } = await sb
-          .from("profiles")
-          .select("*, gender, followers_range")
-          .in("id", userIds)
-          .order("created_at", { ascending: false });
-
-        if (profilesError) {
-          console.error("❌ Erro ao buscar perfis:", profilesError);
-          throw profilesError;
-        }
-
-        console.log(`📊 Loaded ${profilesData?.length || 0} users for agency ${currentAgencyId}`);
-        setUsers(profilesData || []);
-
-        // Carregar eventos por usuário
-        if (profilesData && profilesData.length > 0) {
-          await loadUserEvents(profilesData.map((u) => u.id));
-        }
-} else {
-  // Agency admin SEM currentAgencyId definido - buscar diretamente do perfil
-  const { data: { user: currentUser } } = await sb.auth.getUser();
-  if (!currentUser) {
-    setUsers([]);
-    return;
-  }
-  
-  const { data: profileData } = await sb
-    .from('profiles')
-    .select('agency_id')
-    .eq('id', currentUser.id)
-    .maybeSingle();
-  
-  if (profileData?.agency_id) {
-    // Buscar usuários da mesma agência
-    const { data: agencyUsers } = await sb
-      .from('profiles')
-      .select('*, gender')
-      .eq('agency_id', profileData.agency_id)
-      .order('created_at', { ascending: false });
-    
-    setUsers(agencyUsers || []);
-  } else {
-    console.warn("⚠️ Agency admin sem agency_id no perfil");
-    setUsers([]);
-  }
-}
-    } catch (error) {
-      toast.error("Erro ao carregar usuários", {
-        description: "Não foi possível carregar a lista de usuários. Tente novamente."
-      });
-      console.error("❌ Erro ao carregar usuários:", error);
-      setUsers([]);
-    }
-  };
-
-  const loadUserEvents = async (userIds: string[]) => {
-  if (userIds.length === 0) {
-    setUserEvents({});
-    setUserSalesCount({});
-    return;
-  }
-
-  // ✅ UMA ÚNICA QUERY para todos os usuários
-  const { data } = await sb
-    .from("submissions")
-    .select(`
-      user_id,
-      posts!inner(
-        events!inner(
-          id,
-          title
-        )
-      ),
-      submission_type,
-      status
-    `)
-    .in("user_id", userIds);
-
-  // Processar dados em memória (muito mais rápido)
-  const eventsMap: Record<string, string[]> = {};
-  const salesMap: Record<string, number> = {};
-
-  userIds.forEach(userId => {
-    eventsMap[userId] = [];
-    salesMap[userId] = 0;
-  });
-
-  if (data) {
-    data.forEach((submission: any) => {
-      const userId = submission.user_id;
-      const eventTitle = submission.posts?.events?.title;
-      
-      // Adicionar evento único
-      if (eventTitle && !eventsMap[userId].includes(eventTitle)) {
-        eventsMap[userId].push(eventTitle);
-      }
-      
-      // Contar vendas aprovadas
-      if (submission.submission_type === 'sale' && submission.status === 'approved') {
-        salesMap[userId] = (salesMap[userId] || 0) + 1;
-      }
-    });
-  }
-
-  setUserEvents(eventsMap);
-  setUserSalesCount(salesMap);
-};
+  }, [isMasterAdmin, currentAgencyId, loadUsers]);
 
   const startEdit = (user: Profile) => {
     setEditingUser(user.id);
@@ -357,10 +152,10 @@ export const UserManagement = () => {
     
     return users.filter((user) => {
       const matchesSearch =
-        user.full_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        user.instagram?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        user.phone?.includes(debouncedSearchTerm);
+        user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.instagram?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.phone?.includes(searchTerm);
 
       const matchesGender = genderFilter === "all" || user.gender === genderFilter;
 
@@ -383,7 +178,7 @@ export const UserManagement = () => {
 
       return matchesSearch && matchesGender && matchesEvent;
     });
-  }, [users, debouncedSearchTerm, genderFilter, eventFilter, userEvents, events]);
+  }, [users, searchTerm, genderFilter, eventFilter, userEvents, events]);
 
   // Paginação
   const {
@@ -393,12 +188,12 @@ export const UserManagement = () => {
     goToPage,
     hasNextPage,
     hasPreviousPage,
-  } = usePagination({
+  } = usePagination<Profile>({
     items: filteredUsers,
     itemsPerPage: itemsPerPage,
   });
 
-  if (loadingProfiles) {
+  if (loading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -429,7 +224,7 @@ export const UserManagement = () => {
             <h2 className="text-2xl font-bold">Gerenciador de Usuários</h2>
             <p className="text-sm text-muted-foreground mt-1">
               {filteredUsers.length} usuário{filteredUsers.length !== 1 ? 's' : ''} encontrado{filteredUsers.length !== 1 ? 's' : ''}
-              {(eventFilter !== "all" || genderFilter !== "all" || debouncedSearchTerm) && (
+              {(eventFilter !== "all" || genderFilter !== "all" || searchTerm) && (
                 <span className="text-xs ml-1">de {users.length} total</span>
               )}
             </p>
@@ -489,7 +284,7 @@ export const UserManagement = () => {
         </div>
       </div>
 
-      {loadingProfiles ? (
+      {loading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-40 w-full" />
