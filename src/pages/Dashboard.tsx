@@ -94,15 +94,17 @@ const Dashboard = () => {
 
   // 🔧 ITEM 1: Remover query params, usar apenas primeira agência do usuário
   const currentAgencyId = useMemo(() => {
-    if (!userAgenciesData || isLoadingAgencies) return null;
+    // ⚠️ NÃO retornar null enquanto está loading
+    if (isLoadingAgencies) return undefined; // 🔧 MUDANÇA: undefined em vez de null
 
-    if (userAgenciesData.length > 0) {
-      console.log("📍 [Dashboard] Usando primeira agência:", userAgenciesData[0].id);
-      return userAgenciesData[0].id;
+    if (!userAgenciesData || userAgenciesData.length === 0) {
+      console.log("⚠️ [Dashboard] Nenhuma agência encontrada");
+      return null;
     }
 
-    console.log("⚠️ [Dashboard] Nenhuma agência encontrada");
-    return null;
+    const agencyId = userAgenciesData[0]?.id || null;
+    console.log("📍 [Dashboard] Usando agência:", agencyId);
+    return agencyId;
   }, [userAgenciesData, isLoadingAgencies]);
 
   // ✅ Hook unificado para todos os dados do dashboard (agora recebe valor síncrono)
@@ -453,7 +455,9 @@ const Dashboard = () => {
                       )}
                     </div>
                     <p className="text-muted-foreground text-sm sm:text-base break-all">{profile.email}</p>
-                    {profile.instagram && <p className="text-xs sm:text-sm text-muted-foreground">📱 @{profile.instagram}</p>}
+                    {profile.instagram && (
+                      <p className="text-xs sm:text-sm text-muted-foreground">📱 @{profile.instagram}</p>
+                    )}
                   </div>
                 </div>
 
@@ -670,21 +674,25 @@ const Dashboard = () => {
                             variant="outline"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto"
                             onClick={async () => {
-                              if (confirm("Tem certeza que deseja deletar esta submissão? Esta ação não pode ser desfeita.")) {
+                              if (
+                                confirm(
+                                  "Tem certeza que deseja deletar esta submissão? Esta ação não pode ser desfeita.",
+                                )
+                              ) {
                                 try {
                                   const { error } = await sb
-                                    .from('submissions')
+                                    .from("submissions")
                                     .delete()
-                                    .eq('id', submission.id)
-                                    .eq('user_id', user!.id);
-                                  
+                                    .eq("id", submission.id)
+                                    .eq("user_id", user!.id);
+
                                   if (error) throw error;
-                                  
+
                                   toast({
                                     title: "Submissão deletada",
                                     description: "A submissão foi removida com sucesso.",
                                   });
-                                  
+
                                   refetch();
                                 } catch (error: any) {
                                   toast({
@@ -696,7 +704,18 @@ const Dashboard = () => {
                               }
                             }}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-2"
+                            >
                               <path d="M3 6h18"></path>
                               <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                               <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -786,11 +805,7 @@ const Dashboard = () => {
                     )}
                     <div>
                       <Label>Gênero</Label>
-                      <Select 
-                        value={selectedGender} 
-                        onValueChange={setSelectedGender}
-                        disabled={isAgencyAdmin}
-                      >
+                      <Select value={selectedGender} onValueChange={setSelectedGender} disabled={isAgencyAdmin}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione seu gênero" />
                         </SelectTrigger>
@@ -819,8 +834,8 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <Label>Faixa de Seguidores</Label>
-                      <Select 
-                        value={profile.followers_range || ""} 
+                      <Select
+                        value={profile.followers_range || ""}
                         onValueChange={async (value) => {
                           await updateProfileMutation.mutateAsync({ followers_range: value });
                         }}
