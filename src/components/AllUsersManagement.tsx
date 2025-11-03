@@ -27,7 +27,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Pencil, Trash2, Search, Users } from "lucide-react";
+import { Pencil, Trash2, Search, Users, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { sb } from "@/lib/supabaseSafe";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "@/components/ui/pagination-controls";
@@ -60,6 +61,7 @@ export const AllUsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [agencyFilter, setAgencyFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState("all");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({
@@ -259,6 +261,29 @@ export const AllUsersManagement = () => {
     return "secondary";
   };
 
+  const handleExportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredUsers.map(user => ({
+        Nome: user.full_name || "",
+        Email: user.email || "",
+        Instagram: user.instagram || "",
+        Telefone: user.phone || "",
+        Gênero: user.gender || "",
+        "Faixa de Seguidores": user.followers_range || "",
+        Nível: getUserRole(user.roles),
+        Agência: getAgencyName(user.agency_id),
+        "Total Posts": submissionCounts[user.id] || 0,
+      }))
+    );
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Usuários");
+    XLSX.writeFile(workbook, `usuarios_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({
+      title: "Exportação concluída",
+      description: `${filteredUsers.length} usuários exportados com sucesso.`,
+    });
+  };
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch = searchTerm
       ? user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -275,7 +300,10 @@ export const AllUsersManagement = () => {
       (roleFilter === "agency_admin" && user.roles?.includes("agency_admin")) ||
       (roleFilter === "user" && (!user.roles || user.roles.length === 0));
 
-    return matchesSearch && matchesAgency && matchesRole;
+    const matchesGender =
+      genderFilter === "all" || user.gender === genderFilter;
+
+    return matchesSearch && matchesAgency && matchesRole && matchesGender;
   });
 
   // Paginação
@@ -292,17 +320,27 @@ export const AllUsersManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold">Gerenciar Todos os Usuários</h2>
           <p className="text-muted-foreground mt-1">
             Visualize, edite e gerencie todos os usuários do sistema
           </p>
         </div>
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          <Users className="w-4 h-4 mr-2" />
-          {filteredUsers.length} usuários {totalPages > 1 && `(página ${currentPage} de ${totalPages})`}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportToExcel}
+            disabled={filteredUsers.length === 0}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar XLSX
+          </Button>
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            <Users className="w-4 h-4 mr-2" />
+            {filteredUsers.length} usuários {totalPages > 1 && `(página ${currentPage} de ${totalPages})`}
+          </Badge>
+        </div>
       </div>
 
       {/* Filters */}
@@ -347,6 +385,21 @@ export const AllUsersManagement = () => {
               </SelectContent>
             </Select>
           </div>
+          <div className="w-full md:w-48">
+            <Select value={genderFilter} onValueChange={setGenderFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos os gêneros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os gêneros</SelectItem>
+                {genderOptions.map((gender) => (
+                  <SelectItem key={gender} value={gender}>
+                    {gender}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </Card>
 
@@ -365,56 +418,64 @@ export const AllUsersManagement = () => {
         ) : (
           <div className="overflow-x-auto -mx-4 md:mx-0">
             <div className="inline-block min-w-full align-middle">
-              <Table className="w-full">
+              <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[180px] min-w-[180px]">Nome</TableHead>
-                    <TableHead className="w-[200px] min-w-[200px]">Email</TableHead>
-                    <TableHead className="w-[130px] min-w-[130px]">Instagram</TableHead>
-                    <TableHead className="w-[120px] min-w-[120px] hidden lg:table-cell">Telefone</TableHead>
-                    <TableHead className="w-[100px] min-w-[100px] hidden xl:table-cell">Sexo</TableHead>
-                    <TableHead className="w-[140px] min-w-[140px]">Acesso</TableHead>
-                    <TableHead className="w-[150px] min-w-[150px] hidden lg:table-cell">Agência</TableHead>
-                    <TableHead className="w-[90px] min-w-[90px] text-center">Posts</TableHead>
-                    <TableHead className="w-[120px] min-w-[120px] sticky right-0 bg-card">Ações</TableHead>
+                    <TableHead className="max-w-[180px]">Nome</TableHead>
+                    <TableHead className="max-w-[200px]">Email</TableHead>
+                    <TableHead className="max-w-[130px]">Instagram</TableHead>
+                    <TableHead className="max-w-[120px] hidden lg:table-cell">Telefone</TableHead>
+                    <TableHead className="max-w-[130px] hidden lg:table-cell">Faixa Seguidores</TableHead>
+                    <TableHead className="max-w-[100px] hidden xl:table-cell">Sexo</TableHead>
+                    <TableHead className="max-w-[140px]">Acesso</TableHead>
+                    <TableHead className="max-w-[150px] hidden lg:table-cell">Agência</TableHead>
+                    <TableHead className="max-w-[90px] text-center">Posts</TableHead>
+                    <TableHead className="w-[120px] sticky right-0 bg-card">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
                   {paginatedUsers.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium w-[180px] min-w-[180px]">
-                        <div className="truncate max-w-[170px]" title={user.full_name || "—"}>
+                      <TableCell className="font-medium max-w-[180px]">
+                        <div className="truncate" title={user.full_name || "—"}>
                           {user.full_name || "—"}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[200px] min-w-[200px]">
-                        <div className="truncate max-w-[190px]" title={user.email || "—"}>
+                      <TableCell className="max-w-[200px]">
+                        <div className="truncate" title={user.email || "—"}>
                           {user.email || "—"}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[130px] min-w-[130px]">
-                        <div className="truncate max-w-[120px]">
-                          {user.instagram ? `@${user.instagram}` : "—"}
+                      <TableCell className="max-w-[130px]">
+                        <div className="truncate">
+                          {user.instagram 
+                            ? (user.instagram.startsWith('@') ? user.instagram : `@${user.instagram}`)
+                            : "—"}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[120px] min-w-[120px] hidden lg:table-cell">{user.phone || "—"}</TableCell>
-                      <TableCell className="w-[100px] min-w-[100px] hidden xl:table-cell">
+                      <TableCell className="max-w-[120px] hidden lg:table-cell">{user.phone || "—"}</TableCell>
+                      <TableCell className="max-w-[130px] hidden lg:table-cell">
+                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                          {user.followers_range || "Não informado"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[100px] hidden xl:table-cell">
                         <Badge variant="outline" className="text-xs whitespace-nowrap">
                           {user.gender || "—"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="w-[140px] min-w-[140px]">
+                      <TableCell className="max-w-[140px]">
                         <Badge variant={getRoleBadgeVariant(user.roles)} className="text-xs whitespace-nowrap">
                           {getUserRole(user.roles)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="w-[150px] min-w-[150px] hidden lg:table-cell">
-                        <div className="truncate max-w-[140px]" title={getAgencyName(user.agency_id)}>
+                      <TableCell className="max-w-[150px] hidden lg:table-cell">
+                        <div className="truncate" title={getAgencyName(user.agency_id)}>
                           {getAgencyName(user.agency_id)}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[90px] min-w-[90px] text-center">
+                      <TableCell className="max-w-[90px] text-center">
                         <Badge variant="secondary" className="text-xs">
                           {submissionCounts[user.id] || 0}
                         </Badge>

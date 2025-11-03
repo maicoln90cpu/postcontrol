@@ -36,11 +36,22 @@ export const FinancialReports = () => {
 
   const loadFinancialData = async () => {
     // Buscar todas as agências
-    const { data: agencies } = await sb
+    const { data: agenciesData } = await sb
       .from('agencies')
-      .select('*, subscription_plans(plan_name, monthly_price)');
+      .select('*');
 
-    if (!agencies) return;
+    // Buscar todos os planos
+    const { data: plansData } = await sb
+      .from('subscription_plans')
+      .select('*');
+
+    if (!agenciesData || !plansData) return;
+
+    // Mapear agências com seus planos
+    const agencies = agenciesData.map(agency => ({
+      ...agency,
+      subscription_plans: plansData.find(p => p.plan_key === agency.subscription_plan)
+    }));
 
     // Calcular estatísticas
     const active = agencies.filter(a => a.subscription_status === 'active');

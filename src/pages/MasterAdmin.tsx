@@ -59,6 +59,8 @@ const MasterAdmin = () => {
   const [plans, setPlans] = useState<any[]>([]);
   const [selectedAgencyForEvents, setSelectedAgencyForEvents] = useState<string>("");
   const [agencyEvents, setAgencyEvents] = useState<any[]>([]);
+  const [eventParticipants, setEventParticipants] = useState<Record<string, number>>({});
+  const [eventSubmissions, setEventSubmissions] = useState<Record<string, number>>({});
 
   // Form state
   const [newAgency, setNewAgency] = useState({
@@ -99,6 +101,48 @@ const MasterAdmin = () => {
     if (data) {
       setPlans(data);
     }
+  };
+
+  const loadEventStats = async (eventIds: string[]) => {
+    const participants: Record<string, number> = {};
+    const submissions: Record<string, number> = {};
+    
+    await Promise.all(
+      eventIds.map(async (eventId) => {
+        // Buscar todos os posts desse evento
+        const { data: postsData } = await sb
+          .from('posts')
+          .select('id')
+          .eq('event_id', eventId);
+        
+        const postIds = postsData?.map(p => p.id) || [];
+        
+        if (postIds.length > 0) {
+          // Contar usuários únicos que submeteram algo nesse evento
+          const { data: submissionsData } = await sb
+            .from('submissions')
+            .select('user_id')
+            .in('post_id', postIds);
+          
+          const uniqueUserIds = new Set(submissionsData?.map(s => s.user_id) || []);
+          participants[eventId] = uniqueUserIds.size;
+          
+          // Contar total de submissões
+          const { count } = await sb
+            .from('submissions')
+            .select('id', { count: 'exact', head: true })
+            .in('post_id', postIds);
+          
+          submissions[eventId] = count || 0;
+        } else {
+          participants[eventId] = 0;
+          submissions[eventId] = 0;
+        }
+      })
+    );
+    
+    setEventParticipants(participants);
+    setEventSubmissions(submissions);
   };
 
   const loadAgencies = async () => {
@@ -384,6 +428,9 @@ const MasterAdmin = () => {
                         .eq('agency_id', value)
                         .order('created_at', { ascending: false });
                       setAgencyEvents(data || []);
+                      if (data && data.length > 0) {
+                        await loadEventStats(data.map(e => e.id));
+                      }
                     }}
                   >
                     <SelectTrigger className="w-[300px]">
@@ -405,8 +452,8 @@ const MasterAdmin = () => {
                       <TableRow>
                         <TableHead>Evento</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Posts Obrigatórios</TableHead>
-                        <TableHead>Vendas Obrigatórias</TableHead>
+                        <TableHead>Usuários Participando</TableHead>
+                        <TableHead>Total Submissões</TableHead>
                         <TableHead>Data do Evento</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -426,8 +473,16 @@ const MasterAdmin = () => {
                                 {event.is_active ? "Ativo" : "Inativo"}
                               </Badge>
                             </TableCell>
-                            <TableCell>{event.required_posts || 0}</TableCell>
-                            <TableCell>{event.required_sales || 0}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {eventParticipants[event.id] || 0} usuários
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {eventSubmissions[event.id] || 0} submissões
+                              </Badge>
+                            </TableCell>
                             <TableCell>
                               {event.event_date 
                                 ? new Date(event.event_date).toLocaleDateString('pt-BR')
