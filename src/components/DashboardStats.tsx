@@ -683,7 +683,8 @@ const setCachedStats = (key: string, data: any) => {
 
     const eventStatsData: EventStats[] = [];
     const allSubmissionsDates: { date: string; count: number }[] = [];
-    const allGenderData: Map<string, number> = new Map();
+    let allGenderData = new Map<string, number>(); // ✅ ITEM 1: Map para armazenar dados finais
+    let eventSpecificGenderData = new Map<string, number>(); // ✅ Map temporário para cada evento
 
     for (const event of eventsData || []) {
       const { data: postsData } = await sb
@@ -721,8 +722,8 @@ const setCachedStats = (key: string, data: any) => {
         }
       });
 
-      // ✅ ITEM 1: Limpar allGenderData ANTES de popular para ESTE evento específico
-      allGenderData.clear();
+      // ✅ ITEM 1: Resetar Map temporário para ESTE evento específico
+      eventSpecificGenderData = new Map<string, number>();
 
       // Coletar dados de gênero dos usuários reais (INCLUINDO todos, mesmo sem gender)
       const userIds = Array.from(uniqueUsers);
@@ -761,12 +762,13 @@ const setCachedStats = (key: string, data: any) => {
             }
           }
           
-          allGenderData.set(displayGender, (allGenderData.get(displayGender) || 0) + 1);
+          eventSpecificGenderData.set(displayGender, (eventSpecificGenderData.get(displayGender) || 0) + 1);
         });
         
-        console.log('📊 Distribuição de gênero FINAL:', Array.from(allGenderData.entries()));
+        console.log('📊 Distribuição de gênero FINAL para este evento:', Array.from(eventSpecificGenderData.entries()));
         
-        console.log('📊 Distribuição de gênero:', Array.from(allGenderData.entries()));
+        // ✅ ITEM 1: Copiar para allGenderData (usado no Excel)
+        allGenderData = new Map(eventSpecificGenderData);
         
         console.log('📊 Distribuição de gênero:', Array.from(allGenderData.entries()));
       }

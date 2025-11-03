@@ -27,6 +27,7 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
   const [deadline, setDeadline] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedPostType, setSelectedPostType] = useState<'divulgacao' | 'venda'>('divulgacao'); // ✅ ITEM 6
   const { toast } = useToast();
 
   useEffect(() => {
@@ -129,20 +130,28 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
 
       const userAgencyId = profileData?.agency_id;
 
-      // ✅ ITEM 6: Buscar event_purpose do evento
+      // ✅ ITEM 6: Buscar event_purpose e accept_sales do evento
       const { data: eventData } = await sb
         .from('events')
-        .select('event_purpose')
+        .select('event_purpose, accept_sales')
         .eq('id', eventId)
         .maybeSingle();
       
-      const postType = eventData?.event_purpose || 'divulgacao';
+      const eventPurpose = eventData?.event_purpose || 'divulgacao';
+      const acceptSales = eventData?.accept_sales || false;
       
-      // ✅ ITEM 6: Determinar post_number baseado no tipo
+      // ✅ ITEM 6: Determinar post_type e post_number baseado no tipo selecionado
+      let finalPostType = eventPurpose;
       let finalPostNumber = parseInt(postNumber);
       
-      if (postType === 'venda') {
-        // Venda sempre é post 0 (único)
+      // Se evento aceita vendas E usuário selecionou venda
+      if (acceptSales && eventPurpose === 'divulgacao' && selectedPostType === 'venda') {
+        finalPostType = 'venda';
+        finalPostNumber = 0;
+      }
+      
+      // Se evento é exclusivamente venda
+      if (eventPurpose === 'venda') {
         finalPostNumber = 0;
       }
 
@@ -155,7 +164,7 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
             post_number: finalPostNumber,
             deadline: new Date(deadline + ':00-03:00').toISOString(),
             agency_id: userAgencyId,
-            post_type: postType, // ✅ ITEM 6
+            post_type: finalPostType, // ✅ ITEM 6
           })
           .eq('id', post.id);
 
@@ -178,7 +187,7 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
             deadline: new Date(deadline + ':00-03:00').toISOString(),
             created_by: user.id,
             agency_id: userAgencyId,
-            post_type: postType, // ✅ ITEM 6
+            post_type: finalPostType, // ✅ ITEM 6
           });
 
         if (error) {
@@ -235,6 +244,39 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
             if (!event) return null;
             
             const eventPurpose = (event as any).event_purpose || 'divulgacao';
+            const acceptSales = (event as any).accept_sales || false;
+            
+            // ✅ ITEM 6: Eventos com accept_sales permitem 2 tipos
+            if (acceptSales && eventPurpose === 'divulgacao') {
+              return (
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm">
+                      <strong>Tipos permitidos:</strong>
+                      <br />
+                      📢 Divulgação (post 1, 2, 3...) - 1 submissão por post
+                      <br />
+                      💰 Comprovante de Vendas (post 0) - múltiplas submissões
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="postType">Tipo de Post *</Label>
+                    <Select value={selectedPostType} onValueChange={(value) => setSelectedPostType(value as 'divulgacao' | 'venda')}>
+                      <SelectTrigger id="postType">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="divulgacao">📢 Divulgação</SelectItem>
+                        <SelectItem value="venda">💰 Comprovante de Vendas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Eventos normais (apenas 1 tipo)
             const typeInfo = eventPurpose === 'venda' 
               ? { emoji: '💰', label: 'Comprovante de Vendas', desc: 'usuários podem enviar múltiplas vezes' }
               : eventPurpose === 'selecao_perfil'
@@ -267,16 +309,36 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
               type="number"
               value={(() => {
                 const event = events.find(e => e.id === eventId);
-                return (event as any)?.event_purpose === 'venda' ? '0' : postNumber;
+                const eventPurpose = (event as any)?.event_purpose || 'divulgacao';
+                const acceptSales = (event as any)?.accept_sales || false;
+                
+                // ✅ ITEM 6: Se evento aceita vendas E tipo selecionado é venda, fixar em 0
+                if (acceptSales && selectedPostType === 'venda') {
+                  return '0';
+                }
+                // Se evento é exclusivamente venda, fixar em 0
+                if (eventPurpose === 'venda') {
+                  return '0';
+                }
+                return postNumber;
               })()}
               onChange={(e) => setPostNumber(e.target.value)}
               placeholder={(() => {
                 const event = events.find(e => e.id === eventId);
-                return (event as any)?.event_purpose === 'venda' ? '0' : '1, 2, 3...';
+                const acceptSales = (event as any)?.accept_sales || false;
+                if (acceptSales && selectedPostType === 'venda') return '0';
+                if ((event as any)?.event_purpose === 'venda') return '0';
+                return '1, 2, 3...';
               })()}
               required
               min="0"
-              disabled={loading || events.find(e => e.id === eventId && (e as any).event_purpose === 'venda') !== undefined}
+              disabled={loading || (() => {
+                const event = events.find(e => e.id === eventId);
+                if (!event) return false;
+                const eventPurpose = (event as any).event_purpose;
+                const acceptSales = (event as any).accept_sales || false;
+                return eventPurpose === 'venda' || (acceptSales && selectedPostType === 'venda');
+              })()}
             />
           </div>
           <div className="space-y-2">

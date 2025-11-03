@@ -171,9 +171,8 @@ export const UserManagement = () => {
           console.log('✅ Usuário SEM evento:', user.full_name, userEvents[user.id]);
         }
       } else {
-        matchesEvent = userEvents[user.id]?.some((eventTitle) => 
-          events.find((e) => e.title === eventTitle)?.id === eventFilter
-        );
+        // ✅ ITEM 4: Comparar por event_id direto
+        matchesEvent = userEvents[user.id]?.some((event) => event.id === eventFilter);
       }
 
       return matchesSearch && matchesGender && matchesEvent;
@@ -402,12 +401,12 @@ export const UserManagement = () => {
                           <div className="col-span-2">
                             <span className="text-muted-foreground">Eventos participando:</span>{" "}
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {userEvents[user.id].map((eventTitle, idx) => (
+                              {userEvents[user.id].map((event, idx) => (
                                 <span
                                   key={idx}
                                   className="inline-flex items-center px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded"
                                 >
-                                  {eventTitle}
+                                  {event.displayName}
                                 </span>
                               ))}
                             </div>

@@ -19,7 +19,7 @@ export const useUserManagement = () => {
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
   const [isMasterAdmin, setIsMasterAdmin] = useState<boolean | null>(null);
   const [events, setEvents] = useState<any[]>([]);
-  const [userEvents, setUserEvents] = useState<Record<string, string[]>>({});
+  const [userEvents, setUserEvents] = useState<Record<string, Array<{ id: string; displayName: string }>>>({});
   const [userSalesCount, setUserSalesCount] = useState<Record<string, number>>({});
 
   const checkAdminStatus = useCallback(async () => {
@@ -70,7 +70,8 @@ export const useUserManagement = () => {
       `)
       .in("user_id", userIds);
 
-    const eventsMap: Record<string, string[]> = {};
+    // ✅ ITEM 4: Armazenar TANTO eventId quanto displayName
+    const eventsMap: Record<string, Array<{ id: string; displayName: string }>> = {};
     const salesMap: Record<string, number> = {};
 
     userIds.forEach(userId => {
@@ -81,14 +82,16 @@ export const useUserManagement = () => {
     if (data) {
       data.forEach((submission: any) => {
         const userId = submission.user_id;
+        const eventId = submission.posts?.events?.id;
         const eventTitle = submission.posts?.events?.title;
         const postType = submission.posts?.post_type || submission.posts?.events?.event_purpose || 'divulgacao';
         
         const typeLabel = postType === 'venda' ? 'Vendas' : postType === 'selecao_perfil' ? 'Seleção' : 'Divulgação';
-        const eventKey = eventTitle ? `${eventTitle} (${typeLabel})` : null;
+        const displayName = eventTitle ? `${eventTitle} (${typeLabel})` : null;
         
-        if (eventKey && !eventsMap[userId].includes(eventKey)) {
-          eventsMap[userId].push(eventKey);
+        // ✅ Verificar se evento já existe pelo ID
+        if (eventId && displayName && !eventsMap[userId].some(e => e.id === eventId)) {
+          eventsMap[userId].push({ id: eventId, displayName });
         }
         
         if (submission.submission_type === 'sale' && submission.status === 'approved') {
