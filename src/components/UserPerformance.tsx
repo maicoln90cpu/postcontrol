@@ -163,16 +163,26 @@ export const UserPerformance = () => {
   const eventName = events.find(e => e.id === selectedEventId)?.title || 'Todos';
   
   // 🔧 CORREÇÃO 4: Função melhorada para remover acentos E emojis
-  const removeAccents = (str: string) => {
+  const cleanTextForPDF = (str: string) => {
     return str
+      // 1️⃣ Remover emojis PRIMEIRO
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
+      .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Símbolos
+      .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transporte
+      .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Bandeiras
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Símbolos diversos
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
+      // 2️⃣ Remover acentos DEPOIS
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[^\x00-\x7F]/g, ''); // Remove emojis e caracteres especiais
+      .replace(/[\u0300-\u036f]/g, '')
+      // 3️⃣ Remover caracteres especiais restantes
+      .replace(/[^\x00-\x7F]/g, '')
+      .trim();
   };
 
   // Título SEM ACENTOS
   doc.setFontSize(18);
-  doc.text(removeAccents(`Relatorio de Desempenho - ${eventName}`), 14, 20);
+  doc.text(cleanTextForPDF(`Relatorio de Desempenho - ${eventName}`), 14, 20);
   doc.setFontSize(11);
   doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
 
@@ -180,20 +190,20 @@ export const UserPerformance = () => {
   autoTable(doc, {
     startY: 35,
     head: [[
-      removeAccents('Nome'), 
+      cleanTextForPDF('Nome'), 
       'Email', 
       'Instagram',
       'Sexo',
       'Seguidores',
       'Aprovados', 
       'Pendentes', 
-      removeAccents('Conclusao (%)')
+      cleanTextForPDF('Conclusao (%)')
     ]],
     body: filteredStats.map(stat => [
-      removeAccents(stat.user_name || ''),
+      cleanTextForPDF(stat.user_name || ''),
       stat.user_email,
       stat.user_instagram,
-      removeAccents(stat.user_gender || 'N/A'),
+      cleanTextForPDF(stat.user_gender || 'N/A'),
       stat.user_followers_range || 'N/A',
       stat.approved_submissions.toString(),
       stat.pending_submissions.toString(),
@@ -203,7 +213,7 @@ export const UserPerformance = () => {
     headStyles: { fillColor: [168, 85, 247] }
   });
 
-  doc.save(`Relatorio_${removeAccents(eventName)}_${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`Relatorio_${cleanTextForPDF(eventName)}_${new Date().toISOString().split('T')[0]}.pdf`);
   toast.success("Relatorio PDF exportado com sucesso!", {
     description: "O arquivo foi baixado para seu computador."
   });

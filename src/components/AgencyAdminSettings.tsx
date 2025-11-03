@@ -196,7 +196,7 @@ export const AgencyAdminSettings = () => {
       setAgencyLogoUrl(publicData.publicUrl);
       setLogoPreview(publicData.publicUrl);
       
-      toast.success("Logo atualizado com sucesso!");
+      toast.success("Logo atualizado com sucesso! O logo será atualizado automaticamente no painel.");
       setLogoFile(null);
       
       // Resetar progresso após 1s

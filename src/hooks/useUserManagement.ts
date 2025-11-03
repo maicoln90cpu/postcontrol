@@ -41,34 +41,56 @@ export const useUserManagement = () => {
     }
   }, []);
 
-  const loadUserEvents = useCallback(async (userIds: string[]) => {
-    const eventsMap: Record<string, string[]> = {};
-
-    for (const userId of userIds) {
-      const { data } = await sb
-        .from("submissions")
-        .select(
-          `
-          posts!inner(
-            events!inner(
-              id,
-              title
-            )
-          )
-        `
-        )
-        .eq("user_id", userId);
-
-      if (data && data.length > 0) {
-        const eventTitles = Array.from(new Set(data.map((s: any) => s.posts?.events?.title).filter(Boolean)));
-        eventsMap[userId] = eventTitles as string[];
-      } else {
-        eventsMap[userId] = [];
-      }
+  const loadUserEvents = async (userIds: string[]) => {
+    if (userIds.length === 0) {
+      setUserEvents({});
+      return;
     }
 
+    const { data } = await sb
+      .from("submissions")
+      .select(`
+        user_id,
+        posts!inner(
+          events!inner(
+            id,
+            title
+          )
+        ),
+        submission_type,
+        status
+      `)
+      .in("user_id", userIds);
+
+    const eventsMap: Record<string, string[]> = {};
+    const salesMap: Record<string, number> = {};
+
+    // ✅ CORRIGIDO: Inicializar TODOS os usuários (não apenas com submissões)
+    userIds.forEach(userId => {
+      eventsMap[userId] = [];  // ✅ Garante que TODOS têm array vazio
+      salesMap[userId] = 0;
+    });
+
+    if (data) {
+      data.forEach((submission: any) => {
+        const userId = submission.user_id;
+        const eventTitle = submission.posts?.events?.title;
+        
+        if (eventTitle && !eventsMap[userId].includes(eventTitle)) {
+          eventsMap[userId].push(eventTitle);
+        }
+        
+        if (submission.submission_type === 'sale' && submission.status === 'approved') {
+          salesMap[userId] = (salesMap[userId] || 0) + 1;
+        }
+      });
+    }
+
+    console.log('📊 Usuários sem evento:', Object.entries(eventsMap).filter(([_, events]) => events.length === 0).length);
+    console.log('📊 Total de usuários:', Object.keys(eventsMap).length);
+
     setUserEvents(eventsMap);
-  }, []);
+  };
 
   const loadUsers = useCallback(async () => {
     setLoading(true);

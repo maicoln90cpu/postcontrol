@@ -367,10 +367,11 @@ export const UserManagement = () => {
 
       const matchesGender = genderFilter === "all" || user.gender === genderFilter;
 
-      const matchesEvent =
-        eventFilter === "all" ||
-        (eventFilter === "no_event" && (!userEvents[user.id] || userEvents[user.id].length === 0)) ||
-        userEvents[user.id]?.some((eventTitle) => events.find((e) => e.title === eventTitle)?.id === eventFilter);
+    const matchesEvent =
+      eventFilter === "all" ||
+      // ✅ CORRIGIDO: Verificar se array existe E está vazio
+      (eventFilter === "no_event" && (userEvents[user.id] && userEvents[user.id].length === 0)) ||
+      userEvents[user.id]?.some((eventTitle) => events.find((e) => e.title === eventTitle)?.id === eventFilter);
 
       return matchesSearch && matchesGender && matchesEvent;
     });

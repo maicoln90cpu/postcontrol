@@ -604,7 +604,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
                   
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs">Posts *</Label>
+                      <Label className="text-xs">Posts (Opcional)</Label>
                       <Input
                         type="number"
                         value={req.required_posts}
@@ -615,12 +615,12 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
                         }}
                         placeholder="0"
                         min="0"
-                        required
                         disabled={loading}
                       />
+                      <p className="text-xs text-muted-foreground">Deixe 0 se não exigir posts</p>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Vendas *</Label>
+                      <Label className="text-xs">Vendas (Opcional)</Label>
                       <Input
                         type="number"
                         value={req.required_sales}
@@ -631,9 +631,9 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
                         }}
                         placeholder="0"
                         min="0"
-                        required
                         disabled={loading}
                       />
+                      <p className="text-xs text-muted-foreground">Deixe 0 se não exigir vendas</p>
                     </div>
                   </div>
                   

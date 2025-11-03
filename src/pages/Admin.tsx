@@ -225,6 +225,34 @@ const Admin = () => {
     }
   }, [currentAgency]);
 
+  // ✅ CORREÇÃO 5: Adicionar Realtime listener para atualizar logo automaticamente
+  useEffect(() => {
+    if (!currentAgency?.id) return;
+
+    const channel = sb.channel('agency-logo-updates')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'agencies',
+          filter: `id=eq.${currentAgency.id}`
+        }, 
+        (payload: any) => {
+          console.log('🔄 [Realtime] Agência atualizada:', payload.new);
+          if (payload.new.logo_url !== currentAgency.logo_url) {
+            console.log('🖼️ [Realtime] Logo atualizado:', payload.new.logo_url);
+            setCurrentAgency((prev: any) => ({ ...prev, logo_url: payload.new.logo_url }));
+            toast.success("Logo atualizado!");
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      sb.removeChannel(channel);
+    };
+  }, [currentAgency?.id]);
+
   // Carregar submissions apenas quando filtro ou agência mudarem
   useEffect(() => {
     if (user && (isAgencyAdmin || isMasterAdmin) && currentAgency) {
@@ -1261,7 +1289,7 @@ const Admin = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="events" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-9 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1 h-auto">
             <TabsTrigger value="events" className="text-xs sm:text-sm py-2">
               Eventos
             </TabsTrigger>
@@ -1282,9 +1310,6 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="statistics" className="text-xs sm:text-sm py-2">
               Estatísticas
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2">
-              Gerenciamento
             </TabsTrigger>
             <TabsTrigger id="settings-tab" value="settings" className="text-xs sm:text-sm py-2">
               Configurações
@@ -2238,12 +2263,6 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="statistics" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <MemoizedDashboardStats />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="dashboard" className="space-y-6">
             <Tabs defaultValue="events-stats" className="space-y-6">
               <TabsList className="grid w-full max-w-md grid-cols-1 sm:grid-cols-2 gap-1 h-auto">
                 <TabsTrigger value="events-stats" className="text-xs sm:text-sm whitespace-normal py-2">

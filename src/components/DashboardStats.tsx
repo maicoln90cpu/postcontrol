@@ -639,7 +639,7 @@ const setCachedStats = (key: string, data: any) => {
         }
       });
 
-      // Coletar dados de gênero dos usuários reais
+      // Coletar dados de gênero dos usuários reais (INCLUINDO todos, mesmo sem gender)
       const userIds = Array.from(uniqueUsers);
       if (userIds.length > 0) {
         const { data: profilesGender } = await sb
@@ -648,11 +648,18 @@ const setCachedStats = (key: string, data: any) => {
           .in('id', userIds);
         
         (profilesGender || []).forEach((p: any) => {
+          let displayGender = 'Não Informado';
+          
           if (p.gender) {
-            const displayGender = p.gender === 'masculino' ? 'Masculino' : p.gender === 'feminino' ? 'Feminino' : 'LGBTQ+';
-            allGenderData.set(displayGender, (allGenderData.get(displayGender) || 0) + 1);
+            if (p.gender.toLowerCase() === 'masculino') displayGender = 'Masculino';
+            else if (p.gender.toLowerCase() === 'feminino') displayGender = 'Feminino';
+            else displayGender = 'LGBTQ+';
           }
+          
+          allGenderData.set(displayGender, (allGenderData.get(displayGender) || 0) + 1);
         });
+        
+        console.log('📊 Distribuição de gênero:', Array.from(allGenderData.entries()));
       }
 
       // ✅ ITEM 14: Sincronizar contagens corretamente
