@@ -1411,40 +1411,68 @@ const Admin = () => {
                     : "Nenhuma postagem para este evento"}
                 </p>
               ) : (
-                <div className="space-y-4">
-                  {filteredPosts.map((post) => (
-                    <Card key={post.id} className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold">Postagem #{post.post_number}</h3>
-                          <p className="text-sm text-muted-foreground">Evento: {getEventTitle(post)}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
-                          </p>
+                /* ✅ ITEM 3: Agrupar posts por evento */
+                <div className="space-y-6">
+                  {(() => {
+                    // Agrupar posts por evento
+                    const postsByEvent: Record<string, typeof filteredPosts> = {};
+                    filteredPosts.forEach((post) => {
+                      const eventTitle = getEventTitle(post);
+                      if (!postsByEvent[eventTitle]) {
+                        postsByEvent[eventTitle] = [];
+                      }
+                      postsByEvent[eventTitle].push(post);
+                    });
+
+                    return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => (
+                      <div key={eventTitle} className="space-y-3">
+                        {/* Cabeçalho do grupo de evento */}
+                        <div className="flex items-center gap-2 px-2">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          <h3 className="font-semibold text-lg">{eventTitle}</h3>
+                          <Badge variant="outline">{eventPosts.length} post{eventPosts.length > 1 ? 's' : ''}</Badge>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedPost(post);
-                              setPostDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeletePostClick(post.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        
+                        {/* Lista de posts do evento */}
+                        <div className="space-y-2 pl-6 border-l-2 border-primary/20">
+                          {eventPosts
+                            .sort((a, b) => a.post_number - b.post_number)
+                            .map((post) => (
+                              <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h4 className="font-bold">Postagem #{post.post_number}</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedPost(post);
+                                        setPostDialogOpen(true);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeletePostClick(post.id)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
                         </div>
                       </div>
-                    </Card>
-                  ))}
+                    ));
+                  })()}
                 </div>
               )}
             </Card>

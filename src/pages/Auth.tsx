@@ -30,6 +30,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [gender, setGender] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false); // ✅ ITEM 5: Estado de recuperação
   const user = useAuthStore((state) => state.user);
   const authLoading = useAuthStore((state) => state.loading);
   const { toast } = useToast();
@@ -41,6 +42,45 @@ const Auth = () => {
       navigate('/dashboard');
     }
   }, [user, authLoading, navigate]);
+
+  // ✅ ITEM 5: Função de recuperação de senha
+  const handlePasswordRecovery = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Validar email
+      if (!email || !email.includes('@')) {
+        toast({
+          title: "Email inválido",
+          description: "Por favor, digite um email válido",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        toast({
+          title: "Erro ao enviar email",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Email enviado!",
+          description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        });
+        setIsRecoveringPassword(false);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -179,104 +219,178 @@ const Auth = () => {
 
         <Card className="p-8">
           <div className="mb-8 text-center">
+            {/* ✅ ITEM 5: UI de Recuperação de Senha */}
             <h1 className="text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
-              {isLogin ? "Login" : "Criar Conta"}
+              {isRecoveringPassword ? "Recuperar Senha" : isLogin ? "Login" : "Criar Conta"}
             </h1>
             <p className="text-muted-foreground">
-              {isLogin ? "Acesse seu painel" : "Registre-se para continuar"}
+              {isRecoveringPassword 
+                ? "Enviaremos um link para redefinir sua senha"
+                : isLogin 
+                  ? "Acesse seu painel" 
+                  : "Registre-se para continuar"}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo *</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="Seu nome completo" 
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="gender">Gênero *</Label>
-                  <select
-                    id="gender"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    required
-                    disabled={loading}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Feminino">Feminino</option>
-                    <option value="LGBTQ+">LGBTQ+</option>
-                  </select>
-                </div>
-              </>
-            )}
+          {/* ✅ ITEM 5: Formulário de Recuperação de Senha */}
+          {isRecoveringPassword ? (
+            <form onSubmit={handlePasswordRecovery} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="seu@email.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="seu@email.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-primary hover:opacity-90" 
                 disabled={loading}
-              />
-            </div>
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  "Enviar Email de Recuperação"
+                )}
+              </Button>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha *</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="••••••••" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                disabled={loading}
-              />
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setIsRecoveringPassword(false);
+                  setEmail("");
+                }}
+              >
+                Voltar para Login
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <p className="text-xs text-muted-foreground">Mínimo de 6 caracteres</p>
-              )}
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
-              size="lg"
-              disabled={loading}
-            >
-              {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processando...
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome Completo *</Label>
+                    <Input 
+                      id="name" 
+                      placeholder="Seu nome completo" 
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gênero *</Label>
+                    <select
+                      id="gender"
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      required
+                      disabled={loading}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="Masculino">Masculino</option>
+                      <option value="Feminino">Feminino</option>
+                      <option value="LGBTQ+">LGBTQ+</option>
+                    </select>
+                  </div>
                 </>
-              ) : (
-                isLogin ? "Entrar" : "Criar Conta"
               )}
-            </Button>
-          </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              disabled={loading}
-            >
-              {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre"}
-            </button>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="seu@email.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha *</Label>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  disabled={loading}
+                />
+                {!isLogin && (
+                  <p className="text-xs text-muted-foreground">Mínimo de 6 caracteres</p>
+                )}
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+                size="lg"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  isLogin ? "Entrar" : "Criar Conta"
+                )}
+              </Button>
+            </form>
+          )}
+
+          {/* ✅ ITEM 5: Links de navegação */}
+          {!isRecoveringPassword && (
+            <div className="mt-6 space-y-2">
+              {isLogin && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsRecoveringPassword(true)}
+                    className="text-sm text-primary hover:underline transition-colors"
+                    disabled={loading}
+                  >
+                    Esqueceu sua senha?
+                  </button>
+                </div>
+              )}
+              
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setPassword("");
+                    setFullName("");
+                    setGender("");
+                  }}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  disabled={loading}
+                >
+                  {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre"}
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
     </div>

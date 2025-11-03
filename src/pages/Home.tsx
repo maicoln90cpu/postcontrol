@@ -36,12 +36,17 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Fixed Navigation Header */}
+      {/* Fixed Navigation Header - ✅ ITEM 2: Logo adicionado */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <nav className="flex items-center justify-between">
-            <Link to="/" className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              PostControl
+            <Link to="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-lg">
+                <Trophy className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                PostControl
+              </span>
             </Link>
             
             {/* Menu Desktop */}

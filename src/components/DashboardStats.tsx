@@ -655,6 +655,7 @@ const setCachedStats = (key: string, data: any) => {
         });
       }
 
+      // ✅ ITEM 14: Sincronizar contagens corretamente
       eventStatsData.push({
         event_id: event.id,
         event_title: event.title,
@@ -666,15 +667,15 @@ const setCachedStats = (key: string, data: any) => {
         required_posts: event.required_posts,
         required_sales: event.required_sales,
         target_gender: event.target_gender || [],
-        total_users: uniqueUsers.size,
-        total_submissions: (submissionsData || []).length,
-        approved_submissions: approvedCount,
-        pending_submissions: pendingCount,
-        rejected_submissions: rejectedCount,
-        total_posts_available: (postsData || []).length,
-        conversion_rate: conversionRate,
-        approval_rate: approvalRate,
-        avg_posts_per_user: avgPostsPerUser
+        total_users: uniqueUsers.size, // ✅ Contagem de usuários únicos
+        total_submissions: (submissionsData || []).length, // ✅ Total de submissões
+        approved_submissions: approvedCount, // ✅ Submissões aprovadas
+        pending_submissions: pendingCount, // ✅ Submissões pendentes
+        rejected_submissions: rejectedCount, // ✅ Submissões rejeitadas
+        total_posts_available: (postsData || []).length, // ✅ Posts disponíveis do evento
+        conversion_rate: conversionRate, // ✅ Taxa de conversão baseada em vagas
+        approval_rate: approvalRate, // ✅ Taxa de aprovação baseada em submissões
+        avg_posts_per_user: avgPostsPerUser // ✅ Média de posts por usuário
       });
     }
 

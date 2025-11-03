@@ -14,6 +14,7 @@ import {
   Camera,
   User,
   Lock,
+  Send,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -531,8 +532,8 @@ const Dashboard = () => {
           </Suspense>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Stats Cards - ✅ ITEM 4: Adicionado card de Total de Submissões */}
+        <div className="grid md:grid-cols-4 gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -546,6 +547,24 @@ const Dashboard = () => {
                 </div>
                 <div className="p-4 bg-green-500/10 rounded-full">
                   <TrendingUp className="h-8 w-8 text-green-500" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+          >
+            <Card className="p-6 hover:shadow-lg transition-all duration-300 border-primary/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total de Submissões</p>
+                  <h3 className="text-3xl font-bold mt-2">{submissions.length}</h3>
+                </div>
+                <div className="p-4 bg-orange-500/10 rounded-full">
+                  <Send className="h-8 w-8 text-orange-500" />
                 </div>
               </div>
             </Card>
