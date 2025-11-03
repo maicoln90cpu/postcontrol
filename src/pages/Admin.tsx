@@ -1977,9 +1977,14 @@ const Admin = () => {
                                           {submission.profiles?.email || "Email não disponível"}
                                         </p>
                                         {submission.profiles?.instagram && (
-                                          <p className="text-sm font-medium text-primary mt-1">
-                                            @{submission.profiles.instagram}
-                                          </p>
+                                          <a 
+                                            href={`https://instagram.com/${submission.profiles.instagram.replace('@', '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-medium text-primary mt-1 hover:underline cursor-pointer inline-block"
+                                          >
+                                            {submission.profiles.instagram.startsWith('@') ? submission.profiles.instagram : `@${submission.profiles.instagram}`}
+                                          </a>
                                         )}
                                       </div>
                                       <div className="sm:text-right">

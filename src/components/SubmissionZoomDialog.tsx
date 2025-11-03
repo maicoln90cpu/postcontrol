@@ -69,9 +69,25 @@ export const SubmissionZoomDialog = ({
       <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 flex flex-col">
         <div className="flex flex-col h-full overflow-hidden">
           {/* Imagens lado a lado com legendas visíveis */}
-          <div className="flex flex-col sm:flex-row gap-4 p-4 bg-black relative" style={{ height: 'calc(95vh - 200px)' }}>
-            {/* Imagem da Postagem */}
-            <div className="flex-1 flex flex-col gap-2 min-w-0">
+          <div className="flex flex-row gap-2 sm:gap-4 p-2 sm:p-4 bg-black relative" style={{ height: 'calc(95vh - 200px)' }}>
+            {/* Imagem do Perfil (se existir) - 65% mobile, 50% desktop */}
+            {submission.profile_screenshot_path && (
+              <div className="flex flex-col gap-2 min-w-0" style={{ width: 'clamp(65%, 65%, 50%)' }}>
+                <div className="flex-1 flex items-center justify-center overflow-hidden">
+                  <SubmissionImageDisplay
+                    screenshotPath={submission.profile_screenshot_path}
+                    className="max-h-[60vh] max-w-full w-auto object-contain"
+                    loading="eager"
+                  />
+                </div>
+                <div className="text-center bg-green-600/90 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium flex-shrink-0">
+                  👤 Print do Perfil
+                </div>
+              </div>
+            )}
+            
+            {/* Imagem da Postagem - 35% mobile (quando tem perfil), 100% (quando não tem perfil), 50% desktop */}
+            <div className={`flex flex-col gap-2 min-w-0 ${submission.profile_screenshot_path ? 'sm:flex-1' : 'flex-1'}`} style={submission.profile_screenshot_path ? { width: 'clamp(35%, 35%, 50%)' } : undefined}>
               <div className="flex-1 flex items-center justify-center overflow-hidden">
                 <SubmissionImageDisplay
                   screenshotPath={submission.screenshot_path}
@@ -80,26 +96,10 @@ export const SubmissionZoomDialog = ({
                   loading="eager"
                 />
               </div>
-              <div className="text-center bg-blue-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0">
+              <div className="text-center bg-blue-600/90 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium flex-shrink-0">
                 📸 Print da Postagem
               </div>
             </div>
-            
-            {/* Imagem do Perfil (se existir) */}
-            {submission.profile_screenshot_path && (
-              <div className="flex-1 flex flex-col gap-2 min-w-0">
-                <div className="flex-1 flex items-center justify-center overflow-hidden">
-                  <SubmissionImageDisplay
-                    screenshotPath={submission.profile_screenshot_path}
-                    className="max-h-[60vh] max-w-full w-auto object-contain"
-                    loading="eager"
-                  />
-                </div>
-                <div className="text-center bg-green-600/90 text-white px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0">
-                  👤 Print do Perfil
-                </div>
-              </div>
-            )}
             
             {/* Navegação por setas */}
             {hasPrevious && (
@@ -136,9 +136,14 @@ export const SubmissionZoomDialog = ({
                   {submission.profiles?.email || 'Email não disponível'}
                 </p>
                 {submission.profiles?.instagram && (
-                  <p className="text-xs sm:text-sm font-medium text-primary mt-1 truncate">
-                    @{submission.profiles.instagram}
-                  </p>
+                  <a 
+                    href={`https://instagram.com/${submission.profiles.instagram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs sm:text-sm font-medium text-primary mt-1 truncate hover:underline cursor-pointer"
+                  >
+                    {submission.profiles.instagram.startsWith('@') ? submission.profiles.instagram : `@${submission.profiles.instagram}`}
+                  </a>
                 )}
                 {/* 🆕 Mostrar faixa de seguidores */}
                 {submission.followers_range && (
