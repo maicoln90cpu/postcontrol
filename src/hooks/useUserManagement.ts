@@ -137,8 +137,13 @@ export const useUserManagement = () => {
       setUsers(profilesData || []);
 
       if (profilesData && profilesData.length > 0) {
-        // Carregar eventos para TODOS os usuários (incluindo os sem submissões)
+        console.log('📊 Carregando eventos para', profilesData.length, 'usuários');
         await loadUserEvents(profilesData.map((u) => u.id));
+        
+        // Verificar se carregamento funcionou
+        setTimeout(() => {
+          console.log('📊 userEvents final keys:', Object.keys(userEvents).length, 'usuários');
+        }, 500);
       }
     } else {
       setUsers([]);

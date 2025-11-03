@@ -358,6 +358,13 @@ export const UserManagement = () => {
   };
 
   const filteredUsers = useMemo(() => {
+    console.log('🔍 Filtrando usuários:', {
+      totalUsers: users.length,
+      eventFilter,
+      userEventsKeys: Object.keys(userEvents).length,
+      usersWithoutEvents: users.filter(u => userEvents[u.id]?.length === 0).length
+    });
+    
     return users.filter((user) => {
       const matchesSearch =
         user.full_name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
@@ -367,11 +374,22 @@ export const UserManagement = () => {
 
       const matchesGender = genderFilter === "all" || user.gender === genderFilter;
 
-    const matchesEvent =
-      eventFilter === "all" ||
-      // ✅ CORRIGIDO: Verificar se array existe E está vazio
-      (eventFilter === "no_event" && (userEvents[user.id] && userEvents[user.id].length === 0)) ||
-      userEvents[user.id]?.some((eventTitle) => events.find((e) => e.title === eventTitle)?.id === eventFilter);
+      let matchesEvent = false;
+      
+      if (eventFilter === "all") {
+        matchesEvent = true;
+      } else if (eventFilter === "no_event") {
+        // Verifica se usuário existe no map E tem array vazio
+        matchesEvent = userEvents.hasOwnProperty(user.id) && userEvents[user.id].length === 0;
+        
+        if (matchesEvent) {
+          console.log('✅ Usuário SEM evento:', user.full_name, userEvents[user.id]);
+        }
+      } else {
+        matchesEvent = userEvents[user.id]?.some((eventTitle) => 
+          events.find((e) => e.title === eventTitle)?.id === eventFilter
+        );
+      }
 
       return matchesSearch && matchesGender && matchesEvent;
     });

@@ -196,6 +196,17 @@ export const AgencyAdminSettings = () => {
       setAgencyLogoUrl(publicData.publicUrl);
       setLogoPreview(publicData.publicUrl);
       
+      // Verificar se URL está acessível
+      try {
+        const response = await fetch(publicData.publicUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          console.error('❌ Logo URL não acessível (403/404). Verificar RLS policy do bucket.');
+          toast.warning("Logo salvo, mas pode não estar visível. Verifique as permissões.");
+        }
+      } catch (e) {
+        console.error('❌ Erro ao verificar logo URL:', e);
+      }
+      
       toast.success("Logo atualizado com sucesso! O logo será atualizado automaticamente no painel.");
       setLogoFile(null);
       

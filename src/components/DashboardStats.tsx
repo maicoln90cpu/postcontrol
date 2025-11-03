@@ -216,6 +216,29 @@ const setCachedStats = (key: string, data: any) => {
 };
 
   
+  const cleanTextForPDF = (str: string) => {
+    if (!str) return '';
+    
+    return str
+      // Remover emojis PRIMEIRO
+      .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
+      .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Símbolos
+      .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transporte
+      .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Bandeiras
+      .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Símbolos diversos
+      .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
+      .replace(/[\u{FE00}-\u{FE0F}]/gu, '')   // Variation selectors
+      .replace(/[\u{E0000}-\u{E007F}]/gu, '') // Tags
+      // Remover acentos DEPOIS
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      // Remover caracteres especiais restantes
+      .replace(/[^\x00-\x7F]/g, '')
+      // Remover múltiplos espaços
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   const exportEventStatsToExcel = () => {
     const eventName = selectedEventId === "all" 
       ? "Todos os Eventos" 
@@ -292,8 +315,11 @@ const setCachedStats = (key: string, data: any) => {
 
     // Aba 4: Distribuição por Gênero (se selecionado)
     if ((selectedSections.genderChart) && genderData.length > 0) {
+      // Ordenar por quantidade decrescente para facilitar leitura
+      const sortedGenderData = [...genderData].sort((a, b) => b.count - a.count);
+      
       const genderSheet = XLSX.utils.json_to_sheet(
-        genderData.map(g => ({
+        sortedGenderData.map(g => ({
           'Gênero': g.gender,
           'Quantidade': g.count
         }))
@@ -339,7 +365,7 @@ const setCachedStats = (key: string, data: any) => {
     // Cabeçalho
     doc.setFontSize(20);
     doc.setTextColor(139, 92, 246);
-    doc.text(`Relatório Completo - ${eventName}`, 14, yPos);
+    doc.text(cleanTextForPDF(`Relatorio Completo - ${eventName}`), 14, yPos);
     yPos += 8;
     
     doc.setFontSize(10);
@@ -351,19 +377,26 @@ const setCachedStats = (key: string, data: any) => {
     if (selectedSections.essentialData) {
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
-      doc.text('📋 Dados Essenciais do Evento', 14, yPos);
+      doc.text(cleanTextForPDF('Dados Essenciais do Evento'), 14, yPos);
       yPos += 5;
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Evento', 'Data', 'Local', 'Vagas', 'Status', 'Gênero Alvo']],
+        head: [[
+          cleanTextForPDF('Evento'),
+          cleanTextForPDF('Data'),
+          cleanTextForPDF('Local'),
+          cleanTextForPDF('Vagas'),
+          cleanTextForPDF('Status'),
+          cleanTextForPDF('Genero Alvo')
+        ]],
         body: eventStats.map(stat => [
-          stat.event_title,
+          cleanTextForPDF(stat.event_title),
           stat.event_date ? format(parseISO(stat.event_date), "dd/MM/yyyy") : 'N/A',
-          stat.event_location || 'N/A',
+          cleanTextForPDF(stat.event_location || 'N/A'),
           stat.total_vacancies?.toString() || 'N/A',
           stat.is_active ? 'Ativo' : 'Inativo',
-          stat.target_gender.join(', ') || 'Todos'
+          cleanTextForPDF(stat.target_gender.join(', ') || 'Todos')
         ]),
         styles: { fontSize: 9 },
         headStyles: { fillColor: [139, 92, 246] },
@@ -381,12 +414,19 @@ const setCachedStats = (key: string, data: any) => {
       }
       
       doc.setFontSize(14);
-      doc.text('📊 Métricas de Participação', 14, yPos);
+      doc.text(cleanTextForPDF('Metricas de Participacao'), 14, yPos);
       yPos += 5;
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Participantes', 'Submissões', 'Aprovados', 'Pendentes', 'Rejeitados', 'Taxa Aprovação']],
+        head: [[
+          cleanTextForPDF('Participantes'),
+          cleanTextForPDF('Submissoes'),
+          cleanTextForPDF('Aprovados'),
+          cleanTextForPDF('Pendentes'),
+          cleanTextForPDF('Rejeitados'),
+          cleanTextForPDF('Taxa Aprovacao')
+        ]],
         body: eventStats.map(stat => [
           stat.total_users.toString(),
           stat.total_submissions.toString(),
@@ -411,17 +451,23 @@ const setCachedStats = (key: string, data: any) => {
       }
 
       doc.setFontSize(14);
-      doc.text('🏆 Top 10 Usuários', 14, yPos);
+      doc.text(cleanTextForPDF('Top 10 Usuarios'), 14, yPos);
       yPos += 5;
 
       const top10 = [...userStats].sort((a, b) => b.approved_submissions - a.approved_submissions).slice(0, 10);
       
       autoTable(doc, {
         startY: yPos,
-        head: [['Pos', 'Nome', 'Email', 'Aprovados', 'Conclusão']],
+        head: [[
+          cleanTextForPDF('Pos'),
+          cleanTextForPDF('Nome'),
+          cleanTextForPDF('Email'),
+          cleanTextForPDF('Aprovados'),
+          cleanTextForPDF('Conclusao')
+        ]],
         body: top10.map((stat, index) => [
           (index + 1).toString(),
-          stat.user_name,
+          cleanTextForPDF(stat.user_name),
           stat.user_email,
           stat.approved_submissions.toString(),
           `${stat.completion_percentage}%`
@@ -442,12 +488,15 @@ const setCachedStats = (key: string, data: any) => {
       }
 
       doc.setFontSize(14);
-      doc.text('📈 Linha do Tempo (Últimos 14 Dias)', 14, yPos);
+      doc.text(cleanTextForPDF('Linha do Tempo (Ultimos 14 Dias)'), 14, yPos);
       yPos += 5;
 
       autoTable(doc, {
         startY: yPos,
-        head: [['Data', 'Submissões']],
+        head: [[
+          cleanTextForPDF('Data'),
+          cleanTextForPDF('Submissoes')
+        ]],
         body: timelineData.map(t => [t.date, t.submissions.toString()]),
         styles: { fontSize: 9 },
         headStyles: { fillColor: [139, 92, 246] },
@@ -467,7 +516,7 @@ const setCachedStats = (key: string, data: any) => {
         }
         
         doc.setFontSize(14);
-        doc.text('📊 Gráfico de Status', 14, yPos);
+        doc.text(cleanTextForPDF('Grafico de Status'), 14, yPos);
         yPos += 5;
 
         try {
@@ -490,7 +539,7 @@ const setCachedStats = (key: string, data: any) => {
         }
         
         doc.setFontSize(14);
-        doc.text('👥 Distribuição por Gênero', 14, yPos);
+        doc.text(cleanTextForPDF('Distribuicao por Genero'), 14, yPos);
         yPos += 5;
 
         try {
@@ -517,7 +566,7 @@ const setCachedStats = (key: string, data: any) => {
 
         doc.setFontSize(14);
         doc.setTextColor(239, 68, 68);
-        doc.text('⚠️ Alertas de Atenção', 14, yPos);
+        doc.text(cleanTextForPDF('Alertas de Atencao'), 14, yPos);
         doc.setTextColor(0, 0, 0);
         yPos += 5;
 
@@ -531,8 +580,11 @@ const setCachedStats = (key: string, data: any) => {
 
         autoTable(doc, {
           startY: yPos,
-          head: [['Alerta', 'Detalhes']],
-          body: alertsData,
+          head: [[
+            cleanTextForPDF('Alerta'),
+            cleanTextForPDF('Detalhes')
+          ]],
+          body: alertsData.map(row => row.map(cell => cleanTextForPDF(cell))),
           styles: { fontSize: 9 },
           headStyles: { fillColor: [239, 68, 68] },
           margin: { left: 14, right: 14 }
@@ -540,7 +592,7 @@ const setCachedStats = (key: string, data: any) => {
       }
     }
 
-    doc.save(`Relatorio_Completo_${eventName}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(cleanTextForPDF(`Relatorio_Completo_${eventName}_${new Date().toISOString().split('T')[0]}.pdf`));
     toast.success("Relatório PDF completo exportado com sucesso!");
     setShowExportDialog(false);
   };
@@ -651,13 +703,26 @@ const setCachedStats = (key: string, data: any) => {
           let displayGender = 'Não Informado';
           
           if (p.gender) {
-            if (p.gender.toLowerCase() === 'masculino') displayGender = 'Masculino';
-            else if (p.gender.toLowerCase() === 'feminino') displayGender = 'Feminino';
-            else displayGender = 'LGBTQ+';
+            const normalized = p.gender.toLowerCase().trim();
+            
+            // Normalizar valores incluindo inglês
+            if (normalized === 'masculino' || normalized === 'male') {
+              displayGender = 'Masculino';
+            } else if (normalized === 'feminino' || normalized === 'female') {
+              displayGender = 'Feminino';
+            } else if (normalized === 'lgbtq+' || normalized === 'lgbt' || normalized === 'lgbtqia+') {
+              displayGender = 'LGBTQ+';
+            } else {
+              // Valores desconhecidos/erros viram "Outro"
+              displayGender = 'Outro';
+              console.warn('⚠️ Valor de gender desconhecido:', p.gender);
+            }
           }
           
           allGenderData.set(displayGender, (allGenderData.get(displayGender) || 0) + 1);
         });
+        
+        console.log('📊 Distribuição de gênero:', Array.from(allGenderData.entries()));
         
         console.log('📊 Distribuição de gênero:', Array.from(allGenderData.entries()));
       }
