@@ -334,40 +334,16 @@ export const AgencyAdminSettings = () => {
           />
         </div>
         
-            <div className="space-y-2">
-              <Label htmlFor="logo">Logo (máx 2MB)</Label>
-              {(logoPreview || agencyLogoUrl) && (
-                <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
-                  <img 
-                    src={logoPreview || agencyLogoUrl || ''} 
-                    alt="Logo preview" 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              )}
-              
-              <div className="flex gap-2 items-start">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  className="max-w-xs"
-                />
-                {logoFile && (
-                  <Button onClick={saveLogo} size="sm">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Salvar Logo
-                  </Button>
-                )}
-              </div>
-              
-              {uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="space-y-1">
-                  <Progress value={uploadProgress} className="h-2" />
-                  <p className="text-xs text-muted-foreground">{uploadProgress}%</p>
-                </div>
-              )}
-            </div>
+        {/* ✅ ITEM 3: Seção de logo REMOVIDA - Logo agora é sincronizado automaticamente com avatar do admin */}
+        
+        <Button 
+          onClick={handleSaveProfile} 
+          disabled={saving}
+          className="w-full"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Salvando..." : "Salvar Dados da Agência"}
+        </Button>
       </Card>
 
       {/* Personal Data */}

@@ -15,10 +15,12 @@ interface Profile {
 export const useUserManagement = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(false); // ✅ ITEM 4: Novo state
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
   const [isMasterAdmin, setIsMasterAdmin] = useState<boolean | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [userEvents, setUserEvents] = useState<Record<string, string[]>>({});
+  const [userSalesCount, setUserSalesCount] = useState<Record<string, number>>({});
 
   const checkAdminStatus = useCallback(async () => {
     const {
@@ -42,8 +44,12 @@ export const useUserManagement = () => {
   }, []);
 
   const loadUserEvents = async (userIds: string[]) => {
+    setLoadingEvents(true); // ✅ ITEM 4: Início do loading
+    
     if (userIds.length === 0) {
       setUserEvents({});
+      setUserSalesCount({});
+      setLoadingEvents(false); // ✅ ITEM 4: Fim do loading
       return;
     }
 
@@ -52,9 +58,11 @@ export const useUserManagement = () => {
       .select(`
         user_id,
         posts!inner(
+          post_type,
           events!inner(
             id,
-            title
+            title,
+            event_purpose
           )
         ),
         submission_type,
@@ -75,9 +83,14 @@ export const useUserManagement = () => {
       data.forEach((submission: any) => {
         const userId = submission.user_id;
         const eventTitle = submission.posts?.events?.title;
+        const postType = submission.posts?.post_type || submission.posts?.events?.event_purpose || 'divulgacao';
         
-        if (eventTitle && !eventsMap[userId].includes(eventTitle)) {
-          eventsMap[userId].push(eventTitle);
+        // ✅ ITEM 6: Criar identificador único: "EventTitle (Tipo)"
+        const typeLabel = postType === 'venda' ? 'Vendas' : postType === 'selecao_perfil' ? 'Seleção' : 'Divulgação';
+        const eventKey = eventTitle ? `${eventTitle} (${typeLabel})` : null;
+        
+        if (eventKey && !eventsMap[userId].includes(eventKey)) {
+          eventsMap[userId].push(eventKey);
         }
         
         if (submission.submission_type === 'sale' && submission.status === 'approved') {
@@ -90,6 +103,8 @@ export const useUserManagement = () => {
     console.log('📊 Total de usuários:', Object.keys(eventsMap).length);
 
     setUserEvents(eventsMap);
+    setUserSalesCount(salesMap);
+    setLoadingEvents(false); // ✅ ITEM 4: Fim do loading
   };
 
   const loadUsers = useCallback(async () => {
@@ -162,10 +177,12 @@ export const useUserManagement = () => {
   return {
     users,
     loading,
+    loadingEvents, // ✅ ITEM 4: Exportar novo state
     currentAgencyId,
     isMasterAdmin,
     events,
     userEvents,
+    userSalesCount,
     checkAdminStatus,
     loadUsers,
     setUsers,

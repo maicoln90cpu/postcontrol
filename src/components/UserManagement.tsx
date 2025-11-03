@@ -43,38 +43,28 @@ export const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Profile>>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
-  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean | null>(null);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [eventFilter, setEventFilter] = useState<string>("all");
-  const [events, setEvents] = useState<any[]>([]);
-  const [userEvents, setUserEvents] = useState<Record<string, string[]>>({});
-  const [userSalesCount, setUserSalesCount] = useState<Record<string, number>>({});
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState(30);
-
-  // Usar React Query para cache de profiles
-  const { data: cachedProfiles, isLoading: loadingProfiles } = useProfiles(currentAgencyId || undefined);
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  
+  const { 
+    users, 
+    loading: loadingProfiles, 
+    loadingEvents, 
+    currentAgencyId, 
+    isMasterAdmin, 
+    events, 
+    userEvents,
+    userSalesCount,
+    checkAdminStatus, 
+    loadUsers, 
+    setUsers 
+  } = useUserManagement();
 
   useEffect(() => {
     checkAdminStatus();
-  }, []);
-
-  // Debounce search term
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // Atualizar users quando cachedProfiles mudar
-  useEffect(() => {
-    if (cachedProfiles) {
-      setUsers(cachedProfiles);
-    }
-  }, [cachedProfiles]);
+  }, [checkAdminStatus]);
 
   // Carregar usuários apenas quando isMasterAdmin e currentAgencyId estiverem definidos
   useEffect(() => {
@@ -471,9 +461,12 @@ export const UserManagement = () => {
             value={eventFilter}
             onChange={(e) => setEventFilter(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            disabled={loadingEvents} // ✅ ITEM 4: Desabilitar enquanto carrega
           >
             <option value="all">Todos os eventos</option>
-            <option value="no_event">🚫 Sem Evento</option>
+            <option value="no_event" disabled={loadingEvents}>
+              {loadingEvents ? '⏳ Carregando...' : '🚫 Sem Evento'}
+            </option>
             {events.map((event: any) => (
               <option key={event.id} value={event.id}>
                 {event.title}

@@ -184,11 +184,23 @@ const Dashboard = () => {
         };
       });
     },
-    onSuccess: () => {
+    onSuccess: async (newData) => {
       toast({
         title: "Perfil atualizado!",
         description: "Suas informações foram salvas com sucesso.",
       });
+      
+      // ✅ ITEM 3: Se atualizou avatar_url, sincronizar com logo da agência
+      if (newData.avatar_url && profile?.agency_id) {
+        const { error: agencyError } = await sb
+          .from('agencies')
+          .update({ logo_url: newData.avatar_url })
+          .eq('id', profile.agency_id);
+        
+        if (!agencyError) {
+          console.log('✅ Logo da agência sincronizado automaticamente com avatar');
+        }
+      }
     },
     onError: (error) => {
       console.error("Erro ao atualizar perfil:", error);

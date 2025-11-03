@@ -553,6 +553,36 @@ const setCachedStats = (key: string, data: any) => {
       }
     }
 
+    // ✅ ITEM 1: Adicionar tabela de distribuição de gênero ao PDF
+    const genderMapData = new Map(genderData.map(g => [g.gender, g.count]));
+    if (genderMapData.size > 0 && selectedSections.genderChart) {
+      if (yPos > 220) {
+        doc.addPage();
+        yPos = 20;
+      } else {
+        yPos = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 15 : yPos + 15;
+      }
+      
+      doc.setFontSize(14);
+      doc.text(cleanTextForPDF('Distribuicao por Genero - Dados'), 14, yPos);
+      yPos += 10;
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [[cleanTextForPDF('Genero'), cleanTextForPDF('Quantidade')]],
+        body: Array.from(genderMapData.entries())
+          .sort((a, b) => b[1] - a[1]) // Ordenar decrescente
+          .map(([gender, count]) => [
+            cleanTextForPDF(gender),
+            count.toString()
+          ]),
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [99, 102, 241], textColor: 255 }
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    }
+
     // Alertas (se selecionado)
     if (selectedSections.alerts) {
       const alerts = userStats.filter(u => u.completion_percentage > 100);
@@ -690,6 +720,9 @@ const setCachedStats = (key: string, data: any) => {
           }
         }
       });
+
+      // ✅ ITEM 1: Limpar allGenderData ANTES de popular para ESTE evento específico
+      allGenderData.clear();
 
       // Coletar dados de gênero dos usuários reais (INCLUINDO todos, mesmo sem gender)
       const userIds = Array.from(uniqueUsers);

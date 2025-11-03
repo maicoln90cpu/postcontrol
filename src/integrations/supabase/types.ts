@@ -611,6 +611,7 @@ export type Database = {
           event_id: string
           id: string
           post_number: number
+          post_type: string | null
           updated_at: string
         }
         Insert: {
@@ -621,6 +622,7 @@ export type Database = {
           event_id: string
           id?: string
           post_number: number
+          post_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -631,6 +633,7 @@ export type Database = {
           event_id?: string
           id?: string
           post_number?: number
+          post_type?: string | null
           updated_at?: string
         }
         Relationships: [

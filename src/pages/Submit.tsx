@@ -243,16 +243,40 @@ const Submit = () => {
     // Buscar informações do evento para verificar o tipo
     const { data: eventData } = await sb.from("events").select("event_purpose").eq("id", eventId).maybeSingle();
 
-    const isProfileSelection = eventData?.event_purpose === "selecao_perfil";
+    const postType = eventData?.event_purpose || 'divulgacao';
+    const isProfileSelection = postType === "selecao_perfil";
 
     // ✅ Log para confirmar tipo do evento
     console.log("📋 Tipo do evento:", {
       eventId,
-      eventPurpose: eventData?.event_purpose,
+      eventPurpose: postType,
       isProfileSelection,
       currentTime: new Date().toISOString(),
       currentTimeBR: new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
     });
+
+    // ✅ ITEM 6: Para VENDA, sempre mostrar o post 0 (único)
+    if (postType === 'venda') {
+      const { data: salesPost } = await sb
+        .from('posts')
+        .select('id, post_number, deadline, event_id')
+        .eq('event_id', eventId)
+        .eq('post_number', 0)
+        .gte('deadline', new Date().toISOString())
+        .maybeSingle();
+      
+      if (salesPost) {
+        setPosts([salesPost]);
+      } else {
+        toast({
+          title: "Nenhuma postagem de venda disponível",
+          description: "Aguarde o administrador criar a postagem de vendas.",
+          variant: "default",
+        });
+        setPosts([]);
+      }
+      return;
+    }
 
     // 1. Buscar IDs dos posts do evento
     const { data: eventPosts } = await sb.from("posts").select("id").eq("event_id", eventId);
@@ -264,11 +288,10 @@ const Submit = () => {
       return;
     }
 
-    // 2. Para seleção de perfil, permitir múltiplas submissões
-    // Para divulgação, evitar reenvio de posts já submetidos
+    // 2. Para divulgação, excluir posts já enviados
     let submittedPostIds: string[] = [];
 
-    if (!isProfileSelection) {
+    if (postType === 'divulgacao') {
       const { data: userSubmissions } = await sb
         .from("submissions")
         .select("post_id")
@@ -898,6 +921,30 @@ const Submit = () => {
       // 🆕 Adicionar faixa de seguidores (se for seleção de perfil)
       if (selectedEventData?.event_purpose === "selecao_perfil" && followersRange) {
         insertData.followers_range = followersRange;
+      }
+
+      // ✅ ITEM 5: Verificar se já enviou para seleção de perfil
+      if (selectedEventData?.event_purpose === "selecao_perfil" && selectedPost) {
+        const { data: existingSubmissions } = await sb
+          .from('submissions')
+          .select('id, status')
+          .eq('user_id', user.id)
+          .eq('post_id', selectedPost)
+          .in('status', ['pending', 'approved']);
+        
+        if (existingSubmissions && existingSubmissions.length > 0) {
+          const status = existingSubmissions[0].status;
+          const statusText = status === 'pending' ? 'aguardando aprovação' : 'aprovada';
+          
+          toast({
+            title: "Submissão já existe",
+            description: `Você já enviou uma submissão para este evento de seleção de perfil (status: ${statusText}). Aguarde a avaliação ou delete a anterior no seu Dashboard.`,
+            variant: "destructive",
+          });
+          
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       // Adicionar post_id e event_id baseado no tipo

@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Calendar,
   Users,
@@ -20,6 +21,7 @@ import {
   Building2,
   ArrowLeft,
   Download,
+  User,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
@@ -1077,26 +1079,13 @@ const Admin = () => {
       <div className="bg-gradient-primary text-white py-4 px-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            {currentAgency?.logo_url ? (
-              <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-white/10 flex items-center justify-center flex-shrink-0">
-                <img
-                  src={currentAgency.logo_url}
-                  alt={`Logo ${currentAgency.name}`}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    target.style.display = "none";
-                    const parent = target.parentElement;
-                    if (parent && currentAgency?.name) {
-                      // Use textContent instead of innerHTML to prevent XSS
-                      const fallback = document.createElement("span");
-                      fallback.className = "text-lg font-bold text-white";
-                      fallback.textContent = currentAgency.name.charAt(0).toUpperCase();
-                      parent.appendChild(fallback);
-                    }
-                  }}
-                />
-              </div>
+            {profile?.avatar_url ? (
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={profile.avatar_url} alt={`Avatar ${profile.full_name}`} />
+                <AvatarFallback>
+                  <User className="h-6 w-6" />
+                </AvatarFallback>
+              </Avatar>
             ) : currentAgency?.name ? (
               <div className="h-12 w-12 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                 <span className="text-lg font-bold text-white">{currentAgency.name.charAt(0).toUpperCase()}</span>

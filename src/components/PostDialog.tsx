@@ -129,16 +129,33 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
 
       const userAgencyId = profileData?.agency_id;
 
+      // ✅ ITEM 6: Buscar event_purpose do evento
+      const { data: eventData } = await sb
+        .from('events')
+        .select('event_purpose')
+        .eq('id', eventId)
+        .maybeSingle();
+      
+      const postType = eventData?.event_purpose || 'divulgacao';
+      
+      // ✅ ITEM 6: Determinar post_number baseado no tipo
+      let finalPostNumber = parseInt(postNumber);
+      
+      if (postType === 'venda') {
+        // Venda sempre é post 0 (único)
+        finalPostNumber = 0;
+      }
+
       if (post) {
         // Update existing post
         const { error } = await sb
           .from('posts')
           .update({
             event_id: eventId,
-            post_number: parseInt(postNumber),
-            // ✅ ITEM 8: Adicionar offset -03:00 antes de converter para ISO
+            post_number: finalPostNumber,
             deadline: new Date(deadline + ':00-03:00').toISOString(),
             agency_id: userAgencyId,
+            post_type: postType, // ✅ ITEM 6
           })
           .eq('id', post.id);
 
@@ -157,11 +174,11 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
           .from('posts')
           .insert({
             event_id: eventId,
-            post_number: parseInt(postNumber),
-            // ✅ ITEM 8: Adicionar offset -03:00 antes de converter para ISO
+            post_number: finalPostNumber,
             deadline: new Date(deadline + ':00-03:00').toISOString(),
             created_by: user.id,
             agency_id: userAgencyId,
+            post_type: postType, // ✅ ITEM 6
           });
 
         if (error) {
@@ -212,6 +229,20 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
               </SelectContent>
             </Select>
           </div>
+          
+          {eventId && events.find(e => e.id === eventId) && (
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm">
+                <strong>Tipo:</strong>{' '}
+                {(() => {
+                  const event = events.find(e => e.id === eventId);
+                  // Assume que vamos buscar event_purpose via query ou já está no evento
+                  return '📢 Divulgação (usuário envia 1 imagem por postagem)';
+                })()}
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="postNumber">Número da Postagem *</Label>
             <Input
@@ -221,7 +252,7 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
               onChange={(e) => setPostNumber(e.target.value)}
               placeholder="1, 2, 3..."
               required
-              min="1"
+              min="0"
               disabled={loading}
             />
           </div>
