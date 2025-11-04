@@ -66,6 +66,7 @@ export type Database = {
           subscription_plan: string | null
           subscription_status: string | null
           trial_end_date: string | null
+          trial_extended: boolean | null
           trial_start_date: string | null
           updated_at: string
         }
@@ -85,6 +86,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_status?: string | null
           trial_end_date?: string | null
+          trial_extended?: boolean | null
           trial_start_date?: string | null
           updated_at?: string
         }
@@ -104,6 +106,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_status?: string | null
           trial_end_date?: string | null
+          trial_extended?: boolean | null
           trial_start_date?: string | null
           updated_at?: string
         }
@@ -176,6 +179,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agency_requests: {
+        Row: {
+          agency_name: string
+          agency_slug: string
+          created_at: string
+          id: string
+          rejection_reason: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_name: string
+          agency_slug: string
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_name?: string
+          agency_slug?: string
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       auto_approval_rules: {
         Row: {
@@ -1265,6 +1310,11 @@ export type Database = {
       }
       is_agency_admin_for: { Args: { _agency_id: string }; Returns: boolean }
       is_agency_admin_of: { Args: { agency_uuid: string }; Returns: boolean }
+      is_agency_in_trial: { Args: { agency_uuid: string }; Returns: boolean }
+      is_agency_trial_expired: {
+        Args: { agency_uuid: string }
+        Returns: boolean
+      }
       is_current_user_agency_admin: { Args: never; Returns: boolean }
       is_current_user_master_admin: { Args: never; Returns: boolean }
       is_guest_with_permission: {
@@ -1284,6 +1334,7 @@ export type Database = {
     Enums: {
       app_role: "user" | "agency_admin" | "master_admin"
       guest_permission: "viewer" | "moderator" | "manager"
+      request_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1413,6 +1464,7 @@ export const Constants = {
     Enums: {
       app_role: ["user", "agency_admin", "master_admin"],
       guest_permission: ["viewer", "moderator", "manager"],
+      request_status: ["pending", "approved", "rejected"],
     },
   },
 } as const

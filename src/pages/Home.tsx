@@ -7,6 +7,16 @@ import { ArrowRight, Upload, Trophy, Users, Zap, Shield, BarChart3, CheckCircle2
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import heroBg from "@/assets/hero-bg.jpg";
 import { sb } from "@/lib/supabaseSafe";
 
@@ -15,6 +25,10 @@ const Home = () => {
   const [plans, setPlans] = useState<any[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [agencyName, setAgencyName] = useState("");
+  const [agencySlug, setAgencySlug] = useState("");
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
   useEffect(() => {
     loadPlans();
@@ -35,39 +49,84 @@ const Home = () => {
     element?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSubscribe = async (planKey: string) => {
+  const handleTrialClick = () => {
     if (!user) {
       // Redirect to auth page if not logged in
       window.location.href = '/auth';
       return;
     }
 
-    setIsLoading(true);
+    // Open dialog to request agency
+    setRequestDialogOpen(true);
+  };
+
+  const handleSubmitRequest = async () => {
+    if (!agencyName.trim()) {
+      toast.error("Por favor, preencha o nome da agência");
+      return;
+    }
+
+    if (!agencySlug.trim()) {
+      toast.error("Por favor, preencha o slug da agência");
+      return;
+    }
+
+    // Validate slug format (lowercase, no spaces, no special chars except -)
+    const slugRegex = /^[a-z0-9-]+$/;
+    if (!slugRegex.test(agencySlug)) {
+      toast.error("Slug inválido. Use apenas letras minúsculas, números e hífens");
+      return;
+    }
+
+    setSubmittingRequest(true);
     try {
-      console.log('🛒 [HOME] Iniciando checkout para plano:', planKey);
-      
-      const { data, error } = await sb.functions.invoke('create-checkout-session', {
-        body: { planKey },
-      });
+      console.log('📝 [HOME] Enviando solicitação de agência');
+
+      const { error } = await sb
+        .from('agency_requests')
+        .insert({
+          user_id: user!.id,
+          agency_name: agencyName,
+          agency_slug: agencySlug,
+          status: 'pending',
+        });
 
       if (error) {
-        console.error('❌ [HOME] Erro ao criar sessão:', error);
-        throw error;
+        console.error('❌ [HOME] Erro ao criar solicitação:', error);
+        
+        // Check if it's a unique constraint violation
+        if (error.code === '23505') {
+          toast.error("Você já tem uma solicitação pendente ou este slug já está em uso");
+        } else {
+          toast.error("Erro ao enviar solicitação. Tente novamente.");
+        }
+        return;
       }
 
-      if (data?.url) {
-        console.log('✅ [HOME] Redirecionando para checkout:', data.url);
-        // Redirect to Stripe Checkout
-        window.open(data.url, '_blank');
-      } else {
-        throw new Error('No checkout URL returned');
-      }
+      console.log('✅ [HOME] Solicitação enviada com sucesso');
+      toast.success("Solicitação enviada! Aguarde aprovação do Master Admin.");
+      
+      // Reset form
+      setAgencyName("");
+      setAgencySlug("");
+      setRequestDialogOpen(false);
     } catch (error) {
-      console.error('❌ [HOME] Erro no checkout:', error);
-      alert('Erro ao processar assinatura. Por favor, tente novamente.');
+      console.error('❌ [HOME] Erro ao enviar solicitação:', error);
+      toast.error("Erro ao enviar solicitação. Por favor, tente novamente.");
     } finally {
-      setIsLoading(false);
+      setSubmittingRequest(false);
     }
+  };
+
+  const generateSlugFromName = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/[^a-z0-9\s-]/g, "") // Remove special chars
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-") // Replace multiple hyphens with single
+      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
   };
 
   return (
@@ -478,10 +537,10 @@ const Home = () => {
   className={`w-full ${
     isPopular ? 'bg-gradient-primary' : 'bg-gradient-secondary'
   }`}
-  onClick={() => handleSubscribe(plan.plan_key)}
+  onClick={handleTrialClick}
   disabled={isLoading}
 >
-  {isLoading ? 'Processando...' : 'Assinar Agora'}
+  {isLoading ? 'Processando...' : 'Teste 7 dias grátis'}
   <ArrowRight className="ml-2 h-4 w-4" />
 </Button>
 
@@ -634,6 +693,69 @@ const Home = () => {
           <p className="text-sm">Plataforma profissional para gestão de postagens e eventos</p>
         </div>
       </footer>
+
+      {/* Agency Request Dialog */}
+      <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Solicitar Criação de Agência</DialogTitle>
+            <DialogDescription>
+              Preencha os dados da sua agência. Após enviar, você receberá uma resposta do Master Admin em breve.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="agency-name">Nome da Agência</Label>
+              <Input
+                id="agency-name"
+                placeholder="Ex: Minha Agência Digital"
+                value={agencyName}
+                onChange={(e) => {
+                  setAgencyName(e.target.value);
+                  // Auto-generate slug
+                  setAgencySlug(generateSlugFromName(e.target.value));
+                }}
+                disabled={submittingRequest}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="agency-slug">
+                Slug da Agência
+                <span className="text-xs text-muted-foreground ml-2">
+                  (usado na URL)
+                </span>
+              </Label>
+              <Input
+                id="agency-slug"
+                placeholder="minha-agencia-digital"
+                value={agencySlug}
+                onChange={(e) => setAgencySlug(e.target.value.toLowerCase())}
+                disabled={submittingRequest}
+              />
+              <p className="text-xs text-muted-foreground">
+                Apenas letras minúsculas, números e hífens
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setRequestDialogOpen(false)}
+              disabled={submittingRequest}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmitRequest}
+              disabled={submittingRequest}
+              className="flex-1 bg-gradient-primary"
+            >
+              {submittingRequest ? "Enviando..." : "Solicitar Agência"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
