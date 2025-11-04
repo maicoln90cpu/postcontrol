@@ -25,6 +25,7 @@ import {
   User,
   Clock,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
@@ -1280,13 +1281,21 @@ const Admin = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={() => window.open('https://wa.me/5511999999999?text=Olá,%20preciso%20de%20ajuda%20com%20meu%20plano', '_blank')}
+                className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-initial"
+                size="sm"
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                WhatsApp
+              </Button>
               <Link to="/submit" className="flex-1 sm:flex-initial">
-                <Button variant="outline" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto" size="sm">
                   <Send className="mr-2 h-4 w-4" />
                   Enviar Postagem
                 </Button>
               </Link>
-              <Button variant="outline" onClick={signOut} className="flex-1 sm:flex-initial">
+              <Button variant="outline" onClick={signOut} className="flex-1 sm:flex-initial" size="sm">
                 Sair
               </Button>
             </div>
@@ -1459,6 +1468,7 @@ const Admin = () => {
                               setEventDialogOpen(true);
                             }}
                             className="flex-1 sm:flex-initial"
+                            disabled={isReadOnly}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -1468,6 +1478,7 @@ const Admin = () => {
                             onClick={() => handleDuplicateEvent(event)}
                             className="flex-1 sm:flex-initial"
                             title="Duplicar evento"
+                            disabled={isReadOnly}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
@@ -1476,6 +1487,7 @@ const Admin = () => {
                             size="sm"
                             onClick={() => setEventToDelete(event.id)}
                             className="text-destructive hover:text-destructive flex-1 sm:flex-initial"
+                            disabled={isReadOnly}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1575,6 +1587,7 @@ const Admin = () => {
                                         setSelectedPost(post);
                                         setPostDialogOpen(true);
                                       }}
+                                      disabled={isReadOnly}
                                     >
                                       <Pencil className="h-4 w-4" />
                                     </Button>
@@ -1583,6 +1596,7 @@ const Admin = () => {
                                       size="sm"
                                       onClick={() => handleDeletePostClick(post.id)}
                                       className="text-destructive hover:text-destructive"
+                                      disabled={isReadOnly}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>

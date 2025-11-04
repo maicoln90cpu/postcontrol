@@ -25,7 +25,8 @@ const AgencyAdminCard = lazy(() => import("@/components/AgencyAdminCard").then(m
 const AllUsersManagement = lazy(() => import("@/components/AllUsersManagement").then(m => ({ default: m.AllUsersManagement })));
 const AdminSettings = lazy(() => import("@/components/AdminSettings").then(m => ({ default: m.AdminSettings })));
 const ChangelogManager = lazy(() => import("@/components/ChangelogManager").then(m => ({ default: m.ChangelogManager })));
-const AgencyRequestsManager = lazy(() => import("@/components/AgencyRequestsManager").then(m => ({ default: m.AgencyRequestsManager })));
+import { AgencyRequestsManager } from "@/components/AgencyRequestsManager";
+import { ConversionDashboard } from "@/components/ConversionDashboard";
 
 interface Agency {
   id: string;
@@ -391,7 +392,9 @@ const MasterAdmin = () => {
 
         {/* Tabs com diferentes áreas */}
         <Tabs defaultValue="agencies" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="conversion">Conversão</TabsTrigger>
             <TabsTrigger value="agencies">Agências</TabsTrigger>
             <TabsTrigger value="requests">Solicitações</TabsTrigger>
             <TabsTrigger value="events">Eventos</TabsTrigger>
@@ -399,8 +402,19 @@ const MasterAdmin = () => {
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="reports">Relatórios</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <FinancialReports />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="conversion" className="space-y-6">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <ConversionDashboard />
+            </Suspense>
+          </TabsContent>
 
           <TabsContent value="agencies" className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
