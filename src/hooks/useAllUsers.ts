@@ -44,15 +44,113 @@ export const useAllUsers = ({
   return useQuery({
     queryKey: ['allUsers', page, pageSize, searchTerm, roleFilter, agencyFilter, genderFilter],
     queryFn: async (): Promise<{ users: UserWithRolesAndStats[]; totalCount: number }> => {
-      console.log('🔄 [useAllUsers] Carregando página:', page, 'Tamanho:', pageSize);
+      console.log('🔄 [useAllUsers] Carregando página:', page, 'Filtros:', { searchTerm, roleFilter, agencyFilter, genderFilter });
 
-      // ✅ ITEM 8: SELECT específico (não usar *)
+      // 🔧 ETAPA 1: Buscar TODOS os usuários que atendem aos filtros (sem paginação ainda)
+      let countQuery = sb
+        .from('profiles')
+        .select('id', { count: 'exact', head: true });
+
+      // Aplicar filtros
+      if (searchTerm) {
+        const cleanSearch = searchTerm.trim();
+        countQuery = countQuery.or(
+          `full_name.ilike.%${cleanSearch}%,email.ilike.%${cleanSearch}%,instagram.ilike.%${cleanSearch}%`
+        );
+      }
+
+      if (agencyFilter !== 'all') {
+        countQuery = countQuery.eq('agency_id', agencyFilter);
+      }
+
+      if (genderFilter !== 'all') {
+        countQuery = countQuery.eq('gender', genderFilter);
+      }
+
+      // 🔧 ETAPA 2: Se filtro de role está ativo, precisamos buscar TODOS os usuários filtrados primeiro
+      // para depois filtrar por role no JavaScript (pois role está em tabela separada)
+      if (roleFilter !== 'all') {
+        console.log('🔍 [useAllUsers] Filtro de role ativo:', roleFilter, '→ Buscar todos os usuários primeiro');
+        
+        // Buscar TODOS os perfis (sem paginação) que atendem aos outros filtros
+        let allQuery = sb
+          .from('profiles')
+          .select('id, full_name, email, phone, gender, instagram, agency_id, created_at, followers_range');
+
+        if (searchTerm) {
+          const cleanSearch = searchTerm.trim();
+          allQuery = allQuery.or(
+            `full_name.ilike.%${cleanSearch}%,email.ilike.%${cleanSearch}%,instagram.ilike.%${cleanSearch}%`
+          );
+        }
+
+        if (agencyFilter !== 'all') {
+          allQuery = allQuery.eq('agency_id', agencyFilter);
+        }
+
+        if (genderFilter !== 'all') {
+          allQuery = allQuery.eq('gender', genderFilter);
+        }
+
+        const { data: allUsersData, error: allUsersError } = await allQuery.order('created_at', { ascending: false });
+
+        if (allUsersError) throw allUsersError;
+        if (!allUsersData || allUsersData.length === 0) {
+          return { users: [], totalCount: 0 };
+        }
+
+        // Buscar roles de TODOS os usuários
+        const allUserIds = allUsersData.map(u => u.id);
+        const { data: allRoles } = await sb.from('user_roles').select('user_id, role').in('user_id', allUserIds);
+
+        // Filtrar por role
+        const filteredByRole = allUsersData.filter(user => {
+          const userRoles = allRoles?.filter(r => r.user_id === user.id).map(r => r.role) || [];
+          
+          if (roleFilter === 'master_admin') return userRoles.includes('master_admin');
+          if (roleFilter === 'agency_admin') return userRoles.includes('agency_admin');
+          if (roleFilter === 'user') return userRoles.length === 0 || (!userRoles.includes('master_admin') && !userRoles.includes('agency_admin'));
+          return true;
+        });
+
+        console.log('✅ [useAllUsers] Filtro de role:', filteredByRole.length, 'usuários encontrados');
+
+        // Agora aplicar paginação nos resultados filtrados
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize;
+        const paginatedUsers = filteredByRole.slice(from, to);
+
+        // Buscar submissions apenas dos usuários da página atual
+        const pageUserIds = paginatedUsers.map(u => u.id);
+        const { data: submissionsData } = await sb.from('submissions').select('user_id').in('user_id', pageUserIds);
+
+        // Montar dados finais
+        const usersWithData = paginatedUsers.map(user => {
+          const userRoles = allRoles?.filter(r => r.user_id === user.id).map(r => r.role) || [];
+          const submissionCount = submissionsData?.filter(s => s.user_id === user.id).length || 0;
+          
+          return {
+            ...user,
+            roles: userRoles,
+            submission_count: submissionCount
+          };
+        });
+
+        return {
+          users: usersWithData,
+          totalCount: filteredByRole.length
+        };
+      }
+
+      // 🔧 ETAPA 3: Se NÃO há filtro de role, paginação normal no banco
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
       let query = sb
         .from('profiles')
         .select('id, full_name, email, phone, gender, instagram, agency_id, created_at, followers_range', 
           { count: 'exact' });
 
-      // ✅ ITEM 3: Aplicar filtros de busca com trim
       if (searchTerm) {
         const cleanSearch = searchTerm.trim();
         query = query.or(
@@ -68,10 +166,6 @@ export const useAllUsers = ({
         query = query.eq('gender', genderFilter);
       }
 
-      // ✅ ITEM 7: Paginação no BACKEND (não carregar todos os dados)
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-
       const { data: usersData, error: usersError, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
@@ -81,20 +175,15 @@ export const useAllUsers = ({
       if (usersError) throw usersError;
       if (!usersData) return { users: [], totalCount: 0 };
 
-      // ✅ ITEM 2: Performance - buscar roles e submissions em BATCH (3 queries em vez de 41)
+      // Buscar roles e submissions em BATCH
       const userIds = usersData.map(u => u.id);
-      
-      console.log('🔍 [useAllUsers] Buscando roles e submissions em batch para', userIds.length, 'usuários');
 
       const [rolesResult, submissionsResult] = await Promise.all([
         sb.from('user_roles').select('user_id, role').in('user_id', userIds),
         sb.from('submissions').select('user_id').in('user_id', userIds)
       ]);
 
-      console.log('📋 [useAllUsers] Roles encontradas:', rolesResult.data?.length);
-      console.log('📄 [useAllUsers] Submissions encontradas:', submissionsResult.data?.length);
-
-      // Montar dados com roles e submission counts
+      // Montar dados finais
       const usersWithData = usersData.map(user => {
         const userRoles = rolesResult.data?.filter(r => r.user_id === user.id).map(r => r.role) || [];
         const submissionCount = submissionsResult.data?.filter(s => s.user_id === user.id).length || 0;
@@ -106,29 +195,9 @@ export const useAllUsers = ({
         };
       });
 
-      // ✅ ITEM 1: Filtrar por role no JavaScript (após buscar do banco)
-      let filteredUsers = usersWithData;
-      let finalCount = count || 0;
-
-      if (roleFilter !== 'all') {
-        console.log('🔎 [useAllUsers] Aplicando filtro de role:', roleFilter);
-        
-        filteredUsers = usersWithData.filter(user => {
-          if (roleFilter === 'master_admin') return user.roles.includes('master_admin');
-          if (roleFilter === 'agency_admin') return user.roles.includes('agency_admin');
-          if (roleFilter === 'user') return user.roles.length === 0 || (!user.roles.includes('master_admin') && !user.roles.includes('agency_admin'));
-          return true;
-        });
-
-        finalCount = filteredUsers.length;
-        console.log('✅ [useAllUsers] Usuários após filtro de role:', filteredUsers.length);
-      }
-
-      console.log('✅ [useAllUsers] Dados finais:', filteredUsers.length, 'usuários');
-
       return {
-        users: filteredUsers,
-        totalCount: finalCount
+        users: usersWithData,
+        totalCount: count || 0
       };
     },
     staleTime: 30000, // 30 segundos
