@@ -77,16 +77,32 @@ export const ChangelogManager = () => {
   const loadEntries = async () => {
     try {
       setLoading(true);
+      
+      // Verificar permissão de master admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('system_changelog')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar changelog:', error);
+        if (error.code === 'PGRST301' || error.message?.includes('permission')) {
+          toast.error('Você não tem permissão para acessar o changelog. Faça logout e login novamente.');
+        } else {
+          toast.error(`Erro ao carregar changelog: ${error.message}`);
+        }
+        throw error;
+      }
+      
       setEntries((data || []) as ChangelogEntry[]);
     } catch (error: any) {
       console.error('Erro ao carregar changelog:', error);
-      toast.error('Erro ao carregar changelog');
     } finally {
       setLoading(false);
     }
