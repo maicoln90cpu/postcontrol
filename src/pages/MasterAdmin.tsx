@@ -25,6 +25,7 @@ const AgencyAdminCard = lazy(() => import("@/components/AgencyAdminCard").then(m
 const AllUsersManagement = lazy(() => import("@/components/AllUsersManagement").then(m => ({ default: m.AllUsersManagement })));
 const AdminSettings = lazy(() => import("@/components/AdminSettings").then(m => ({ default: m.AdminSettings })));
 const ChangelogManager = lazy(() => import("@/components/ChangelogManager").then(m => ({ default: m.ChangelogManager })));
+const AgencyRequestsManager = lazy(() => import("@/components/AgencyRequestsManager").then(m => ({ default: m.AgencyRequestsManager })));
 
 interface Agency {
   id: string;
@@ -390,8 +391,9 @@ const MasterAdmin = () => {
 
         {/* Tabs com diferentes áreas */}
         <Tabs defaultValue="agencies" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="agencies">Agências</TabsTrigger>
+            <TabsTrigger value="requests">Solicitações</TabsTrigger>
             <TabsTrigger value="events">Eventos</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
@@ -403,6 +405,12 @@ const MasterAdmin = () => {
           <TabsContent value="agencies" className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
               <AdminManager />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-6">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <AgencyRequestsManager />
             </Suspense>
           </TabsContent>
 

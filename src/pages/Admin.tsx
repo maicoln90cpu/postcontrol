@@ -23,6 +23,8 @@ import {
   ArrowLeft,
   Download,
   User,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
@@ -144,6 +146,16 @@ const Admin = () => {
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
   const [zoomSubmissionIndex, setZoomSubmissionIndex] = useState(0);
   const [eventActiveFilter, setEventActiveFilter] = useState<string>("all");
+  
+  // Trial state management
+  const [trialInfo, setTrialInfo] = useState<{
+    inTrial: boolean;
+    expired: boolean;
+    daysRemaining: number;
+  } | null>(null);
+
+  // Compute read-only mode based on trial expiration
+  const isReadOnly = trialInfo?.expired || false;
 
   // ✅ FASE 2: Map memoizado para lookups O(1) de eventos
   const eventsById = useMemo(() => {
@@ -224,6 +236,25 @@ const Admin = () => {
       console.log("✅ [Admin] currentAgency carregado, recarregando eventos...", currentAgency.name);
       loadEvents();
       loadUsersCount();
+      
+      // Check trial status
+      if (currentAgency.subscription_status === 'trial') {
+        const now = new Date();
+        const startDate = currentAgency.trial_start_date ? new Date(currentAgency.trial_start_date) : null;
+        const endDate = currentAgency.trial_end_date ? new Date(currentAgency.trial_end_date) : null;
+        
+        if (endDate) {
+          const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          
+          setTrialInfo({
+            inTrial: daysRemaining > 0,
+            expired: daysRemaining <= 0,
+            daysRemaining: Math.max(0, daysRemaining),
+          });
+        }
+      } else {
+        setTrialInfo(null);
+      }
     }
   }, [currentAgency]);
 
@@ -1113,6 +1144,59 @@ const Admin = () => {
         </div>
       </div>
 
+      {/* Trial Banners */}
+      {trialInfo?.inTrial && (
+        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">🎉 Trial Ativo</h3>
+                  <p className="text-white/90">
+                    Você tem <strong>{trialInfo.daysRemaining} dia{trialInfo.daysRemaining !== 1 ? 's' : ''}</strong> restante{trialInfo.daysRemaining !== 1 ? 's' : ''} para testar gratuitamente!
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => window.location.href = '/#precos'}
+                className="bg-white text-green-600 hover:bg-white/90"
+              >
+                Ver Planos
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {trialInfo?.expired && (
+        <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                  <XCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">⚠️ Trial Expirado</h3>
+                  <p className="text-white/90">
+                    Seu período de teste acabou. <strong>Assine agora</strong> para continuar editando!
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => window.location.href = '/#precos'}
+                className="bg-white text-red-600 hover:bg-white/90 font-bold"
+              >
+                Assinar Agora
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Agency Filter Indicator */}
       {currentAgency && (
         <div className="bg-primary/10 border-b border-primary/20">
@@ -1330,10 +1414,14 @@ const Admin = () => {
                     setSelectedEvent(null);
                     setEventDialogOpen(true);
                   }}
+                  disabled={isReadOnly}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Novo Evento
                 </Button>
+                {isReadOnly && (
+                  <span className="text-xs text-red-500">⚠️ Assine para editar</span>
+                )}
               </div>
             </div>
 
@@ -1424,10 +1512,14 @@ const Admin = () => {
                       setSelectedPost(null);
                       setPostDialogOpen(true);
                     }}
+                    disabled={isReadOnly}
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Nova Postagem
                   </Button>
+                  {isReadOnly && (
+                    <span className="text-xs text-red-500">⚠️ Assine para editar</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -2101,6 +2193,7 @@ const Admin = () => {
                                           size="sm"
                                           className="bg-green-500 hover:bg-green-600 w-full sm:w-auto"
                                           onClick={() => handleApproveSubmission(submission.id)}
+                                          disabled={isReadOnly}
                                         >
                                           <Check className="mr-2 h-4 w-4" />
                                           Aprovar
@@ -2110,6 +2203,7 @@ const Admin = () => {
                                           variant="destructive"
                                           className="w-full sm:w-auto"
                                           onClick={() => handleRejectSubmission(submission.id)}
+                                          disabled={isReadOnly}
                                         >
                                           <X className="mr-2 h-4 w-4" />
                                           Rejeitar

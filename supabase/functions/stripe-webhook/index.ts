@@ -76,8 +76,10 @@ serve(async (req) => {
           break;
         }
 
-        // Create agency if it doesn't exist
-        if (!agencyId) {
+        // Check if agency exists (from trial)
+        if (agencyId) {
+          console.log("✅ [STRIPE-WEBHOOK] Agência já existe (trial upgrade):", agencyId);
+        } else {
           console.log("🏗️ [STRIPE-WEBHOOK] Criando nova agência para:", userEmail);
           
           // Generate agency slug from email
@@ -145,7 +147,7 @@ serve(async (req) => {
         // Get subscription details from Stripe
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-        // Update agency with subscription details
+        // Update agency with subscription details and clear trial dates
         const { error: updateError } = await supabaseClient
           .from('agencies')
           .update({
@@ -154,6 +156,8 @@ serve(async (req) => {
             plan_expiry_date: new Date(subscription.current_period_end * 1000).toISOString(),
             max_influencers: plan.max_influencers,
             max_events: plan.max_events,
+            trial_start_date: null,
+            trial_end_date: null,
           })
           .eq('id', agencyId);
 

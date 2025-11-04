@@ -58,15 +58,45 @@ serve(async (req) => {
     }
     console.log("💳 [CREATE-CHECKOUT] Plano encontrado:", plan.plan_name, "Price ID:", plan.stripe_price_id);
 
-    // Get user's agency (optional - will be created after payment if doesn't exist)
+    // Get user's agency
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('agency_id, full_name')
       .eq('id', user.id)
       .single();
 
-    const agencyId = profile?.agency_id || null;
-    console.log("🏢 [CREATE-CHECKOUT] Agency ID:", agencyId || "Will be created after payment");
+    let agencyId = profile?.agency_id || null;
+    console.log("🏢 [CREATE-CHECKOUT] Agency ID:", agencyId || "No agency yet");
+
+    // If agency exists, check trial status
+    if (agencyId) {
+      const { data: agency } = await supabaseClient
+        .from('agencies')
+        .select('subscription_status, trial_end_date')
+        .eq('id', agencyId)
+        .single();
+
+      if (agency) {
+        // Check if agency has active subscription
+        if (agency.subscription_status === 'active') {
+          console.log("❌ [CREATE-CHECKOUT] Agency already has active subscription");
+          throw new Error("Você já tem uma assinatura ativa");
+        }
+
+        // Check if trial is still valid (not expired)
+        if (agency.subscription_status === 'trial' && agency.trial_end_date) {
+          const trialEndDate = new Date(agency.trial_end_date);
+          const now = new Date();
+          
+          if (trialEndDate > now) {
+            console.log("❌ [CREATE-CHECKOUT] Trial still valid until:", trialEndDate.toISOString());
+            throw new Error("Seu período de trial ainda está ativo. Aguarde o término para assinar um plano.");
+          }
+        }
+
+        console.log("✅ [CREATE-CHECKOUT] Trial expired or no trial, allowing checkout");
+      }
+    }
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
