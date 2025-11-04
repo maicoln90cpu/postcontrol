@@ -985,6 +985,48 @@ export type Database = {
         }
         Relationships: []
       }
+      system_changelog: {
+        Row: {
+          affected_modules: string[] | null
+          author_id: string | null
+          author_name: string | null
+          change_type: string
+          created_at: string | null
+          description: string
+          id: string
+          severity: string | null
+          title: string
+          updated_at: string | null
+          version: string
+        }
+        Insert: {
+          affected_modules?: string[] | null
+          author_id?: string | null
+          author_name?: string | null
+          change_type: string
+          created_at?: string | null
+          description: string
+          id?: string
+          severity?: string | null
+          title: string
+          updated_at?: string | null
+          version: string
+        }
+        Update: {
+          affected_modules?: string[] | null
+          author_id?: string | null
+          author_name?: string | null
+          change_type?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          severity?: string | null
+          title?: string
+          updated_at?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
       user_agencies: {
         Row: {
           agency_id: string
