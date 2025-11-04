@@ -14,6 +14,7 @@ const Home = () => {
   const { user } = useAuthStore();
   const [plans, setPlans] = useState<any[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadPlans();
@@ -32,6 +33,41 @@ const Home = () => {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     element?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSubscribe = async (planKey: string) => {
+    if (!user) {
+      // Redirect to auth page if not logged in
+      window.location.href = '/auth';
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('🛒 [HOME] Iniciando checkout para plano:', planKey);
+      
+      const { data, error } = await sb.functions.invoke('create-checkout-session', {
+        body: { planKey },
+      });
+
+      if (error) {
+        console.error('❌ [HOME] Erro ao criar sessão:', error);
+        throw error;
+      }
+
+      if (data?.url) {
+        console.log('✅ [HOME] Redirecionando para checkout:', data.url);
+        // Redirect to Stripe Checkout
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('❌ [HOME] Erro no checkout:', error);
+      alert('Erro ao processar assinatura. Por favor, tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -437,22 +473,17 @@ const Home = () => {
                       ))}
                     </div>
 
-<a 
-  href={`https://wa.me/5511999136884?text=Olá!%20Gostaria%20de%20contratar%20o%20plano%20${encodeURIComponent(plan.plan_name)}%20por%20R$%20${plan.monthly_price}/mês`}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="block"
+                    <Button 
+  size="lg" 
+  className={`w-full ${
+    isPopular ? 'bg-gradient-primary' : 'bg-gradient-secondary'
+  }`}
+  onClick={() => handleSubscribe(plan.plan_key)}
+  disabled={isLoading}
 >
-  <Button 
-    size="lg" 
-    className={`w-full ${
-      isPopular ? 'bg-gradient-primary' : 'bg-gradient-secondary'
-    }`}
-  >
-    Contratar via WhatsApp
-    <MessageCircle className="ml-2 h-4 w-4" />
-  </Button>
-</a>
+  {isLoading ? 'Processando...' : 'Assinar Agora'}
+  <ArrowRight className="ml-2 h-4 w-4" />
+</Button>
 
                   </Card>
                 );
@@ -550,6 +581,26 @@ const Home = () => {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+
+          {/* Suporte via WhatsApp */}
+          <div className="mt-12 text-center">
+            <Card className="p-8 bg-gradient-to-br from-primary/5 to-accent/5 border-2">
+              <h3 className="text-2xl font-bold mb-4">Ainda tem dúvidas?</h3>
+              <p className="text-muted-foreground mb-6">
+                Nossa equipe está pronta para ajudar! Entre em contato via WhatsApp para suporte personalizado.
+              </p>
+              <a
+                href="https://wa.me/5511999136884?text=Olá!%20Preciso%20de%20ajuda%20com%20a%20plataforma"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="lg" variant="default" className="bg-gradient-primary">
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  Falar no WhatsApp
+                </Button>
+              </a>
+            </Card>
+          </div>
         </div>
       </section>
 
