@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { sb } from "@/lib/supabaseSafe";
 import { useAuthStore } from "@/stores/authStore";
@@ -40,7 +40,7 @@ export default function PublicEvent() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [associating, setAssociating] = useState(false);
+  const hasAssociated = useRef(false); // ✅ FASE 1: Controlar execução única
 
   useEffect(() => {
     const loadEventData = async () => {
@@ -95,11 +95,11 @@ export default function PublicEvent() {
     loadEventData();
   }, [agencySlug, eventSlug]);
 
-  // Se o usuário está logado, associá-lo automaticamente à agência
+  // ✅ FASE 1: Se o usuário está logado, associá-lo automaticamente à agência (1 vez apenas)
   useEffect(() => {
     const associateUserToAgency = async () => {
-      if (user && agency && !associating) {
-        setAssociating(true);
+      if (user && agency && !hasAssociated.current) {
+        hasAssociated.current = true; // ✅ Marca como executado
         console.log("🔗 Associando usuário à agência via evento público:", {
           user_id: user.id,
           agency_id: agency.id,
@@ -124,12 +124,11 @@ export default function PublicEvent() {
           console.log("✅ Usuário vinculado à agência com sucesso!");
           toast.success("Você está vinculado à " + agency.name);
         }
-        setAssociating(false);
       }
     };
 
     associateUserToAgency();
-  }, [user, agency, associating, eventSlug]);
+  }, [user, agency, eventSlug]); // ✅ Remove 'associating' das dependências
 
   if (loading) {
     return (
@@ -273,12 +272,24 @@ export default function PublicEvent() {
                   size="lg"
                   className="bg-gradient-primary"
                 >
-                  Ir para Minhas Submissões
+                  Enviar Submissão
                 </Button>
               ) : (
                 <>
                   <Button 
-                    onClick={() => navigate("/auth")} 
+                    onClick={() => {
+                      // ✅ FASE 2: Salvar contexto do evento antes de redirecionar
+                      localStorage.setItem('event_context', JSON.stringify({
+                        agencySlug,
+                        eventSlug,
+                        agencyId: agency.id,
+                        agencyName: agency.name,
+                        eventId: event.id,
+                        eventTitle: event.title,
+                        returnUrl: window.location.pathname
+                      }));
+                      navigate("/auth");
+                    }} 
                     size="lg"
                     className="bg-gradient-primary"
                   >

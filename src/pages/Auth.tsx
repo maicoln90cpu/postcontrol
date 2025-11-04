@@ -37,9 +37,47 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // SEMPRE redirecionar para dashboard após login (sem verificar isAdmin)
+    // ✅ FASE 3: Verificar contexto de evento e redirecionar apropriadamente
     if (user && !authLoading) {
-      navigate('/dashboard');
+      const eventContextStr = localStorage.getItem('event_context');
+      
+      if (eventContextStr) {
+        try {
+          const eventContext = JSON.parse(eventContextStr);
+          console.log("🎯 Contexto de evento detectado após login:", eventContext);
+          
+          // Vincular usuário à agência
+          sb.from("user_agencies").upsert({
+            user_id: user.id,
+            agency_id: eventContext.agencyId,
+            last_accessed_at: new Date().toISOString(),
+          }, {
+            onConflict: "user_id,agency_id",
+          }).then(({ error }) => {
+            if (error) {
+              console.error("❌ Erro ao vincular agência:", error);
+            } else {
+              console.log("✅ Usuário vinculado à agência após login!");
+              toast({
+                title: "Vinculado com sucesso!",
+                description: `Você está vinculado à ${eventContext.agencyName}`,
+              });
+            }
+          });
+          
+          // Limpar contexto
+          localStorage.removeItem('event_context');
+          
+          // Redirecionar para página do evento
+          navigate(eventContext.returnUrl);
+        } catch (err) {
+          console.error("Erro ao processar contexto do evento:", err);
+          navigate('/dashboard');
+        }
+      } else {
+        // Fluxo normal: vai para dashboard
+        navigate('/dashboard');
+      }
     }
   }, [user, authLoading, navigate]);
 

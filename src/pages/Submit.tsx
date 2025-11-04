@@ -117,6 +117,19 @@ const Submit = () => {
     if (user) {
       loadUserProfile();
     }
+    
+    // ✅ FASE 5: Verificar se há contexto de evento para pré-selecionar
+    const eventContextStr = localStorage.getItem('event_context');
+    if (eventContextStr) {
+      try {
+        const eventContext = JSON.parse(eventContextStr);
+        console.log("🎯 Pré-selecionando evento do contexto:", eventContext);
+        setSelectedEvent(eventContext.eventId);
+        localStorage.removeItem('event_context');
+      } catch (err) {
+        console.error("Erro ao processar contexto do evento:", err);
+      }
+    }
   }, [user]);
 
   useEffect(() => {

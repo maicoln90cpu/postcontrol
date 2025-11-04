@@ -126,13 +126,28 @@ export default function AgencySignup({ tokenFromSlug }: AgencySignupProps = {}) 
         }
       }
 
+      // ✅ FASE 3: Verificar contexto de evento
+      const eventContextStr = localStorage.getItem('event_context');
+      let redirectUrl = '/dashboard';
+      
+      if (eventContextStr) {
+        try {
+          const eventContext = JSON.parse(eventContextStr);
+          console.log("🎯 Contexto de evento detectado após cadastro:", eventContext);
+          redirectUrl = eventContext.returnUrl;
+          localStorage.removeItem('event_context');
+        } catch (err) {
+          console.error("Erro ao processar contexto do evento:", err);
+        }
+      }
+
       toast({
         title: "Cadastro realizado!",
         description: `Bem-vindo à ${agency.name}! Redirecionando...`,
       });
 
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(redirectUrl);
       }, 1000);
     } catch (error: any) {
       toast({
@@ -182,12 +197,27 @@ export default function AgencySignup({ tokenFromSlug }: AgencySignupProps = {}) 
           console.log("✅ Agência vinculada com sucesso!");
         }
       }
+      // ✅ FASE 3: Verificar contexto de evento
+      const eventContextStr = localStorage.getItem('event_context');
+      let redirectUrl = '/dashboard';
+      
+      if (eventContextStr) {
+        try {
+          const eventContext = JSON.parse(eventContextStr);
+          console.log("🎯 Contexto de evento detectado após login:", eventContext);
+          redirectUrl = eventContext.returnUrl;
+          localStorage.removeItem('event_context');
+        } catch (err) {
+          console.error("Erro ao processar contexto do evento:", err);
+        }
+      }
+
       toast({
         title: "Login realizado!",
         description: `Bem-vindo de volta!`,
       });
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(redirectUrl);
       }, 1000);
     } catch (error: any) {
       toast({
