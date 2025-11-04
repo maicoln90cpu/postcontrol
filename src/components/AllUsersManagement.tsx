@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,7 +101,8 @@ export const AllUsersManagement = () => {
   // ✅ ITEM 4: Ajustar paginação para considerar filtros de role
   const totalPages = Math.ceil(totalCount / 20) || 1;
 
-  const handleEditUser = (user: UserProfile) => {
+  // ✅ ITEM 10: useCallback para evitar re-renders ao passar como prop
+  const handleEditUser = useCallback((user: UserProfile) => {
     setSelectedUser(user);
     setEditForm({
       full_name: user.full_name || "",
@@ -112,9 +113,10 @@ export const AllUsersManagement = () => {
       gender: user.gender || "",
     });
     setEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleSaveUser = async () => {
+  // ✅ ITEM 10: useCallback para evitar re-renders
+  const handleSaveUser = useCallback(async () => {
     if (!selectedUser) return;
 
     console.log('💾 [Master] Salvando usuário:', selectedUser.id);
@@ -163,9 +165,10 @@ export const AllUsersManagement = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [selectedUser, editForm, refetchUsers, queryClient]);
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
+  // ✅ ITEM 10: useCallback para evitar re-renders
+  const handleDeleteUser = useCallback(async (userId: string, userName: string) => {
     const confirm = window.confirm(
       `⚠️ ATENÇÃO: Deseja realmente excluir o usuário "${userName}"?\n\nTODAS as submissões deste usuário também serão excluídas.\n\nEsta ação NÃO pode ser desfeita.`
     );
@@ -193,7 +196,7 @@ export const AllUsersManagement = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [refetchUsers, queryClient]);
 
   const getAgencyName = (agencyId?: string) => {
     if (!agencyId) return "—";
@@ -215,7 +218,8 @@ export const AllUsersManagement = () => {
     return "secondary";
   };
 
-  const handleExportToExcel = () => {
+  // ✅ ITEM 10: useCallback para evitar re-renders
+  const handleExportToExcel = useCallback(() => {
     const worksheet = XLSX.utils.json_to_sheet(
       users.map(user => {
         // Limpar Instagram username (remover @ se existir)
@@ -244,7 +248,7 @@ export const AllUsersManagement = () => {
       title: "Exportação concluída",
       description: `${users.length} usuários exportados com sucesso.`,
     });
-  };
+  }, [users, getUserRole, getAgencyName]);
 
   // ✅ Handlers de paginação
   const goToPage = (page: number) => setCurrentPage(page);

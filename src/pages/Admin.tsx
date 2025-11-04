@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, lazy, Suspense } from "react";
+import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from "react";
 import { formatPostName } from "@/lib/postNameFormatter";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -166,8 +166,8 @@ const Admin = () => {
     return counts;
   }, [submissions, posts]);
 
-  // Helper para obter título do evento de forma robusta (agora O(1))
-  const getEventTitle = (post: any): string => {
+  // ✅ ITEM 10: Helper memoizado com useCallback para evitar re-renders
+  const getEventTitle = useCallback((post: any): string => {
     // Método 1: Tentar pelo objeto events
     if (post.events?.title) return post.events.title;
     if (Array.isArray(post.events) && post.events[0]?.title) return post.events[0].title;
@@ -179,7 +179,7 @@ const Admin = () => {
     }
 
     return "Evento não encontrado";
-  };
+  }, [eventsById]);
 
   // Debounce para busca
   useEffect(() => {
@@ -420,13 +420,14 @@ const Admin = () => {
     setUsersCount(count || 0);
   };
 
-  const copySlugUrl = () => {
+  // ✅ ITEM 10: useCallback para evitar re-criação da função
+  const copySlugUrl = useCallback(() => {
     const url = `${window.location.origin}/agencia/${agencySlug}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado!", {
       description: "URL de cadastro copiada para a área de transferência",
     });
-  };
+  }, [agencySlug]);
 
   const loadEvents = async () => {
     if (!user) return;
