@@ -71,7 +71,7 @@ const MasterAdmin = () => {
     slug: "",
     subscription_plan: "basic",
     max_influencers: 100,
-    max_events: 50,
+    max_events: 10, // Será atualizado baseado no plano
   });
 
   useEffect(() => {
@@ -224,13 +224,16 @@ const MasterAdmin = () => {
   const handleCreateAgency = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Buscar limites do plano selecionado
+    const selectedPlan = plans.find(p => p.plan_key === newAgency.subscription_plan);
+    
     const { error } = await sb.from("agencies").insert({
       name: newAgency.name,
       slug: newAgency.slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
       subscription_plan: newAgency.subscription_plan,
       subscription_status: "trial",
-      max_influencers: newAgency.max_influencers,
-      max_events: newAgency.max_events,
+      max_influencers: selectedPlan?.max_influencers || newAgency.max_influencers,
+      max_events: selectedPlan?.max_events || newAgency.max_events,
     });
 
     if (error) {
@@ -249,12 +252,14 @@ const MasterAdmin = () => {
     });
 
     setDialogOpen(false);
+    // Reset com valores do plano básico
+    const basicPlan = plans.find(p => p.plan_key === 'basic');
     setNewAgency({
       name: "",
       slug: "",
       subscription_plan: "basic",
-      max_influencers: 100,
-      max_events: 50,
+      max_influencers: basicPlan?.max_influencers || 100,
+      max_events: basicPlan?.max_events || 10,
     });
 
     loadAgencies();
@@ -392,8 +397,7 @@ const MasterAdmin = () => {
 
         {/* Tabs com diferentes áreas */}
         <Tabs defaultValue="agencies" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="conversion">Conversão</TabsTrigger>
             <TabsTrigger value="agencies">Agências</TabsTrigger>
             <TabsTrigger value="requests">Solicitações</TabsTrigger>
@@ -401,14 +405,10 @@ const MasterAdmin = () => {
             <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="reports">Relatórios</TabsTrigger>
+            <TabsTrigger value="settings">Configurações</TabsTrigger>
             <TabsTrigger value="changelog">Changelog</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <FinancialReports />
-            </Suspense>
-          </TabsContent>
 
           <TabsContent value="conversion" className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
@@ -666,15 +666,25 @@ const MasterAdmin = () => {
               <Label htmlFor="plan">Plano *</Label>
               <Select
                 value={newAgency.subscription_plan}
-                onValueChange={(value) => setNewAgency({ ...newAgency, subscription_plan: value })}
+                onValueChange={(value) => {
+                  const selectedPlan = plans.find(p => p.plan_key === value);
+                  setNewAgency({ 
+                    ...newAgency, 
+                    subscription_plan: value,
+                    max_influencers: selectedPlan?.max_influencers || 100,
+                    max_events: selectedPlan?.max_events || 10,
+                  });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="basic">Básico - R$ 299/mês</SelectItem>
-                  <SelectItem value="pro">Pro - R$ 599/mês</SelectItem>
-                  <SelectItem value="enterprise">Enterprise - R$ 1.499/mês</SelectItem>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan.plan_key} value={plan.plan_key}>
+                      {plan.plan_name} - R$ {plan.monthly_price}/mês
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
