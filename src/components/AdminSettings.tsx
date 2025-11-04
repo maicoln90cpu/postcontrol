@@ -16,6 +16,7 @@ interface AdminSettingsProps {
 export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [customDomain, setCustomDomain] = useState("");
+  const [gtmId, setGtmId] = useState("");
   const [aiInsightsEnabled, setAiInsightsEnabled] = useState(true);
   const [badgesEnabled, setBadgesEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
     const { data: settings, error } = await sb
       .from('admin_settings')
       .select('setting_key, setting_value')
-      .in('setting_key', ['whatsapp_number', 'custom_domain', 'ai_insights_enabled', 'badges_enabled']);
+      .in('setting_key', ['whatsapp_number', 'custom_domain', 'gtm_id', 'ai_insights_enabled', 'badges_enabled']);
 
     if (error) {
       console.error('Error loading settings:', error);
@@ -38,18 +39,21 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
     if (settings) {
       const whatsapp = settings.find(s => s.setting_key === 'whatsapp_number');
       const domain = settings.find(s => s.setting_key === 'custom_domain');
+      const gtm = settings.find(s => s.setting_key === 'gtm_id');
       const aiInsights = settings.find(s => s.setting_key === 'ai_insights_enabled');
       const badges = settings.find(s => s.setting_key === 'badges_enabled');
       
       console.log('🔍 DEBUG - Configurações carregadas:', {
         whatsapp: whatsapp?.setting_value,
         domain: domain?.setting_value,
+        gtm: gtm?.setting_value,
         aiInsights: aiInsights?.setting_value,
         badges: badges?.setting_value
       });
       
       setWhatsappNumber(whatsapp?.setting_value || '');
       setCustomDomain(domain?.setting_value || '');
+      setGtmId(gtm?.setting_value || '');
       setAiInsightsEnabled(aiInsights?.setting_value === 'true');
       setBadgesEnabled(badges?.setting_value === 'true');
     }
@@ -90,6 +94,15 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
           .upsert({ 
             setting_key: 'custom_domain', 
             setting_value: customDomain.replace(/\/$/, ''),
+            updated_at: new Date().toISOString() 
+          }, { onConflict: 'setting_key' });
+
+        // Atualizar GTM ID
+        await sb
+          .from('admin_settings')
+          .upsert({ 
+            setting_key: 'gtm_id', 
+            setting_value: gtmId.trim(),
             updated_at: new Date().toISOString() 
           }, { onConflict: 'setting_key' });
       }
@@ -173,6 +186,27 @@ export const AdminSettings = ({ isMasterAdmin = false }: AdminSettingsProps) => 
               Esta URL será usada para gerar links de convite das agências.
               <br />
               <strong>Exemplo:</strong> {customDomain || 'https://seudominio.com.br'}/agency/nome-agencia
+            </p>
+          </div>
+        )}
+
+        {/* Google Tag Manager ID - Only for Master Admin */}
+        {isMasterAdmin && (
+          <div className="space-y-2">
+            <Label htmlFor="gtmId">
+              Google Tag Manager ID
+            </Label>
+            <Input
+              id="gtmId"
+              placeholder="GTM-XXXXXXX"
+              value={gtmId}
+              onChange={(e) => setGtmId(e.target.value)}
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              ID do container do Google Tag Manager para rastreamento de eventos e conversões.
+              <br />
+              <strong>Exemplo:</strong> GTM-ABC1234
             </p>
           </div>
         )}

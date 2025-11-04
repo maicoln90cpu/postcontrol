@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import MasterAdmin from "./pages/MasterAdmin";
 import AgencySignup from "./pages/AgencySignup";
 import AgencySignupBySlug from "./pages/AgencySignupBySlug";
+import PublicEvent from "./pages/PublicEvent";
 import { AcceptInvite } from "./pages/AcceptInvite";
 import { GuestDashboard } from "./pages/GuestDashboard";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/agency/:token" element={<AgencySignup />} />
             <Route path="/agencia/:slug" element={<AgencySignupBySlug />} />
+            <Route path="/agencia/:agencySlug/evento/:eventSlug" element={<PublicEvent />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />
             
             {/* Protected Routes - Require Authentication */}

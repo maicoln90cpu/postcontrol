@@ -390,6 +390,7 @@ export type Database = {
           event_date: string | null
           event_image_url: string | null
           event_purpose: string | null
+          event_slug: string | null
           id: string
           internal_notes: string | null
           is_active: boolean
@@ -421,6 +422,7 @@ export type Database = {
           event_date?: string | null
           event_image_url?: string | null
           event_purpose?: string | null
+          event_slug?: string | null
           id?: string
           internal_notes?: string | null
           is_active?: boolean
@@ -452,6 +454,7 @@ export type Database = {
           event_date?: string | null
           event_image_url?: string | null
           event_purpose?: string | null
+          event_slug?: string | null
           id?: string
           internal_notes?: string | null
           is_active?: boolean

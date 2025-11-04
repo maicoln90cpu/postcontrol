@@ -34,6 +34,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
   const [location, setLocation] = useState("");
   const [setor, setSetor] = useState("");
   const [numeroDeVagas, setNumeroDeVagas] = useState("");
+  const [eventSlug, setEventSlug] = useState("");
   const [requirements, setRequirements] = useState<EventRequirement[]>([
     { required_posts: 0, required_sales: 0, description: "", display_order: 0 }
   ]);
@@ -94,6 +95,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setLocation(event.location || "");
         setSetor(event.setor || "");
         setNumeroDeVagas(event.numero_de_vagas ? String(event.numero_de_vagas) : "");
+        setEventSlug(event.event_slug || "");
         setEventImageUrl(event.event_image_url || "");
         setIsActive(event.is_active ?? true);
         setTargetGender(event.target_gender || []);
@@ -128,6 +130,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
         setLocation("");
         setSetor("");
         setNumeroDeVagas("");
+        setEventSlug("");
         setRequirements([{ required_posts: 0, required_sales: 0, description: "", display_order: 0 }]);
         setEventImage(null);
         setEventImageUrl("");
@@ -325,6 +328,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             location,
             setor: setor || null,
             numero_de_vagas: numeroDeVagas ? parseInt(numeroDeVagas) : null,
+            event_slug: eventSlug.trim() || null,
             event_image_url: imageUrl || null, // 🆕 Nova URL
             is_active: isActive,
             target_gender: targetGender,
@@ -361,6 +365,7 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
             location,
             setor: setor || null,
             numero_de_vagas: numeroDeVagas ? parseInt(numeroDeVagas) : null,
+            event_slug: eventSlug.trim() || null,
             event_image_url: imageUrl || null,
             is_active: isActive,
             target_gender: targetGender,
@@ -528,6 +533,32 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
               min="0"
               disabled={loading}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="event_slug">Slug do Evento (Opcional)</Label>
+            <Input
+              id="event_slug"
+              value={eventSlug}
+              onChange={(e) => {
+                // Converter para lowercase e remover caracteres especiais
+                const slug = e.target.value
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+                  .replace(/[^a-z0-9-]/g, '-') // Substitui caracteres especiais por hífen
+                  .replace(/-+/g, '-') // Remove hífens duplicados
+                  .replace(/^-|-$/g, ''); // Remove hífens no início e fim
+                setEventSlug(slug);
+              }}
+              placeholder="ex: black-friday-2025"
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Slug único para URL pública do evento. Deixe vazio para não ter URL pública.
+              <br />
+              <strong>Exemplo de URL:</strong> {window.location.origin}/agencia/nome-agencia/evento/<span className="text-primary">{eventSlug || 'slug-do-evento'}</span>
+            </p>
           </div>
 
           <div className="space-y-2">
