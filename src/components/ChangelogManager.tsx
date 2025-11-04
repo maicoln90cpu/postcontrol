@@ -389,9 +389,10 @@ export const ChangelogManager = () => {
       ) : (
         <div className="space-y-4">
           {filteredEntries.map((entry, index) => {
-            const typeConfig = CHANGE_TYPE_CONFIG[entry.change_type];
+            // ✅ Validação: usar fallback se o tipo não existir
+            const typeConfig = CHANGE_TYPE_CONFIG[entry.change_type as keyof typeof CHANGE_TYPE_CONFIG] || CHANGE_TYPE_CONFIG.improvement;
             const Icon = typeConfig.icon;
-            const severityConfig = SEVERITY_CONFIG[entry.severity];
+            const severityConfig = SEVERITY_CONFIG[entry.severity as keyof typeof SEVERITY_CONFIG] || SEVERITY_CONFIG.low;
 
             return (
               <Card key={entry.id} className="relative">
