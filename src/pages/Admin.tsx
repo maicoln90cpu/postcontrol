@@ -459,6 +459,14 @@ const Admin = () => {
     });
   }, [agencySlug]);
 
+  const copyEventUrl = useCallback((agencySlug: string, eventSlug: string) => {
+    const url = `${window.location.origin}/agencia/${agencySlug}/evento/${eventSlug}`;
+    navigator.clipboard.writeText(url);
+    toast.success("URL do Evento Copiada!", {
+      description: "A URL pública do evento foi copiada para a área de transferência.",
+    });
+  }, []);
+
   const loadEvents = async () => {
     if (!user) return;
 
@@ -1481,6 +1489,23 @@ const Admin = () => {
                           <p className="text-sm text-muted-foreground mt-1">
                             📊 {submissionsByEvent[event.id] || 0} submissões | Requisitos: {event.required_posts} posts, {event.required_sales} vendas
                           </p>
+                          {event.event_slug ? (
+                            <div className="flex items-center gap-2 mt-2 p-2 bg-muted/50 rounded-md border">
+                              <span className="text-xs font-mono text-muted-foreground">🔗 {event.event_slug}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyEventUrl(currentAgency?.slug || '', event.event_slug!)}
+                                className="h-6 px-2 text-xs"
+                              >
+                                Copiar URL Pública
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 mt-2 p-2 bg-amber-500/10 rounded-md border border-amber-500/20">
+                              <span className="text-xs text-amber-600 dark:text-amber-400">⚠️ Slug não definido</span>
+                            </div>
+                          )}
                           {event.description && <p className="text-muted-foreground mt-2">{event.description}</p>}
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">

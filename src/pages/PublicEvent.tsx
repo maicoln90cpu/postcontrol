@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { sb } from "@/lib/supabaseSafe";
+import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, MapPin, Users, ArrowLeft, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -33,10 +35,12 @@ interface Event {
 export default function PublicEvent() {
   const { agencySlug, eventSlug } = useParams<{ agencySlug: string; eventSlug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [agency, setAgency] = useState<Agency | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [associating, setAssociating] = useState(false);
 
   useEffect(() => {
     const loadEventData = async () => {
@@ -90,6 +94,42 @@ export default function PublicEvent() {
 
     loadEventData();
   }, [agencySlug, eventSlug]);
+
+  // Se o usuário está logado, associá-lo automaticamente à agência
+  useEffect(() => {
+    const associateUserToAgency = async () => {
+      if (user && agency && !associating) {
+        setAssociating(true);
+        console.log("🔗 Associando usuário à agência via evento público:", {
+          user_id: user.id,
+          agency_id: agency.id,
+          agency_name: agency.name,
+          event_slug: eventSlug
+        });
+
+        const { error: linkError } = await sb.from("user_agencies").upsert(
+          {
+            user_id: user.id,
+            agency_id: agency.id,
+            last_accessed_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "user_id,agency_id",
+          }
+        );
+
+        if (linkError) {
+          console.error("❌ Erro ao vincular agência:", linkError);
+        } else {
+          console.log("✅ Usuário vinculado à agência com sucesso!");
+          toast.success("Você está vinculado à " + agency.name);
+        }
+        setAssociating(false);
+      }
+    };
+
+    associateUserToAgency();
+  }, [user, agency, associating, eventSlug]);
 
   if (loading) {
     return (
@@ -227,16 +267,28 @@ export default function PublicEvent() {
 
             {/* CTA */}
             <div className="mt-8 text-center">
-              <Button 
-                onClick={() => navigate("/auth")} 
-                size="lg"
-                className="bg-gradient-primary"
-              >
-                Quero Participar
-              </Button>
-              <p className="text-sm text-muted-foreground mt-2">
-                Faça login para gerenciar suas cortesias
-              </p>
+              {user ? (
+                <Button 
+                  onClick={() => navigate("/submit")} 
+                  size="lg"
+                  className="bg-gradient-primary"
+                >
+                  Ir para Minhas Submissões
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    onClick={() => navigate("/auth")} 
+                    size="lg"
+                    className="bg-gradient-primary"
+                  >
+                    Quero Participar
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Faça login para gerenciar suas cortesias
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </Card>
