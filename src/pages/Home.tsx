@@ -273,7 +273,7 @@ const Home = () => {
         <div className="relative z-10 text-center max-w-5xl mx-auto w-full">
           <Badge className="mb-4 md:mb-6 text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-green-500 to-emerald-500 backdrop-blur-sm border-white/30 text-white animate-pulse shadow-glow inline-flex items-center">
             <Gift className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-            🎁 7 DIAS GRÁTIS + Oferta de Lançamento
+            🎁 Experimente por 7 dias gratuitamente !
           </Badge>
           
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 text-white animate-float leading-tight px-4">
