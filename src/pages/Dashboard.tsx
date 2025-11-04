@@ -562,13 +562,11 @@ const Dashboard = () => {
                      )}
                      {/* ✅ B2: Seletor de Agência (apenas se tiver mais de uma) */}
                      {userAgenciesData && userAgenciesData.length > 1 && (
-                       <Select value={selectedAgencyId} onValueChange={setSelectedAgencyId}>
-                         <SelectTrigger className="w-full sm:w-[280px] bg-background/50">
-                           <div className="flex items-center gap-2">
-                             <Building2 className="h-4 w-4" />
-                             <SelectValue placeholder="Selecione a agência" />
-                           </div>
-                         </SelectTrigger>
+                        <Select value={selectedAgencyId} onValueChange={setSelectedAgencyId}>
+                          <SelectTrigger className="w-full sm:w-[280px] bg-background/50">
+                            <Building2 className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Selecione a agência" />
+                          </SelectTrigger>
                          <SelectContent>
                            {userAgenciesData.map((agency: any) => (
                              <SelectItem key={agency.id} value={agency.id}>

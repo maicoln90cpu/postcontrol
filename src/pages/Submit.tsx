@@ -1025,7 +1025,7 @@ const Submit = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-12 px-4">
         <div className="max-w-2xl mx-auto">
-          <Link to="/">
+          <Link to="/dashboard">
             <Button variant="ghost" className="mb-6">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
