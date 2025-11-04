@@ -4,7 +4,7 @@ import "driver.js/dist/driver.css";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 
-export const TutorialGuide = () => {
+const TutorialGuide = () => {
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -92,3 +92,5 @@ export const TutorialGuide = () => {
 
   return null;
 };
+
+export default TutorialGuide;

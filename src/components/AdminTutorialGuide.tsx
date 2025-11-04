@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRole } from "@/hooks/useUserRole";
 
-export const AdminTutorialGuide = () => {
+const AdminTutorialGuide = () => {
   const { user } = useAuthStore();
   const { isAgencyAdmin } = useUserRole();
 
@@ -104,3 +104,5 @@ export const AdminTutorialGuide = () => {
 
   return null;
 };
+
+export default AdminTutorialGuide;

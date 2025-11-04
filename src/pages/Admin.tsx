@@ -40,9 +40,7 @@ const AddManualSubmissionDialog = lazy(() =>
 const AgencyAdminSettings = lazy(() =>
   import("@/components/AgencyAdminSettings").then((m) => ({ default: m.AgencyAdminSettings })),
 );
-const AdminTutorialGuide = lazy(() =>
-  import("@/components/AdminTutorialGuide").then((m) => ({ default: m.AdminTutorialGuide })),
-);
+const AdminTutorialGuide = lazy(() => import("@/components/AdminTutorialGuide"));
 const SubmissionKanban = lazy(() =>
   import("@/components/SubmissionKanban").then((m) => ({ default: m.SubmissionKanban })),
 );

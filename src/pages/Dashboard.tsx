@@ -39,7 +39,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Trash2 } from "lucide-react";
 
 // Lazy loading para componentes pesados
-const TutorialGuide = lazy(() => import("@/components/TutorialGuide").then((m) => ({ default: m.TutorialGuide })));
+const TutorialGuide = lazy(() => import("@/components/TutorialGuide"));
 const BadgeDisplay = lazy(() => import("@/components/BadgeDisplay").then((m) => ({ default: m.BadgeDisplay })));
 const AIInsights = lazy(() => import("@/components/AIInsights").then((m) => ({ default: m.AIInsights })));
 const SubmissionImageDisplay = lazy(() =>
