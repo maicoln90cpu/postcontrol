@@ -22,10 +22,8 @@ interface AgencyRequest {
   reviewed_at: string | null;
   reviewed_by: string | null;
   rejection_reason: string | null;
-  profiles?: {
-    email: string;
-    full_name: string | null;
-  };
+  email: string | null;
+  full_name: string | null;
 }
 
 export function AgencyRequestsManager() {
@@ -44,14 +42,8 @@ export function AgencyRequestsManager() {
     setLoading(true);
     try {
       const { data, error } = await sb
-        .from('agency_requests')
-        .select(`
-          *,
-          profiles!agency_requests_user_id_fkey (
-            email,
-            full_name
-          )
-        `)
+        .from('agency_requests_with_users')
+        .select('*')
         .order('requested_at', { ascending: false });
 
       if (error) {
@@ -213,10 +205,10 @@ export function AgencyRequestsManager() {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {request.profiles?.full_name || request.profiles?.email}
+                          {request.full_name || request.email}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {request.profiles?.email}
+                          {request.email}
                         </div>
                       </div>
                     </TableCell>

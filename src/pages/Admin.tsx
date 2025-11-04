@@ -1282,12 +1282,15 @@ const Admin = () => {
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Button 
-                onClick={() => window.open('https://wa.me/5511999999999?text=Olá,%20preciso%20de%20ajuda%20com%20meu%20plano', '_blank')}
-                className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-initial"
+                onClick={() => {
+                  const message = encodeURIComponent(`Olá! Preciso de suporte - Agência: ${currentAgency?.name || 'Sem nome'}`);
+                  window.open(`https://wa.me/5511999136884?text=${message}`, '_blank');
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg transition-all hover:scale-105 flex items-center gap-2 flex-1 sm:flex-initial"
                 size="sm"
               >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                WhatsApp
+                <MessageSquare className="h-5 w-5" />
+                Suporte WhatsApp
               </Button>
               <Link to="/submit" className="flex-1 sm:flex-initial">
                 <Button variant="outline" className="w-full sm:w-auto" size="sm">
