@@ -1249,6 +1249,24 @@ export type Database = {
       }
     }
     Views: {
+      agency_requests_with_users: {
+        Row: {
+          agency_name: string | null
+          agency_slug: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          rejection_reason: string | null
+          requested_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["request_status"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       user_sales_stats: {
         Row: {
           approved_sales_count: number | null
