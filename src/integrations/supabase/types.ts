@@ -1222,6 +1222,7 @@ export type Database = {
       }
       user_segments: {
         Row: {
+          agency_id: string
           created_at: string
           created_by: string
           description: string | null
@@ -1231,6 +1232,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agency_id: string
           created_at?: string
           created_by: string
           description?: string | null
@@ -1240,6 +1242,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agency_id?: string
           created_at?: string
           created_by?: string
           description?: string | null
@@ -1248,7 +1251,15 @@ export type Database = {
           segment_name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_segments_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

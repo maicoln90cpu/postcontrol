@@ -47,7 +47,22 @@ export const SegmentManager = () => {
 
   const createSegment = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      toast.error('Você precisa estar autenticado');
+      return;
+    }
+
+    // Buscar agency_id do profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.agency_id) {
+      toast.error('Você precisa estar associado a uma agência');
+      return;
+    }
 
     const filters = {
       type: newSegment.filterType,
@@ -59,6 +74,7 @@ export const SegmentManager = () => {
       description: newSegment.description,
       filters: filters,
       created_by: user.id,
+      agency_id: profile.agency_id,
     });
 
     if (error) {
