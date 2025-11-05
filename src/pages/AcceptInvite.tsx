@@ -30,52 +30,69 @@ export const AcceptInvite = () => {
 
   const loadInvite = async () => {
     try {
-      const { data, error } = await supabase
+      // Query 1: Buscar convite e agência
+      const { data: inviteData, error: inviteError } = await supabase
         .from('agency_guests')
         .select(`
           *,
-          agencies(name, logo_url),
-          guest_event_permissions(
-            event_id,
-            permission_level,
-            events(title)
-          )
+          agencies(name, logo_url)
         `)
         .eq('invite_token', token)
         .single();
 
-      if (error) throw error;
+      if (inviteError) throw inviteError;
 
-      if (!data) {
+      if (!inviteData) {
         setError('Convite não encontrado');
         return;
       }
 
-      if (data.status === 'accepted') {
+      if (inviteData.status === 'accepted') {
         setError('Este convite já foi aceito');
         return;
       }
 
-      if (data.status === 'expired') {
+      if (inviteData.status === 'expired') {
         setError('Este convite expirou');
         return;
       }
 
-      if (data.status === 'revoked') {
+      if (inviteData.status === 'revoked') {
         setError('Este convite foi revogado');
         return;
       }
 
       // Verificar se ainda está dentro do período de validade
       const now = new Date();
-      const endDate = new Date(data.access_end_date);
+      const endDate = new Date(inviteData.access_end_date);
 
       if (now > endDate) {
         setError('Este convite expirou');
         return;
       }
 
-      setInvite(data);
+      // Query 2: Buscar permissões com eventos
+      const { data: permissions, error: permError } = await supabase
+        .from('guest_event_permissions')
+        .select(`
+          event_id,
+          permission_level,
+          events(title)
+        `)
+        .eq('guest_id', inviteData.id);
+
+      if (permError) {
+        console.error('Error loading permissions:', permError);
+        // Não falhar se não houver permissões
+      }
+
+      // Combinar dados
+      const fullInvite = {
+        ...inviteData,
+        guest_event_permissions: permissions || []
+      };
+
+      setInvite(fullInvite);
     } catch (err: any) {
       console.error('Error loading invite:', err);
       setError('Erro ao carregar convite: ' + err.message);
