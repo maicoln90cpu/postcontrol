@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useEvents } from '@/hooks/useReactQuery';
+import { useEventsQuery } from '@/hooks/consolidated';
 import { useGuestInvites } from '@/hooks/useGuestInvites';
 import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, GuestPermission } from '@/types/guest';
 import { Calendar } from '@/components/ui/calendar';
@@ -62,7 +62,11 @@ interface GuestInviteDialogProps {
 
 export const GuestInviteDialog = ({ agencyId, open, onOpenChange }: GuestInviteDialogProps) => {
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
-  const { data: events = [] } = useEvents(agencyId);
+  const { data: eventsData = { events: [], posts: [] } } = useEventsQuery({ 
+    agencyId,
+    enabled: !!agencyId 
+  });
+  const events = eventsData.events;
   const { createInvite, isCreating } = useGuestInvites(agencyId);
 
   const form = useForm<z.infer<typeof formSchema>>({

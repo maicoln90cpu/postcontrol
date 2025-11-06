@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useEvents } from '@/hooks/useReactQuery';
+import { useEventsQuery } from '@/hooks/consolidated';
 import { useGuestInvites } from '@/hooks/useGuestInvites';
 import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS, GuestPermission } from '@/types/guest';
 
@@ -28,7 +28,11 @@ interface GuestPermissionEditorProps {
 
 export const GuestPermissionEditor = ({ guest, agencyId, open, onOpenChange }: GuestPermissionEditorProps) => {
   const [permissions, setPermissions] = useState<Map<string, { level: GuestPermission; limit?: number }>>(new Map());
-  const { data: events = [] } = useEvents(agencyId);
+  const { data: eventsData = { events: [], posts: [] } } = useEventsQuery({ 
+    agencyId,
+    enabled: !!agencyId 
+  });
+  const events = eventsData.events;
   const { updatePermissions } = useGuestInvites(agencyId);
 
   useEffect(() => {

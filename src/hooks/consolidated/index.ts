@@ -45,6 +45,16 @@ export {
   useUpdateProfileMutation
 } from './useMutations';
 
+// Agencies
+export {
+  useUserAgenciesQuery
+} from './useAgenciesQuery';
+
+// Admin Settings
+export {
+  useAdminSettingsQuery
+} from './useAdminSettingsQuery';
+
 // ✅ Hook de invalidação para compatibilidade
 import { useQueryClient } from '@tanstack/react-query';
 

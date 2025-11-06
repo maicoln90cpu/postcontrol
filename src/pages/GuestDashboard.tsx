@@ -11,16 +11,35 @@ import { Calendar, Users, Trophy, Eye, CheckCircle, XCircle, Clock, AlertCircle 
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { PERMISSION_LABELS } from '@/types/guest';
+import { useEventsQuery, useSubmissionsQuery } from '@/hooks/consolidated';
 
 export const GuestDashboard = () => {
   const navigate = useNavigate();
   const { isGuest, guestData, loading: guestLoading } = useIsGuest();
   const { hasPermission, getPermissionLevel, allowedEvents, loading: permissionsLoading } = useGuestPermissions();
-  const [events, setEvents] = useState<any[]>([]);
-  const [submissions, setSubmissions] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
+  // ✅ Usar hooks consolidados em vez de fetch manual
+  const { data: eventsData, isLoading: loadingEvents } = useEventsQuery({
+    agencyId: guestData?.agency_id,
+    enabled: isGuest && !!guestData?.agency_id && allowedEvents.length > 0
+  });
+
+  // Extrair apenas array de events (não posts)
+  const events = eventsData?.events || [];
+
+  const { data: submissionsResponse, isLoading: loadingSubmissions, refetch: refetchSubmissions } = useSubmissionsQuery({
+    eventId: selectedEventId || undefined,
+    enrichProfiles: true,
+    enabled: !!selectedEventId
+  });
+
+  // Extrair array de submissions do objeto paginado
+  const submissions = Array.isArray(submissionsResponse) 
+    ? submissionsResponse 
+    : submissionsResponse?.data || [];
+
+  // Redirecionar se não for convidado
   useEffect(() => {
     if (!guestLoading && !isGuest) {
       toast.error('Você não tem acesso de convidado');
@@ -28,86 +47,16 @@ export const GuestDashboard = () => {
     }
   }, [isGuest, guestLoading, navigate]);
 
+  // Auto-selecionar primeiro evento quando carregar
   useEffect(() => {
-    if (isGuest && allowedEvents.length > 0) {
-      loadEvents();
-    }
-  }, [isGuest, allowedEvents]);
-
-  useEffect(() => {
-    if (selectedEventId) {
-      loadSubmissions();
-    }
-  }, [selectedEventId]);
-
-  const loadEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .in('id', allowedEvents)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setEvents(data || []);
-
-      // Auto-selecionar primeiro evento
-      if (data && data.length > 0 && !selectedEventId) {
-        setSelectedEventId(data[0].id);
+    if (events && events.length > 0 && !selectedEventId) {
+      // Filtrar apenas eventos permitidos
+      const allowedEventsData = events.filter(e => allowedEvents.includes(e.id));
+      if (allowedEventsData.length > 0) {
+        setSelectedEventId(allowedEventsData[0].id);
       }
-    } catch (err: any) {
-      console.error('Error loading events:', err);
-      toast.error('Erro ao carregar eventos');
     }
-  };
-
-  const loadSubmissions = async () => {
-    if (!selectedEventId) return;
-
-    setLoadingSubmissions(true);
-    try {
-      const { data, error } = await supabase
-        .from('submissions')
-        .select(`
-          *,
-          posts(
-            post_number,
-            deadline,
-            event_id,
-            events(title)
-          ),
-          profiles(full_name, email, instagram)
-        `)
-        .eq('posts.event_id', selectedEventId)
-        .order('submitted_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Gerar signed URLs para screenshots
-      const submissionsWithUrls = await Promise.all((data || []).map(async (s: any) => {
-        let signedUrl = s.screenshot_url;
-        if (s.screenshot_url) {
-          const path = s.screenshot_url.split('/screenshots/')[1];
-          if (path) {
-            const { data: urlData } = await supabase.storage
-              .from('screenshots')
-              .createSignedUrl(path, 31536000);
-            if (urlData?.signedUrl) {
-              signedUrl = urlData.signedUrl;
-            }
-          }
-        }
-        return { ...s, screenshot_url: signedUrl };
-      }));
-
-      setSubmissions(submissionsWithUrls);
-    } catch (err: any) {
-      console.error('Error loading submissions:', err);
-      toast.error('Erro ao carregar submissões');
-    } finally {
-      setLoadingSubmissions(false);
-    }
-  };
+  }, [events, allowedEvents, selectedEventId]);
 
   const handleApproveSubmission = async (submissionId: string) => {
     if (!selectedEventId || !hasPermission(selectedEventId, 'moderator')) {
@@ -142,7 +91,7 @@ export const GuestDashboard = () => {
         action_data: { status: 'approved' }
       });
 
-      loadSubmissions();
+      refetchSubmissions();
     } catch (err: any) {
       console.error('Error approving submission:', err);
       toast.error('Erro ao aprovar submissão');
@@ -177,7 +126,7 @@ export const GuestDashboard = () => {
         action_data: { status: 'rejected', reason }
       });
 
-      loadSubmissions();
+      refetchSubmissions();
     } catch (err: any) {
       console.error('Error rejecting submission:', err);
       toast.error('Erro ao reprovar submissão');
@@ -196,14 +145,16 @@ export const GuestDashboard = () => {
     return null;
   }
 
-  const selectedEvent = events.find(e => e.id === selectedEventId);
+  // Filtrar apenas eventos permitidos
+  const allowedEventsData = events.filter(e => allowedEvents.includes(e.id));
+  const selectedEvent = allowedEventsData.find(e => e.id === selectedEventId);
   const permissionLevel = selectedEventId ? getPermissionLevel(selectedEventId) : null;
 
   const stats = {
     total: submissions.length,
-    pending: submissions.filter(s => s.status === 'pending').length,
-    approved: submissions.filter(s => s.status === 'approved').length,
-    rejected: submissions.filter(s => s.status === 'rejected').length,
+    pending: submissions.filter((s: any) => s.status === 'pending').length,
+    approved: submissions.filter((s: any) => s.status === 'approved').length,
+    rejected: submissions.filter((s: any) => s.status === 'rejected').length,
   };
 
   return (
@@ -229,7 +180,7 @@ export const GuestDashboard = () => {
         <Card className="p-4">
           <h3 className="font-semibold mb-3">Eventos com Acesso</h3>
           <div className="flex gap-2 flex-wrap">
-            {events.map((event) => {
+            {allowedEventsData.map((event) => {
               const level = getPermissionLevel(event.id);
               return (
                 <Button
@@ -330,7 +281,7 @@ export const GuestDashboard = () => {
                 <p className="text-center text-muted-foreground py-8">Nenhuma submissão encontrada</p>
               ) : (
                 <div className="space-y-4">
-                  {submissions.map((submission) => (
+                  {submissions.map((submission: any) => (
                     <Card key={submission.id} className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">

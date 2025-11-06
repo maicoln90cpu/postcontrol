@@ -31,7 +31,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUserAgencies, useAdminSettings } from "@/hooks/useReactQuery";
+import { useUserAgenciesQuery, useAdminSettingsQuery } from "@/hooks/consolidated";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import imageCompression from "browser-image-compression";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -93,8 +93,8 @@ const Dashboard = () => {
   const [instagram, setInstagram] = useState<string>("");
 
   // React Query hooks
-  const { data: userAgenciesData, isLoading: isLoadingAgencies } = useUserAgencies(user?.id);
-  const { data: adminSettingsData, isLoading: isLoadingSettings } = useAdminSettings([
+  const { data: userAgenciesData, isLoading: isLoadingAgencies } = useUserAgenciesQuery(user?.id);
+  const { data: adminSettingsData, isLoading: isLoadingSettings } = useAdminSettingsQuery([
     "ai_insights_enabled",
     "badges_enabled",
     "whatsapp_number",
@@ -177,11 +177,11 @@ const Dashboard = () => {
       }
     }
 
-    // Processar settings
+    // Processar settings (agora é objeto direto)
     if (adminSettingsData && !isLoadingSettings) {
-      setAiInsightsEnabled(adminSettingsData.ai_insights_enabled === "true");
-      setBadgesEnabled(adminSettingsData.badges_enabled === "true");
-      setWhatsappNumber(adminSettingsData.whatsapp_number || "");
+      setAiInsightsEnabled(adminSettingsData['ai_insights_enabled'] === "true");
+      setBadgesEnabled(adminSettingsData['badges_enabled'] === "true");
+      setWhatsappNumber(adminSettingsData['whatsapp_number'] || "");
     }
   }, [user, navigate, userAgenciesData, adminSettingsData, isLoadingSettings]);
 

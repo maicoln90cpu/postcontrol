@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock, User, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { SubmissionImageDisplay } from "./SubmissionImageDisplay";
-import { useUpdateSubmissionStatus } from "@/hooks/useReactQuery";
+import { useUpdateSubmissionStatusMutation } from '@/hooks/consolidated';
 import { usePagination } from "@/hooks/usePagination";
 import { PaginationControls } from "./ui/pagination-controls";
 
@@ -137,7 +137,7 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
   const [draggingSubmission, setDraggingSubmission] = useState<Submission | null>(null);
   
   // Mutation com cache automático
-  const updateStatusMutation = useUpdateSubmissionStatus();
+  const updateStatusMutation = useUpdateSubmissionStatusMutation();
 
   // Paginação para cada coluna
   const pendingPagination = usePagination({ 
@@ -196,7 +196,7 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
     if (!over) return;
 
     const submissionId = active.id as string;
-    const newStatus = over.id as string;
+    const newStatus = over.id as 'approved' | 'pending' | 'rejected';
 
     const submission = submissions.find((s) => s.id === submissionId);
     if (!submission || submission.status === newStatus) return;
@@ -205,7 +205,7 @@ export const SubmissionKanban = ({ submissions, onUpdate, userId }: SubmissionKa
     updateStatusMutation.mutate({
       submissionId,
       status: newStatus,
-      approvedBy: userId,
+      userId,
     }, {
       onSuccess: () => {
         onUpdate(); // Atualizar UI local também
