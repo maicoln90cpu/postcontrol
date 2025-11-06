@@ -240,6 +240,23 @@ const Submit = () => {
         events: data?.map((e) => e.title) || [],
       });
 
+      // ✅ ITEM 1: Filtrar por slug se houver contexto de evento
+      const eventContextStr = localStorage.getItem('event_context');
+      if (eventContextStr) {
+        try {
+          const eventContext = JSON.parse(eventContextStr);
+          const filteredData = data.filter(e => e.id === eventContext.eventId);
+          
+          if (filteredData.length > 0) {
+            console.log("🎯 [ITEM 1] Eventos filtrados por slug:", filteredData[0].title);
+            setEvents(filteredData);
+            return;
+          }
+        } catch (err) {
+          console.error("Erro ao processar contexto do evento:", err);
+        }
+      }
+
       setEvents(data);
     } catch (error) {
       console.error("❌ Erro crítico ao carregar eventos:", error);

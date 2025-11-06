@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Columns3 } from 'lucide-react';
 import { formatPostName } from '@/lib/postNameFormatter';
 import { Event, Submission } from '@/types/admin';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Admin Filters Component
@@ -65,6 +66,9 @@ interface AdminFiltersProps {
   filteredCount: number;
   /** Total number of submissions before filters */
   totalCount: number;
+  
+  /** ✅ ITEM 5: Loading state for submissions */
+  isLoadingSubmissions?: boolean;
 }
 
 const AdminFiltersComponent = ({
@@ -89,6 +93,7 @@ const AdminFiltersComponent = ({
   onExport,
   filteredCount,
   totalCount,
+  isLoadingSubmissions = false,
 }: AdminFiltersProps) => {
   /**
    * Obter números de postagens disponíveis baseado no evento selecionado
@@ -123,22 +128,27 @@ const AdminFiltersComponent = ({
       {/* Grid de filtros principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
         {/* Filtro de Evento */}
-        <Select
-          value={submissionEventFilter}
-          onValueChange={onSubmissionEventFilterChange}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Filtrar por evento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Selecione um evento</SelectItem>
-            {events.map((event) => (
-              <SelectItem key={event.id} value={event.id}>
-                {event.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* ✅ ITEM 5: Skeleton enquanto carrega */}
+        {isLoadingSubmissions ? (
+          <Skeleton className="h-10 w-full" />
+        ) : (
+          <Select
+            value={submissionEventFilter}
+            onValueChange={onSubmissionEventFilterChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filtrar por evento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Selecione um evento</SelectItem>
+              {events.map((event) => (
+                <SelectItem key={event.id} value={event.id}>
+                  {event.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Filtro de Número da Postagem */}
         <Select

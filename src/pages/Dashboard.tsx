@@ -21,6 +21,7 @@ import {
   User,
   Lock,
   Send,
+  Users, // ✅ ITEM 7: Ícone para Guest Dashboard
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,8 @@ import imageCompression from "browser-image-compression";
 import { useDashboard } from "@/hooks/useDashboard";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+// ✅ ITEM 7: Importar hook para verificar se é guest
+import { useIsGuest } from "@/hooks/useIsGuest";
 
 // Lazy loading para componentes pesados
 const TutorialGuide = lazy(() => import("@/components/TutorialGuide"));
@@ -96,6 +99,9 @@ const Dashboard = () => {
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   // ✅ ITEM 3: Estado para Instagram editável
   const [instagram, setInstagram] = useState<string>("");
+
+  // ✅ ITEM 7: Hook para verificar se usuário é guest
+  const { isGuest, guestData } = useIsGuest();
 
   // ✅ Sprint 3B: Hook consolidado para filtros
   const {
@@ -592,18 +598,30 @@ const Dashboard = () => {
                    </div>
                  </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <ThemeToggle />
-                  <NotificationBell userId={user!.id} />
+                 <div className="flex flex-wrap items-center gap-3">
+                   <ThemeToggle />
+                   <NotificationBell userId={user!.id} />
 
-                  <Button
-                    onClick={() => navigate("/submit")}
-                    className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                  >
-                    Enviar Nova Postagem
-                  </Button>
+                   <Button
+                     onClick={() => navigate("/submit")}
+                     className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                   >
+                     Enviar Nova Postagem
+                   </Button>
 
-                  {isMasterAdmin && (
+                   {/* ✅ ITEM 7: Botão para Guest Dashboard */}
+                   {isGuest && guestData && (
+                     <Button 
+                       onClick={() => navigate("/guest-dashboard")} 
+                       variant="outline"
+                       className="gap-2"
+                     >
+                       <Users className="h-4 w-4" />
+                       Painel Convidado
+                     </Button>
+                   )}
+
+                   {isMasterAdmin && (
                     <Button onClick={() => navigate("/master-admin")} variant="outline">
                       Master Admin
                     </Button>

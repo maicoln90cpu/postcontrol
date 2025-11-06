@@ -250,6 +250,17 @@ const Admin = () => {
     return counts;
   }, [submissions, posts]);
 
+  // ✅ ITEM 2: Calcular submissões por post
+  const submissionsByPost = useMemo(() => {
+    const counts: Record<string, number> = {};
+    submissions.forEach(sub => {
+      if (sub.post_id) {
+        counts[sub.post_id] = (counts[sub.post_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [submissions]);
+
   // ✅ ITEM 10: Helper memoizado com useCallback para evitar re-renders
   const getEventTitle = useCallback((post: any): string => {
     // Método 1: Tentar pelo objeto events
@@ -1608,15 +1619,21 @@ const Admin = () => {
                           {eventPosts
                             .sort((a, b) => a.post_number - b.post_number)
                             .map((post) => (
-                              <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <h4 className="font-bold">{formatPostName(post.post_type, post.post_number)}</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
-                                    </p>
-                                  </div>
-                                  <div className="flex gap-2">
+                               <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
+                                 <div className="flex justify-between items-start">
+                                   <div className="flex-1">
+                                     <div className="flex items-center gap-2">
+                                       <h4 className="font-bold">{formatPostName(post.post_type, post.post_number)}</h4>
+                                       {/* ✅ ITEM 2: Badge com contador de submissões */}
+                                       <Badge variant="secondary" className="text-xs">
+                                         {submissionsByPost[post.id] || 0} submiss{(submissionsByPost[post.id] || 0) === 1 ? 'ão' : 'ões'}
+                                       </Badge>
+                                     </div>
+                                     <p className="text-sm text-muted-foreground mt-1">
+                                       Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
+                                     </p>
+                                   </div>
+                                   <div className="flex gap-2">
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -1674,6 +1691,7 @@ const Admin = () => {
               onExport={handleExportToExcel}
               filteredCount={getFilteredSubmissions.length}
               totalCount={submissions.length}
+              isLoadingSubmissions={loadingSubmissions}
             />
 
 
