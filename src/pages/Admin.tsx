@@ -185,6 +185,8 @@ const Admin = () => {
     agencyId: currentAgency?.id,
     eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
     enrichProfiles: true,
+    itemsPerPage: submissionEventFilter === "all" ? 10000 : itemsPerPage, // Buscar todas quando filter='all'
+    page: submissionEventFilter === "all" ? 1 : currentPage, // Resetar página quando 'all'
     enabled: !!user && (isAgencyAdmin || isMasterAdmin) && !!currentAgency
   });
   
@@ -893,6 +895,173 @@ const Admin = () => {
     return Array.from(postNumbers).sort((a, b) => a - b);
   };
 
+  // ✅ Extrair função de exportação para Excel
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const XLSX = await import("xlsx");
+
+      // Aplicar TODOS os filtros ativos
+      let filteredSubmissions = getFilteredSubmissions;
+
+      if (!filteredSubmissions || filteredSubmissions.length === 0) {
+        toast.error("Nenhuma submissão encontrada com os filtros aplicados");
+        return;
+      }
+
+      // Buscar dados completos das submissões filtradas
+      const submissionIds = filteredSubmissions.map((s) => s.id);
+
+      if (submissionIds.length === 0) {
+        toast.error("Nenhuma submissão disponível para exportar");
+        return;
+      }
+
+      // 🔧 CORREÇÃO 1: Buscar submissions e profiles separadamente
+      const { data: submissionsData, error: submissionsError } = await sb
+        .from("submissions")
+        .select("*")
+        .in("id", submissionIds);
+
+      if (submissionsError) {
+        console.error("❌ Erro ao buscar submissões:", submissionsError);
+        toast.error("Erro ao buscar submissões");
+        return;
+      }
+
+      // Buscar perfis dos usuários
+      const userIds = [...new Set(submissionsData.map(s => s.user_id))];
+      const { data: profilesData } = await sb
+        .from("profiles")
+        .select("id, full_name, instagram, email, gender, followers_range")
+        .in("id", userIds);
+
+      // Criar map de profiles
+      const profilesMap: Record<string, any> = {};
+      (profilesData || []).forEach(profile => {
+        profilesMap[profile.id] = profile;
+      });
+
+      // Enriquecer submissions com profiles
+      const enrichedSubmissions = submissionsData.map(sub => ({
+        ...sub,
+        profiles: profilesMap[sub.user_id] || {
+          full_name: 'Usuário Desconhecido',
+          instagram: null,
+          email: null,
+          gender: null,
+          followers_range: null
+        }
+      }));
+
+      // 🔧 ITEM 7: Buscar informações de posts com query robusta
+      let postsMap: Record<string, any> = {};
+      
+      if (submissionIds.length > 0) {
+        console.log('🔍 Buscando posts para', submissionIds.length, 'submissões');
+        
+        // Passo 1: Buscar post_ids das submissões
+        const { data: submissionsWithPosts, error: postsIdsError } = await sb
+          .from("submissions")
+          .select("id, post_id")
+          .in("id", submissionIds)
+          .not('post_id', 'is', null);
+
+        if (postsIdsError) {
+          console.error('Erro ao buscar post_ids:', postsIdsError);
+        } else {
+          const postIds = (submissionsWithPosts || []).map((s: any) => s.post_id).filter(Boolean);
+          
+          if (postIds.length > 0) {
+            // Passo 2: Buscar dados dos posts
+            const { data: postsData, error: postsError } = await sb
+              .from("posts")
+              .select(`
+                id,
+                post_number,
+                event_id,
+                events (
+                  title
+                )
+              `)
+              .in("id", postIds);
+
+            if (postsError) {
+              console.error('Erro ao buscar posts:', postsError);
+            } else {
+              // Criar map de post_id → post_data
+              const postsDataMap: Record<string, any> = {};
+              (postsData || []).forEach((post: any) => {
+                if (post?.id) {
+                  postsDataMap[post.id] = {
+                    post_number: post.post_number || 0,
+                    event_title: post.events?.title || 'Evento Desconhecido'
+                  };
+                }
+              });
+
+              // Criar map de submission_id → post_data
+              (submissionsWithPosts || []).forEach((item: any) => {
+                if (item?.id && item?.post_id && postsDataMap[item.post_id]) {
+                  postsMap[item.id] = postsDataMap[item.post_id];
+                }
+              });
+
+              console.log('✅ Posts carregados:', {
+                submissionsTotal: submissionIds.length,
+                postsEncontrados: Object.keys(postsDataMap).length,
+                submissoesComPosts: Object.keys(postsMap).length
+              });
+            }
+          }
+        }
+      }
+
+      console.log("📊 Posts mapeados:", Object.keys(postsMap).length, "de", submissionIds.length);
+
+      // Preparar dados para exportação usando enrichedSubmissions
+      const exportData = (enrichedSubmissions || []).map((sub: any) => {
+        // 🔧 Buscar post data com validação extra
+        const eventTitle = postsMap[sub.id]?.event_title || 'Evento não identificado';
+        const postNumber = postsMap[sub.id]?.post_number || 0;
+
+        return {
+          Tipo: sub.submission_type === "post" ? "Postagem" : "Venda",
+          Evento: eventTitle,
+          "Número da Postagem": postNumber,
+          Nome: sub.profiles?.full_name || "N/A",
+          Instagram: sub.profiles?.instagram
+            ? `https://instagram.com/${sub.profiles.instagram.replace("@", "")}`
+            : "N/A",
+          Email: sub.profiles?.email || "N/A",
+          Gênero: sub.profiles?.gender || "N/A",
+          Seguidores: sub.profiles?.followers_range || "N/A",
+          Status:
+            sub.status === "approved"
+              ? "Aprovado"
+              : sub.status === "rejected"
+                ? "Rejeitado"
+                : "Pendente",
+          "Data de Envio": new Date(sub.submitted_at).toLocaleString("pt-BR"),
+          "Motivo Rejeição": sub.rejection_reason || "N/A",
+        };
+      });
+
+      // Criar worksheet e workbook
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Submissões");
+
+      // Download
+      const eventName = events.find((e) => e.id === submissionEventFilter)?.title || "filtradas";
+      XLSX.writeFile(wb, `submissoes_${eventName}_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+      toast.success(`${exportData.length} submissão(ões) exportada(s) com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao exportar:", error);
+      toast.error("Erro ao exportar submissões");
+    }
+  }, [getFilteredSubmissions, submissionEventFilter, events]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1465,299 +1634,30 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="submissions" className="space-y-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold">Submissões de Usuários</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Total: {getFilteredSubmissions.length} submiss{getFilteredSubmissions.length === 1 ? "ão" : "ões"}
-                    {submissionEventFilter !== "all" && <span className="text-xs ml-1">(filtrado por evento)</span>}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setKanbanView(!kanbanView)}>
-                    <Columns3 className="mr-2 h-4 w-4" />
-                    {kanbanView ? "Ver Lista" : "Ver Kanban"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Filtros sempre visíveis */}
-              <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  <Select
-                    value={submissionEventFilter}
-                    onValueChange={(v) => {
-                      setSubmissionEventFilter(v);
-                      setSubmissionPostFilter("all");
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Filtrar por evento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Selecione um evento</SelectItem>
-                      {events.map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
-                          {event.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={submissionPostFilter}
-                    onValueChange={(v) => {
-                      setSubmissionPostFilter(v);
-                      setCurrentPage(1);
-                    }}
-                    disabled={submissionEventFilter === "all"}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Número da postagem" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os números</SelectItem>
-                      {getAvailablePostNumbers().map((num) => {
-                        // Buscar post_type das submissions filtradas
-                        const submission = submissions.find(
-                          s => (s.posts as any)?.post_number === num &&
-                          (submissionEventFilter === "all" || (s.posts as any)?.events?.id === submissionEventFilter)
-                        );
-                        const postType = (submission?.posts as any)?.post_type || null;
-                        return (
-                          <SelectItem key={num} value={num.toString()}>
-                            {formatPostName(postType, num)}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={submissionStatusFilter}
-                    onValueChange={(v) => {
-                      setSubmissionStatusFilter(v);
-                      setCurrentPage(1);
-                    }}
-                    disabled={submissionEventFilter === "all"}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="pending">Aguardando aprovação</SelectItem>
-                      <SelectItem value="approved">Aprovados</SelectItem>
-                      <SelectItem value="rejected">Reprovados</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-1 gap-2">
-                  <Select
-                    value={postTypeFilter}
-                    onValueChange={(v) => {
-                      setPostTypeFilter(v);
-                      setCurrentPage(1);
-                    }}
-                    disabled={submissionEventFilter === "all"}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Tipo de Postagem" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os Tipos</SelectItem>
-                      <SelectItem value="divulgacao">📢 Divulgação</SelectItem>
-                      <SelectItem value="venda">💰 Vendas</SelectItem>
-                      <SelectItem value="selecao_perfil">🎯 Seleção de Perfil</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {submissionEventFilter !== "all" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          const XLSX = await import("xlsx");
-
-                          // Aplicar TODOS os filtros ativos
-                          let filteredSubmissions = getFilteredSubmissions;
-
-                          if (!filteredSubmissions || filteredSubmissions.length === 0) {
-                            toast.error("Nenhuma submissão encontrada com os filtros aplicados");
-                            return;
-                          }
-
-                          // Buscar dados completos das submissões filtradas
-                          const submissionIds = filteredSubmissions.map((s) => s.id);
-
-                          if (submissionIds.length === 0) {
-                            toast.error("Nenhuma submissão disponível para exportar");
-                            return;
-                          }
-
-                          // 🔧 CORREÇÃO 1: Buscar submissions e profiles separadamente
-                          const { data: submissionsData, error: submissionsError } = await sb
-                            .from("submissions")
-                            .select("*")
-                            .in("id", submissionIds);
-
-                          if (submissionsError) {
-                            console.error("❌ Erro ao buscar submissões:", submissionsError);
-                            toast.error("Erro ao buscar submissões");
-                            return;
-                          }
-
-                          // Buscar perfis dos usuários
-                          const userIds = [...new Set(submissionsData.map(s => s.user_id))];
-                          const { data: profilesData } = await sb
-                            .from("profiles")
-                            .select("id, full_name, instagram, email, gender, followers_range")
-                            .in("id", userIds);
-
-                          // Criar map de profiles
-                          const profilesMap: Record<string, any> = {};
-                          (profilesData || []).forEach(profile => {
-                            profilesMap[profile.id] = profile;
-                          });
-
-                          // Enriquecer submissions com profiles
-                          const enrichedSubmissions = submissionsData.map(sub => ({
-                            ...sub,
-                            profiles: profilesMap[sub.user_id] || {
-                              full_name: 'Usuário Desconhecido',
-                              instagram: null,
-                              email: null,
-                              gender: null,
-                              followers_range: null
-                            }
-                          }));
-
-                          // 🔧 ITEM 7: Buscar informações de posts com query robusta
-                          let postsMap: Record<string, any> = {};
-                          
-                          if (submissionIds.length > 0) {
-                            console.log('🔍 Buscando posts para', submissionIds.length, 'submissões');
-                            
-                            // Passo 1: Buscar post_ids das submissões
-                            const { data: submissionsWithPosts, error: postsIdsError } = await sb
-                              .from("submissions")
-                              .select("id, post_id")
-                              .in("id", submissionIds)
-                              .not('post_id', 'is', null);
-
-                            if (postsIdsError) {
-                              console.error('Erro ao buscar post_ids:', postsIdsError);
-                            } else {
-                              const postIds = (submissionsWithPosts || []).map((s: any) => s.post_id).filter(Boolean);
-                              
-                              if (postIds.length > 0) {
-                                // Passo 2: Buscar dados dos posts
-                                const { data: postsData, error: postsError } = await sb
-                                  .from("posts")
-                                  .select(`
-                                    id,
-                                    post_number,
-                                    event_id,
-                                    events (
-                                      title
-                                    )
-                                  `)
-                                  .in("id", postIds);
-
-                                if (postsError) {
-                                  console.error('Erro ao buscar posts:', postsError);
-                                } else {
-                                  // Criar map de post_id → post_data
-                                  const postsDataMap: Record<string, any> = {};
-                                  (postsData || []).forEach((post: any) => {
-                                    if (post?.id) {
-                                      postsDataMap[post.id] = {
-                                        post_number: post.post_number || 0,
-                                        event_title: post.events?.title || 'Evento Desconhecido'
-                                      };
-                                    }
-                                  });
-
-                                  // Criar map de submission_id → post_data
-                                  (submissionsWithPosts || []).forEach((item: any) => {
-                                    if (item?.id && item?.post_id && postsDataMap[item.post_id]) {
-                                      postsMap[item.id] = postsDataMap[item.post_id];
-                                    }
-                                  });
-
-                                  console.log('✅ Posts carregados:', {
-                                    submissionsTotal: submissionIds.length,
-                                    postsEncontrados: Object.keys(postsDataMap).length,
-                                    submissoesComPosts: Object.keys(postsMap).length
-                                  });
-                                }
-                              }
-                            }
-                          }
-
-                          console.log("📊 Posts mapeados:", Object.keys(postsMap).length, "de", submissionIds.length);
-
-                          // Preparar dados para exportação usando enrichedSubmissions
-                          const exportData = (enrichedSubmissions || []).map((sub: any) => {
-                            // 🔧 Buscar post data com validação extra
-                            const eventTitle = postsMap[sub.id]?.event_title || 'Evento não identificado';
-                            const postNumber = postsMap[sub.id]?.post_number || 0;
-
-                            return {
-                              Tipo: sub.submission_type === "post" ? "Postagem" : "Venda",
-                              Evento: eventTitle,
-                              "Número da Postagem": postNumber,
-                              Nome: sub.profiles?.full_name || "N/A",
-                              Instagram: sub.profiles?.instagram
-                                ? `https://instagram.com/${sub.profiles.instagram.replace("@", "")}`
-                                : "N/A",
-                              Email: sub.profiles?.email || "N/A",
-                              Gênero: sub.profiles?.gender || "N/A",
-                              Seguidores: sub.profiles?.followers_range || "N/A",
-                              Status:
-                                sub.status === "approved"
-                                  ? "Aprovado"
-                                  : sub.status === "rejected"
-                                    ? "Rejeitado"
-                                    : "Pendente",
-                              "Data de Envio": new Date(sub.submitted_at).toLocaleString("pt-BR"),
-                              "Motivo Rejeição": sub.rejection_reason || "N/A",
-                            };
-                          });
-
-                          // Criar worksheet e workbook
-                          const ws = XLSX.utils.json_to_sheet(exportData);
-                          const wb = XLSX.utils.book_new();
-                          XLSX.utils.book_append_sheet(wb, ws, "Submissões");
-
-                          // Download
-                          const eventName = events.find((e) => e.id === submissionEventFilter)?.title || "filtradas";
-                          XLSX.writeFile(wb, `submissoes_${eventName}_${new Date().toISOString().split("T")[0]}.xlsx`);
-
-                          toast.success(`${exportData.length} submissão(ões) exportada(s) com sucesso!`);
-                        } catch (error) {
-                          console.error("Erro ao exportar:", error);
-                          toast.error("Erro ao exportar submissões");
-                        }
-                      }}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Exportar Submissões
-                    </Button>
-                    <Button
-                      onClick={() => setAddSubmissionDialogOpen(true)}
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar Submissão Manual
-                    </Button>
-                  </>
-                )}
-              </div>
+            {/* ✅ Sprint 3A: Usar componente AdminFilters refatorado */}
+            <AdminFilters
+              submissionEventFilter={submissionEventFilter}
+              submissionPostFilter={submissionPostFilter}
+              submissionStatusFilter={submissionStatusFilter}
+              postTypeFilter={postTypeFilter}
+              searchTerm={searchTerm}
+              dateFilterStart={dateFilterStart}
+              dateFilterEnd={dateFilterEnd}
+              kanbanView={kanbanView}
+              events={events}
+              submissions={submissions}
+              onSubmissionEventFilterChange={setSubmissionEventFilter}
+              onSubmissionPostFilterChange={setSubmissionPostFilter}
+              onSubmissionStatusFilterChange={setSubmissionStatusFilter}
+              onPostTypeFilterChange={setPostTypeFilter}
+              onSearchTermChange={setSearchTerm}
+              onDateFilterStartChange={setDateFilterStart}
+              onDateFilterEndChange={setDateFilterEnd}
+              onKanbanViewToggle={() => setKanbanView(!kanbanView)}
+              onExport={handleExportToExcel}
+              filteredCount={getFilteredSubmissions.length}
+              totalCount={submissions.length}
+            />
 
               {kanbanView ? (
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
@@ -1778,84 +1678,12 @@ const Admin = () => {
                 </Card>
               ) : (
                 <>
-                  <div className="flex flex-col gap-3">
-                    {selectedSubmissions.size > 0 && (
-                      <Button onClick={handleBulkApprove} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto">
-                        <CheckCheck className="mr-2 h-4 w-4" />
-                        Aprovar {selectedSubmissions.size}
-                      </Button>
-                    )}
-
-                    {/* Busca e paginação */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <Input
-                        placeholder="Buscar por nome, email ou Instagram..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                          setSearchTerm(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                        className="max-w-sm"
-                      />
-                      <Select
-                        value={itemsPerPage.toString()}
-                        onValueChange={(v) => {
-                          setItemsPerPage(Number(v));
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="10">10 por página</SelectItem>
-                          <SelectItem value="30">30 por página</SelectItem>
-                          <SelectItem value="50">50 por página</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Filtros por data */}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1">
-                        <Label className="text-sm mb-1">Data Inicial</Label>
-                        <Input
-                          type="date"
-                          value={dateFilterStart}
-                          onChange={(e) => {
-                            setDateFilterStart(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Label className="text-sm mb-1">Data Final</Label>
-                        <Input
-                          type="date"
-                          value={dateFilterEnd}
-                          onChange={(e) => {
-                            setDateFilterEnd(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                        />
-                      </div>
-                      {(dateFilterStart || dateFilterEnd) && (
-                        <div className="flex items-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setDateFilterStart("");
-                              setDateFilterEnd("");
-                              setCurrentPage(1);
-                            }}
-                          >
-                            Limpar Datas
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  {selectedSubmissions.size > 0 && (
+                    <Button onClick={handleBulkApprove} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto mb-4">
+                      <CheckCheck className="mr-2 h-4 w-4" />
+                      Aprovar {selectedSubmissions.size}
+                    </Button>
+                  )}
 
                   <Card className="p-6">
                     {getFilteredSubmissions.length === 0 ? (
@@ -2183,7 +2011,6 @@ const Admin = () => {
                   </Card>
                 </>
               )}
-            </div>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
