@@ -1812,53 +1812,79 @@ const Admin = () => {
                                       </div>
                                       <div className="sm:text-right">
                                         <div className="flex flex-col sm:items-end gap-2">
-                                          {/* ✅ ITEM 4: Dropdown editável para tipo de submissão */}
+                                          {/* ✅ ITEM 4: Dropdown editável para trocar post_id */}
                                           <div className="flex items-center gap-2">
                                             <Select 
-                                              value={submission.submission_type} 
-                                              onValueChange={async (newType) => {
-                                                const tipoAtual = submission.submission_type === 'post' ? 'Divulgação' : 'Venda';
-                                                const tipoNovo = newType === 'post' ? 'Divulgação' : 'Venda';
+                                              value={submission.post_id || "none"} 
+                                              onValueChange={async (newPostId) => {
+                                                if (newPostId === "none") return;
+                                                
+                                                const postAtual = posts.find(p => p.id === submission.post_id);
+                                                const postNovo = posts.find(p => p.id === newPostId);
+                                                
+                                                const nomeAtual = postAtual 
+                                                  ? formatPostName(postAtual.post_type, postAtual.post_number) 
+                                                  : "Comprovante de Venda";
+                                                const nomeNovo = postNovo 
+                                                  ? formatPostName(postNovo.post_type, postNovo.post_number) 
+                                                  : "Comprovante de Venda";
                                                 
                                                 const confirma = window.confirm(
-                                                  `Deseja alterar o tipo de submissão de "${tipoAtual}" para "${tipoNovo}"?\n\nEsta ação não pode ser desfeita.`
+                                                  `Deseja alterar o post de "${nomeAtual}" para "${nomeNovo}"?\n\nEsta ação não pode ser desfeita.`
                                                 );
                                                 
                                                 if (!confirma) return;
                                                 
                                                 try {
+                                                  // Atualizar post_id e submission_type automaticamente
+                                                  const updates: any = { post_id: newPostId };
+                                                  if (newPostId === "sale") {
+                                                    updates.submission_type = "sale";
+                                                  } else {
+                                                    updates.submission_type = "post";
+                                                  }
+                                                  
                                                   const { error } = await sb
                                                     .from('submissions')
-                                                    .update({ submission_type: newType })
+                                                    .update(updates)
                                                     .eq('id', submission.id);
                                                   
                                                   if (error) throw error;
                                                   
-                                                  toast.success(`✅ Submissão alterada para: ${tipoNovo}`);
+                                                  toast.success(`✅ Post alterado para: ${nomeNovo}`);
                                                   refetchSubmissions();
                                                 } catch (err: any) {
-                                                  console.error("Erro ao atualizar tipo:", err);
+                                                  console.error("Erro ao atualizar post:", err);
                                                   toast.error(`❌ Erro: ${err.message}`);
                                                 }
                                               }}
                                               disabled={isReadOnly}
                                             >
-                                              <SelectTrigger className="w-40 h-8 text-xs">
+                                              <SelectTrigger className="w-48 h-8 text-xs">
                                                 <SelectValue>
-                                                  {submission.submission_type === "sale" ? "💰 Venda" : "📱 Divulgação"}
+                                                  {submission.submission_type === "sale" 
+                                                    ? "💰 Comprovante de Venda" 
+                                                    : `📱 ${formatPostName(submission.posts?.post_type, submission.posts?.post_number || 0)}`}
                                                 </SelectValue>
                                               </SelectTrigger>
                                               <SelectContent>
-                                                <SelectItem value="post">📱 Divulgação</SelectItem>
-                                                <SelectItem value="sale">💰 Venda</SelectItem>
+                                                <SelectItem value="sale">💰 Comprovante de Venda</SelectItem>
+                                                {(() => {
+                                                  // Buscar evento da submissão atual
+                                                  const currentPost = posts.find(p => p.id === submission.post_id);
+                                                  const eventId = currentPost?.event_id;
+                                                  
+                                                  // Filtrar posts do mesmo evento
+                                                  const eventPosts = posts.filter(p => p.event_id === eventId);
+                                                  
+                                                  return eventPosts.map(post => (
+                                                    <SelectItem key={post.id} value={post.id}>
+                                                      📱 {formatPostName(post.post_type, post.post_number)}
+                                                    </SelectItem>
+                                                  ));
+                                                })()}
                                               </SelectContent>
                                             </Select>
-                                            
-                                            {submission.submission_type === "post" && (
-                                              <p className="text-xs font-medium">
-                                                {formatPostName(submission.posts?.post_type, submission.posts?.post_number || 0)}
-                                              </p>
-                                            )}
                                           </div>
                                           
                                           <p className="text-xs text-muted-foreground">

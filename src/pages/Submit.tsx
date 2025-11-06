@@ -264,6 +264,7 @@ const Submit = () => {
           if (filteredData.length > 0) {
             console.log("🎯 [ITEM 1] Eventos filtrados por slug:", filteredData[0].title);
             setEvents(filteredData);
+            // ⚠️ Não remover event_context aqui - deixar para o useEffect fazer (linha 124-148)
             return;
           }
         } catch (err) {
