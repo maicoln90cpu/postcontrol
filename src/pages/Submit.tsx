@@ -118,20 +118,34 @@ const Submit = () => {
     if (user) {
       loadUserProfile();
     }
-    
-    // ✅ FASE 5: Verificar se há contexto de evento para pré-selecionar
-    const eventContextStr = localStorage.getItem('event_context');
-    if (eventContextStr) {
-      try {
-        const eventContext = JSON.parse(eventContextStr);
-        console.log("🎯 Pré-selecionando evento do contexto:", eventContext);
-        setSelectedEvent(eventContext.eventId);
-        localStorage.removeItem('event_context');
-      } catch (err) {
-        console.error("Erro ao processar contexto do evento:", err);
+  }, [user]);
+
+  // ✅ ITEM 1: Separar lógica de pré-seleção do evento para rodar DEPOIS dos eventos carregarem
+  useEffect(() => {
+    if (events.length > 0) {
+      const eventContextStr = localStorage.getItem('event_context');
+      if (eventContextStr) {
+        try {
+          const eventContext = JSON.parse(eventContextStr);
+          console.log("🎯 [ITEM 1] Pré-selecionando evento do contexto:", eventContext);
+          
+          // Verificar se o evento existe na lista carregada
+          const eventExists = events.find(e => e.id === eventContext.eventId);
+          if (eventExists) {
+            setSelectedEvent(eventContext.eventId);
+            console.log("✅ [ITEM 1] Evento pré-selecionado:", eventExists.title);
+          } else {
+            console.warn("⚠️ [ITEM 1] Evento do contexto não encontrado na lista");
+          }
+          
+          // Limpar contexto após usar
+          localStorage.removeItem('event_context');
+        } catch (err) {
+          console.error("❌ [ITEM 1] Erro ao processar contexto do evento:", err);
+        }
       }
     }
-  }, [user]);
+  }, [events]); // Roda quando events muda
 
   useEffect(() => {
     if (selectedEvent) {

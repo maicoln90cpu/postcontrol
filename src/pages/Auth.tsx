@@ -70,11 +70,9 @@ const Auth = () => {
             }
           });
           
-          // Limpar contexto
-          localStorage.removeItem('event_context');
-          
-          // Redirecionar para página do evento
-          navigate(eventContext.returnUrl);
+          // ✅ ITEM 1: NÃO remover event_context aqui - deixar para Submit.tsx usar
+          // ✅ ITEM 1: Redirecionar sempre para /submit quando há contexto de evento
+          navigate('/submit');
         } catch (err) {
           console.error("Erro ao processar contexto do evento:", err);
           navigate('/dashboard');

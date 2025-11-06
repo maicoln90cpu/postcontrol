@@ -1811,18 +1811,56 @@ const Admin = () => {
                                         )}
                                       </div>
                                       <div className="sm:text-right">
-                                        <div className="flex flex-col sm:items-end gap-1">
-                                          {submission.submission_type === "sale" ? (
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-500 font-medium">
-                                                💰 {formatPostName('venda', 0)}
-                                              </span>
-                                            </div>
-                                          ) : (
-                                            <p className="text-sm font-medium">
-                                              {formatPostName(submission.posts?.post_type, submission.posts?.post_number || 0)}
-                                            </p>
-                                          )}
+                                        <div className="flex flex-col sm:items-end gap-2">
+                                          {/* ✅ ITEM 4: Dropdown editável para tipo de submissão */}
+                                          <div className="flex items-center gap-2">
+                                            <Select 
+                                              value={submission.submission_type} 
+                                              onValueChange={async (newType) => {
+                                                const tipoAtual = submission.submission_type === 'post' ? 'Divulgação' : 'Venda';
+                                                const tipoNovo = newType === 'post' ? 'Divulgação' : 'Venda';
+                                                
+                                                const confirma = window.confirm(
+                                                  `Deseja alterar o tipo de submissão de "${tipoAtual}" para "${tipoNovo}"?\n\nEsta ação não pode ser desfeita.`
+                                                );
+                                                
+                                                if (!confirma) return;
+                                                
+                                                try {
+                                                  const { error } = await sb
+                                                    .from('submissions')
+                                                    .update({ submission_type: newType })
+                                                    .eq('id', submission.id);
+                                                  
+                                                  if (error) throw error;
+                                                  
+                                                  toast.success(`✅ Submissão alterada para: ${tipoNovo}`);
+                                                  refetchSubmissions();
+                                                } catch (err: any) {
+                                                  console.error("Erro ao atualizar tipo:", err);
+                                                  toast.error(`❌ Erro: ${err.message}`);
+                                                }
+                                              }}
+                                              disabled={isReadOnly}
+                                            >
+                                              <SelectTrigger className="w-40 h-8 text-xs">
+                                                <SelectValue>
+                                                  {submission.submission_type === "sale" ? "💰 Venda" : "📱 Divulgação"}
+                                                </SelectValue>
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="post">📱 Divulgação</SelectItem>
+                                                <SelectItem value="sale">💰 Venda</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                            
+                                            {submission.submission_type === "post" && (
+                                              <p className="text-xs font-medium">
+                                                {formatPostName(submission.posts?.post_type, submission.posts?.post_number || 0)}
+                                              </p>
+                                            )}
+                                          </div>
+                                          
                                           <p className="text-xs text-muted-foreground">
                                             {
                                               // Suporte para events como objeto ou array
