@@ -194,8 +194,8 @@ const Admin = () => {
     agencyId: currentAgency?.id,
     eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
     enrichProfiles: true,
-    itemsPerPage: submissionEventFilter === "all" ? 10000 : itemsPerPage, // Buscar todas quando filter='all'
-    page: 1, // SEMPRE página 1 para garantir que todas sejam carregadas
+    itemsPerPage: 10000, // ✅ Sempre buscar todas do backend para paginação client-side funcionar
+    page: 1,
     enabled: !!user && (isAgencyAdmin || isMasterAdmin) && !!currentAgency
   });
   
