@@ -5,12 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trash2 } from 'lucide-react';
+import { Event, SubmissionWithImage } from '@/types/dashboard';
 
 /**
- * Componente de histórico de submissões do Dashboard
- * Memoizado para performance
+ * Dashboard Submission History Component
+ * 
+ * Displays user's submission history with filtering by event.
+ * Memoized to prevent unnecessary re-renders.
+ * 
+ * @component
  */
 
+/**
+ * Submission data structure for history display
+ * @deprecated Use SubmissionWithImage from @/types/dashboard instead
+ */
 interface Submission {
   id: string;
   status: string;
@@ -26,17 +35,30 @@ interface Submission {
   };
 }
 
-interface Event {
+/**
+ * Event data structure (deprecated, use Event from types/dashboard)
+ * @deprecated
+ */
+interface EventData {
   id: string;
   title: string;
 }
 
+/**
+ * Props for DashboardSubmissionHistory component
+ */
 interface DashboardSubmissionHistoryProps {
-  submissions: Submission[];
+  /** Array of user submissions to display */
+  submissions: SubmissionWithImage[];
+  /** Available events for filter dropdown */
   events: Event[];
+  /** Currently selected event filter value */
   selectedEvent: string;
+  /** Callback when event filter changes */
   onEventChange: (value: string) => void;
+  /** Callback when submission delete is requested */
   onDeleteSubmission: (submission: { id: string; status: string }) => void;
+  /** Optional lazy-loaded image display component */
   SubmissionImageDisplay?: React.ComponentType<any>;
 }
 

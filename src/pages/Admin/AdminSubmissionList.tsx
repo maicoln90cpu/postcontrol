@@ -17,37 +17,65 @@ import {
   CheckCheck 
 } from 'lucide-react';
 import { formatPostName } from '@/lib/postNameFormatter';
+import { EnrichedSubmission, ImageUrlCache } from '@/types/admin';
 
 /**
- * Componente da lista de submissões com paginação
- * Memoizado para performance
+ * Admin Submission List Component
+ * 
+ * Displays paginated list of submissions with inline actions.
+ * Supports bulk operations and lazy-loaded components for performance.
+ * Memoized to prevent unnecessary re-renders.
+ * 
+ * @component
  */
 
+/**
+ * Props for AdminSubmissionList component
+ */
 interface AdminSubmissionListProps {
-  submissions: any[];
+  /** Filtered and enriched submissions to display */
+  submissions: EnrichedSubmission[];
+  /** Current active page number (1-indexed) */
   currentPage: number;
+  /** Number of items per page */
   itemsPerPage: number;
+  /** Total number of pages based on filtered submissions */
   totalPages: number;
+  /** Set of selected submission IDs for bulk operations */
   selectedSubmissions: Set<string>;
+  /** Set of submission IDs with expanded comment sections */
   expandedComments: Set<string>;
-  imageUrls: Record<string, string>;
+  /** Map of submission IDs to signed image URLs */
+  imageUrls: ImageUrlCache;
+  /** Whether actions are read-only (for guest users) */
   isReadOnly: boolean;
   
-  // Ações
+  /** Callback when page changes */
   onPageChange: (page: number) => void;
+  /** Callback when submission status changes */
   onStatusChange: (submissionId: string, newStatus: string) => void;
+  /** Callback to approve submission */
   onApprove: (submissionId: string) => void;
+  /** Callback to reject submission */
   onReject: (submissionId: string) => void;
+  /** Callback to delete submission */
   onDelete: (submissionId: string) => void;
+  /** Callback to view audit log */
   onAuditLog: (submissionId: string) => void;
+  /** Callback to toggle comment section visibility */
   onToggleComments: (submissionId: string) => void;
+  /** Callback to toggle single submission selection */
   onToggleSelection: (submissionId: string) => void;
+  /** Callback to toggle all submissions on current page */
   onToggleSelectAll: () => void;
+  /** Callback to approve all selected submissions */
   onBulkApprove: () => void;
+  /** Callback when image is clicked for zoom view */
   onImageZoom: (url: string, index: number) => void;
   
-  // Componentes lazy-loaded
+  /** Lazy-loaded comments component */
   SubmissionComments?: React.ComponentType<any>;
+  /** Lazy-loaded image display component */
   SubmissionImageDisplay?: React.ComponentType<any>;
 }
 

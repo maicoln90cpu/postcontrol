@@ -2,13 +2,26 @@ import { useSearchParams } from 'react-router-dom';
 import { useCallback, useMemo } from 'react';
 
 /**
- * Hook para gerenciar filtros do Dashboard via URL
- * Similar ao useAdminFilters, mas para Dashboard
+ * Dashboard Filters Hook - URL-based Filter Management
  * 
- * Benefícios:
- * - Filtros persistem no refresh da página
- * - State management simplificado
- * - Facilita compartilhamento de URLs com filtros específicos
+ * Manages dashboard filters through URL query parameters,
+ * ensuring filter persistence across page refreshes.
+ * 
+ * @returns {Object} Filter state and setter functions
+ * @returns {Object} filters - Current filter values
+ * @returns {string} filters.selectedHistoryEvent - Selected event ID or 'all'
+ * @returns {Function} setSelectedHistoryEvent - Set event filter
+ * @returns {Function} updateFilter - Generic filter updater
+ * @returns {Function} clearFilters - Clear all filters
+ * 
+ * @example
+ * const { filters, setSelectedHistoryEvent } = useDashboardFilters();
+ * 
+ * // Set event filter
+ * setSelectedHistoryEvent('event-123');
+ * 
+ * // Access current value
+ * console.log(filters.selectedHistoryEvent); // 'event-123'
  */
 export const useDashboardFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams();

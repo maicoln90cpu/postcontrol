@@ -4,42 +4,66 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Download, Columns3 } from 'lucide-react';
 import { formatPostName } from '@/lib/postNameFormatter';
+import { Event, Submission } from '@/types/admin';
 
 /**
- * Componente de filtros da aba Submissions
- * Memoizado para evitar re-renders desnecessários
+ * Admin Filters Component
+ * 
+ * Provides comprehensive filtering UI for admin submission management.
+ * Memoized to prevent unnecessary re-renders when parent state changes.
+ * 
+ * @component
  */
 
+/**
+ * Props for AdminFilters component
+ */
 interface AdminFiltersProps {
-  // Filtros atuais
+  /** Current event filter value ('all' or event ID) */
   submissionEventFilter: string;
+  /** Current post number filter value ('all' or post number) */
   submissionPostFilter: string;
+  /** Current status filter value */
   submissionStatusFilter: string;
+  /** Current post type filter value */
   postTypeFilter: string;
+  /** Current search term */
   searchTerm: string;
+  /** Start date for date range filter (ISO format) */
   dateFilterStart: string;
+  /** End date for date range filter (ISO format) */
   dateFilterEnd: string;
+  /** Whether kanban view is enabled */
   kanbanView: boolean;
   
-  // Dados para popular dropdowns
-  events: any[];
+  /** Available events for dropdown */
+  events: Event[];
+  /** All submissions for post number extraction */
   submissions: any[];
   
-  // Setters
+  /** Callback when event filter changes */
   onSubmissionEventFilterChange: (value: string) => void;
+  /** Callback when post filter changes */
   onSubmissionPostFilterChange: (value: string) => void;
+  /** Callback when status filter changes */
   onSubmissionStatusFilterChange: (value: string) => void;
+  /** Callback when post type filter changes */
   onPostTypeFilterChange: (value: string) => void;
+  /** Callback when search term changes */
   onSearchTermChange: (value: string) => void;
+  /** Callback when start date changes */
   onDateFilterStartChange: (value: string) => void;
+  /** Callback when end date changes */
   onDateFilterEndChange: (value: string) => void;
+  /** Callback when kanban view toggles */
   onKanbanViewToggle: () => void;
   
-  // Ações
+  /** Optional export handler */
   onExport?: () => void;
   
-  // Estado
+  /** Number of submissions after filters applied */
   filteredCount: number;
+  /** Total number of submissions before filters */
   totalCount: number;
 }
 

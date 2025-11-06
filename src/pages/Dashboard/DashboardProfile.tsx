@@ -8,13 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Camera, Lock } from 'lucide-react';
+import { Profile } from '@/types/dashboard';
 
 /**
- * Componente de perfil do usuário no Dashboard
- * Memoizado para performance
+ * Dashboard Profile Component
+ * 
+ * User profile editor with avatar upload, Instagram link, and password change.
+ * Memoized to prevent re-renders when parent state changes.
+ * 
+ * @component
  */
 
-interface Profile {
+/**
+ * User profile data structure (deprecated, use Profile from types/dashboard)
+ * @deprecated
+ */
+interface ProfileData {
   full_name: string;
   email: string;
   phone?: string;
@@ -24,29 +33,54 @@ interface Profile {
   followers_range?: string;
 }
 
+/**
+ * Props for DashboardProfile component
+ */
 interface DashboardProfileProps {
+  /** User profile data from database */
   profile: Profile;
+  /** Preview URL for avatar (before saving) */
   avatarPreview: string | null;
+  /** Selected avatar file for upload */
   avatarFile: File | null;
+  /** Whether avatar is currently uploading */
   uploading: boolean;
+  /** Upload progress percentage (0-100) */
   uploadProgress: number;
+  /** Current Instagram handle value */
   instagram: string;
+  /** Selected gender value */
   selectedGender: string;
+  /** New password input value */
   newPassword: string;
+  /** Password confirmation input value */
   confirmPassword: string;
+  /** Whether user is an agency admin */
   isAgencyAdmin: boolean;
+  /** Current authenticated user object */
   user: any;
   
+  /** Callback when avatar file is selected */
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Callback to save avatar to storage */
   onSaveAvatar: () => void;
+  /** Callback when Instagram input changes */
   onInstagramChange: (value: string) => void;
+  /** Callback to save Instagram handle */
   onSaveInstagram: () => Promise<void>;
+  /** Callback when gender selection changes */
   onGenderChange: (value: string) => void;
+  /** Callback to save gender value */
   onSaveGender: () => void;
+  /** Callback when new password input changes */
   onNewPasswordChange: (value: string) => void;
+  /** Callback when confirm password input changes */
   onConfirmPasswordChange: (value: string) => void;
+  /** Callback to change password */
   onChangePassword: () => void;
+  /** Callback when followers range changes (auto-saves) */
   onFollowersRangeChange: (value: string) => Promise<void>;
+  /** Callback when full name changes (auto-saves on blur) */
   onFullNameChange: (value: string) => Promise<void>;
 }
 

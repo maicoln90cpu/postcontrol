@@ -2,13 +2,39 @@ import { useSearchParams } from 'react-router-dom';
 import { useCallback, useMemo } from 'react';
 
 /**
- * Hook customizado para gerenciar filtros do Admin via URL
- * Substitui múltiplos useState por uma única fonte de verdade (URL)
+ * Admin Filters Hook - URL-based Filter Management
  * 
- * Benefícios:
- * - Filtros persistem no refresh da página
- * - Facilita compartilhamento de URLs com filtros específicos
- * - State management simplificado
+ * Manages all admin panel filters through URL query parameters,
+ * ensuring persistence across page refreshes and shareable filter states.
+ * 
+ * @returns {Object} Filter state and setter functions
+ * @returns {Object} filters - Current filter values
+ * @returns {Function} setSubmissionEventFilter - Set event filter
+ * @returns {Function} setSubmissionPostFilter - Set post number filter
+ * @returns {Function} setSubmissionStatusFilter - Set status filter
+ * @returns {Function} setPostTypeFilter - Set post type filter
+ * @returns {Function} setSearchTerm - Set search term
+ * @returns {Function} setDateFilterStart - Set start date
+ * @returns {Function} setDateFilterEnd - Set end date
+ * @returns {Function} setCurrentPage - Set current page
+ * @returns {Function} setItemsPerPage - Set items per page
+ * @returns {Function} setKanbanView - Toggle kanban view
+ * @returns {Function} setEventActiveFilter - Set event active filter
+ * @returns {Function} setPostEventFilter - Set post event filter
+ * @returns {Function} updateFilter - Generic filter updater
+ * @returns {Function} clearFilters - Clear all filters
+ * 
+ * @example
+ * const { filters, setSubmissionEventFilter, clearFilters } = useAdminFilters();
+ * 
+ * // Set a single filter
+ * setSubmissionEventFilter('event-123');
+ * 
+ * // Access current filter state
+ * console.log(filters.submissionEventFilter); // 'event-123'
+ * 
+ * // Clear all filters
+ * clearFilters();
  */
 export const useAdminFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams();

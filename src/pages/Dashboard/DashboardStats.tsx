@@ -4,12 +4,21 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { motion } from 'framer-motion';
 import { TrendingUp, Send, Calendar, Award } from 'lucide-react';
+import { EventStats } from '@/types/dashboard';
 
 /**
- * Componente de estatísticas do Dashboard
- * Memoizado para performance
+ * Dashboard Statistics Component
+ * 
+ * Displays user statistics and event progress with animated cards.
+ * Memoized to prevent re-renders when parent updates.
+ * 
+ * @component
  */
 
+/**
+ * Single event statistic structure
+ * @deprecated Use EventStats from @/types/dashboard instead
+ */
 interface EventStat {
   eventId: string;
   eventTitle: string;
@@ -19,12 +28,20 @@ interface EventStat {
   isApproximate: boolean;
 }
 
+/**
+ * Props for DashboardStats component
+ */
 interface DashboardStatsProps {
+  /** Number of approved submissions */
   approvedCount: number;
+  /** Total number of submissions (all statuses) */
   totalSubmissions: number;
+  /** Number of currently active events */
   activeEventsCount: number;
+  /** ISO date string of last submission, or null if none */
   lastSubmissionDate: string | null;
-  eventStats: EventStat[];
+  /** Array of event completion statistics */
+  eventStats: EventStats[];
 }
 
 const DashboardStatsComponent = ({
