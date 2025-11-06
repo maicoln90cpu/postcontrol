@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 // ✅ Sprint 3A: Importar componentes refatorados
-import { AdminFilters, AdminSubmissionList, AdminEventList, useAdminFilters } from "./Admin/";
+import { AdminFilters } from "./Admin/AdminFilters";
+import { AdminSubmissionList } from "./Admin/AdminSubmissionList";
+import { AdminEventList } from "./Admin/AdminEventList";
+import { useAdminFilters } from "./Admin/useAdminFilters";
 
 // ✅ Sprint 2B: Importar hooks consolidados
 import {
