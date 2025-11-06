@@ -36,15 +36,15 @@ export async function getSubmissions(
       itemsPerPage = 10,
     } = filters;
 
-    let query = supabase
-      .from('submissions')
-      .select(
-        `
-        *,
-        posts(id, post_number, deadline, event_id)
-      `,
-        { count: 'exact' }
-      );
+  let query = supabase
+    .from('submissions')
+    .select(
+      `
+      *,
+      posts!inner(id, post_number, deadline, event_id, post_type)
+    `,
+      { count: 'exact' }
+    );
 
     // Apply filters
     if (eventId) {
