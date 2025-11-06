@@ -643,7 +643,7 @@ const Admin = () => {
 
     // Filtro de evento
     if (submissionEventFilter !== "all") {
-      filtered = filtered.filter((s: any) => s.posts?.events?.id === submissionEventFilter);
+      filtered = filtered.filter((s: any) => s.posts?.event_id === submissionEventFilter);
     }
 
     // Filtro de número da postagem
