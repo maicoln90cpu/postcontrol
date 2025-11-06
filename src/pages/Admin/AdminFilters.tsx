@@ -170,7 +170,6 @@ const AdminFiltersComponent = ({
         <Select
           value={submissionStatusFilter}
           onValueChange={onSubmissionStatusFilterChange}
-          disabled={submissionEventFilter === 'all'}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Status" />
@@ -189,7 +188,6 @@ const AdminFiltersComponent = ({
         <Select
           value={postTypeFilter}
           onValueChange={onPostTypeFilterChange}
-          disabled={submissionEventFilter === 'all'}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Tipo de Postagem" />

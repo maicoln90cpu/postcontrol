@@ -180,13 +180,22 @@ const Admin = () => {
     includePosts: true,
     enabled: !!user && (isAgencyAdmin || isMasterAdmin)
   });
+
+  // Debug: Verificar eventos carregados (incluindo inativos)
+  const events = eventsData?.events || [];
+  console.log('🔍 [Admin Debug] Total de eventos carregados:', events.length);
+  console.log('🔍 [Admin Debug] Eventos:', events.map(e => ({ 
+    title: e.title, 
+    active: e.is_active,
+    id: e.id 
+  })));
   
   const { data: submissionsData, isLoading: submissionsLoading, refetch: refetchSubmissions } = useSubmissionsQuery({
     agencyId: currentAgency?.id,
     eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
     enrichProfiles: true,
     itemsPerPage: submissionEventFilter === "all" ? 10000 : itemsPerPage, // Buscar todas quando filter='all'
-    page: submissionEventFilter === "all" ? 1 : currentPage, // Resetar página quando 'all'
+    page: 1, // SEMPRE página 1 para garantir que todas sejam carregadas
     enabled: !!user && (isAgencyAdmin || isMasterAdmin) && !!currentAgency
   });
   
@@ -195,12 +204,20 @@ const Admin = () => {
   const deleteEventMutation = useDeleteEventMutation();
   const deleteSubmissionMutation = useDeleteSubmissionMutation();
   
-  // Extrair eventos e posts dos dados do hook
-  const events = eventsData?.events || [];
+  // Extrair posts e submissions dos dados do hook
   const posts = eventsData?.posts || [];
   const submissions = submissionsData?.data || [];
   const loadingEvents = eventsLoading;
   const loadingSubmissions = submissionsLoading;
+
+  // Debug: Verificar submissões carregadas
+  console.log('🔍 [Admin Debug] Total de submissões carregadas:', submissions.length);
+  console.log('🔍 [Admin Debug] Total count do backend:', submissionsData?.count);
+  console.log('🔍 [Admin Debug] Filtro atual:', { 
+    submissionEventFilter, 
+    submissionStatusFilter, 
+    postTypeFilter 
+  });
   
   // Trial state management
   const [trialInfo, setTrialInfo] = useState<{
@@ -1659,18 +1676,11 @@ const Admin = () => {
               totalCount={submissions.length}
             />
 
+
               {kanbanView ? (
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <SubmissionKanban submissions={getFilteredSubmissions as any} onUpdate={refetchSubmissions} userId={user?.id} />
                 </Suspense>
-              ) : submissionEventFilter === "all" ? (
-                <Card className="p-12 text-center">
-                  <div className="text-muted-foreground">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-semibold mb-2">Selecione um evento acima</p>
-                    <p className="text-sm">Escolha um evento nos filtros para visualizar as submissões</p>
-                  </div>
-                </Card>
               ) : loadingSubmissions ? (
                 <Card className="p-12 text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
