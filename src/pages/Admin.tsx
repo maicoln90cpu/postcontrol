@@ -1197,26 +1197,26 @@ const Admin = () => {
               <Badge variant="secondary" className="text-base px-4 py-2">
                 Plano: {currentAgency.subscription_plan?.toUpperCase() || "BASIC"}
               </Badge>
+              {/* ✅ FASE 1 - Item 1.2: Corrigir botão "Gerenciar Assinatura" */}
               <Button
-                onClick={async () => {
-                  try {
-                    const { data, error } = await sb.functions.invoke('create-checkout-session', {
-                      body: { planKey: 'basic' }
-                    });
-                    if (error) throw error;
-                    if (data?.url) {
-                      window.open(data.url, '_blank');
-                    }
-                  } catch (error) {
-                    console.error('Erro ao abrir checkout:', error);
-                    toast.error('Erro ao abrir página de assinatura');
-                  }
+                onClick={() => {
+                  window.location.href = '/#precos';
                 }}
                 variant="outline"
                 size="sm"
                 className="font-semibold"
               >
                 {trialInfo?.inTrial ? "Assinar Agora" : "Gerenciar Assinatura"}
+              </Button>
+              {/* ✅ FASE 1 - Item 1.3: Adicionar botão "Enviar Sugestão" */}
+              <Button
+                onClick={() => setSuggestionDialogOpen(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Lightbulb className="h-4 w-4" />
+                Enviar Sugestão
               </Button>
             </div>
           )}

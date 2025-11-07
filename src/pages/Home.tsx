@@ -49,15 +49,40 @@ const Home = () => {
     element?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleTrialClick = () => {
+  // ✅ FASE 1 - Item 1.4: Corrigir lógica "Teste 7 Dias Grátis"
+  const handleTrialClick = async (planKey: string) => {
+    // Se não estiver logado, redirecionar para página de autenticação
     if (!user) {
-      // Redirect to auth page if not logged in
       window.location.href = '/auth';
       return;
     }
 
-    // Open dialog to request agency
-    setRequestDialogOpen(true);
+    // Se estiver logado, abrir checkout direto com o plano selecionado
+    setIsLoading(true);
+    try {
+      console.log('🛒 [HOME] Abrindo checkout para plano:', planKey);
+      
+      const { data, error } = await sb.functions.invoke('create-checkout-session', {
+        body: { planKey }
+      });
+      
+      if (error) {
+        console.error('❌ [HOME] Erro ao criar checkout:', error);
+        throw error;
+      }
+      
+      if (data?.url) {
+        console.log('✅ [HOME] Abrindo checkout na URL:', data.url);
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('URL de checkout não retornada');
+      }
+    } catch (error) {
+      console.error('❌ [HOME] Erro ao processar checkout:', error);
+      toast.error('Erro ao abrir página de assinatura. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmitRequest = async () => {
@@ -537,7 +562,7 @@ const Home = () => {
                       className={`w-full ${
                         isPopular ? 'bg-gradient-primary' : 'bg-gradient-secondary'
                       }`}
-                      onClick={handleTrialClick}
+                      onClick={() => handleTrialClick(plan.plan_key)}
                       disabled={isLoading}
                     >
                       {isLoading ? 'Processando...' : 'Teste 7 dias grátis'}
