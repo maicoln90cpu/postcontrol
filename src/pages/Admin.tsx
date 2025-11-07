@@ -162,6 +162,7 @@ const Admin = () => {
       kanbanView,
       eventActiveFilter,
       postEventFilter,
+      postEventActiveFilter,
     },
     setSubmissionEventFilter,
     setSubmissionPostFilter,
@@ -175,6 +176,7 @@ const Admin = () => {
     setKanbanView,
     setEventActiveFilter,
     setPostEventFilter,
+    setPostEventActiveFilter,
     clearFilters, // ✅ ITEM 3 FASE 1: Adicionar clearFilters
   } = useAdminFilters();
   
@@ -804,11 +806,26 @@ const Admin = () => {
     return events.filter((e) => e.is_active === false);
   }, [events, eventActiveFilter]);
 
-  // ✅ Item 10: Filtrar postagens por evento
+  // ✅ Item 10 + FASE 3: Filtrar postagens por evento e status do evento
   const filteredPosts = useMemo(() => {
-    if (postEventFilter === "all") return posts;
-    return posts.filter((p) => p.event_id === postEventFilter);
-  }, [posts, postEventFilter]);
+    let filtered = posts;
+    
+    // Filtrar por evento específico
+    if (postEventFilter !== "all") {
+      filtered = filtered.filter((p) => p.event_id === postEventFilter);
+    }
+    
+    // Filtrar por status do evento (ativo/inativo)
+    if (postEventActiveFilter !== "all") {
+      filtered = filtered.filter((p) => {
+        const event = events.find(e => e.id === p.event_id);
+        if (!event) return false;
+        return postEventActiveFilter === "active" ? event.is_active === true : event.is_active === false;
+      });
+    }
+    
+    return filtered;
+  }, [posts, postEventFilter, postEventActiveFilter, events]);
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
@@ -1593,8 +1610,25 @@ const Admin = () => {
           <TabsContent value="posts" className="space-y-6">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <h2 className="text-2xl font-bold">Gerenciar Postagens</h2>
+                <div>
+                  <h2 className="text-2xl font-bold">Gerenciar Postagens</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {filteredPosts.length} postage{filteredPosts.length !== 1 ? "ns" : "m"} encontrada{filteredPosts.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  {/* ✅ FASE 3: Filtro de status do evento */}
+                  <Select value={postEventActiveFilter} onValueChange={setPostEventActiveFilter}>
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                      <SelectValue placeholder="Status do evento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="active">✅ Eventos Ativos</SelectItem>
+                      <SelectItem value="inactive">⏸️ Eventos Inativos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
                   <Select value={postEventFilter} onValueChange={setPostEventFilter}>
                     <SelectTrigger className="w-full sm:w-64">
                       <SelectValue placeholder="Filtrar por evento" />

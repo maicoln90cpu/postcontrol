@@ -52,6 +52,7 @@ export const useAdminFilters = () => {
   const kanbanView = searchParams.get('view') === 'kanban';
   const eventActiveFilter = searchParams.get('eventActive') || 'active'; // ✅ ITEM 8: Padrão 'active'
   const postEventFilter = searchParams.get('postEvent') || 'all';
+  const postEventActiveFilter = searchParams.get('postEventActive') || 'active'; // ✅ FASE 3: Padrão 'active'
 
   /**
    * Atualizador genérico de filtros
@@ -127,6 +128,10 @@ export const useAdminFilters = () => {
     updateFilter({ postEvent: value });
   }, [updateFilter]);
 
+  const setPostEventActiveFilter = useCallback((value: string) => {
+    updateFilter({ postEventActive: value });
+  }, [updateFilter]);
+
   /**
    * Limpar todos os filtros e voltar ao estado inicial
    */
@@ -150,6 +155,7 @@ export const useAdminFilters = () => {
     kanbanView,
     eventActiveFilter,
     postEventFilter,
+    postEventActiveFilter,
   }), [
     submissionEventFilter,
     submissionPostFilter,
@@ -163,6 +169,7 @@ export const useAdminFilters = () => {
     kanbanView,
     eventActiveFilter,
     postEventFilter,
+    postEventActiveFilter,
   ]);
 
   return {
@@ -182,6 +189,7 @@ export const useAdminFilters = () => {
     setKanbanView,
     setEventActiveFilter,
     setPostEventFilter,
+    setPostEventActiveFilter,
     
     // Utilities
     updateFilter,
