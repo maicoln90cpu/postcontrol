@@ -1,23 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useIsGuest } from '@/hooks/useIsGuest';
 import { useGuestPermissions } from '@/hooks/useGuestPermissions';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Users, Trophy, Eye, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, Users, Trophy, Eye, CheckCircle, XCircle, Clock, AlertCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { PERMISSION_LABELS } from '@/types/guest';
 import { useEventsQuery, useSubmissionsQuery } from '@/hooks/consolidated';
+import { format } from 'date-fns';
+
+// ✅ FASE 2 - Item 2.1 e 2.2: Lazy load dos componentes de imagem
+const SubmissionImageDisplay = lazy(() => 
+  import('@/components/SubmissionImageDisplay').then(m => ({ default: m.SubmissionImageDisplay }))
+);
+const SubmissionZoomDialog = lazy(() => 
+  import('@/components/SubmissionZoomDialog').then(m => ({ default: m.SubmissionZoomDialog }))
+);
 
 export const GuestDashboard = () => {
   const navigate = useNavigate();
   const { isGuest, guestData, loading: guestLoading } = useIsGuest();
   const { hasPermission, getPermissionLevel, allowedEvents, loading: permissionsLoading } = useGuestPermissions();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [zoomedSubmission, setZoomedSubmission] = useState<any>(null); // ✅ FASE 2 - Item 2.2
+  const [searchTerm, setSearchTerm] = useState(''); // ✅ FASE 2 - Item 2.3
 
   // ✅ Usar hooks consolidados em vez de fetch manual
   const { data: eventsData, isLoading: loadingEvents } = useEventsQuery({
@@ -92,6 +105,11 @@ export const GuestDashboard = () => {
       });
 
       refetchSubmissions();
+      
+      // ✅ FASE 2 - Item 2.2: Fechar zoom dialog se estiver aberto
+      if (zoomedSubmission?.id === submissionId) {
+        setZoomedSubmission(null);
+      }
     } catch (err: any) {
       console.error('Error approving submission:', err);
       toast.error('Erro ao aprovar submissão');
@@ -127,11 +145,50 @@ export const GuestDashboard = () => {
       });
 
       refetchSubmissions();
+      
+      // ✅ FASE 2 - Item 2.2: Fechar zoom dialog se estiver aberto
+      if (zoomedSubmission?.id === submissionId) {
+        setZoomedSubmission(null);
+      }
     } catch (err: any) {
       console.error('Error rejecting submission:', err);
       toast.error('Erro ao reprovar submissão');
     }
   };
+
+  // ✅ FASE 2 - Item 2.2: Navegação entre submissões no zoom
+  const handleZoomNext = () => {
+    const currentIndex = filteredSubmissions.findIndex((s: any) => s.id === zoomedSubmission?.id);
+    if (currentIndex < filteredSubmissions.length - 1) {
+      setZoomedSubmission(filteredSubmissions[currentIndex + 1]);
+    }
+  };
+
+  const handleZoomPrevious = () => {
+    const currentIndex = filteredSubmissions.findIndex((s: any) => s.id === zoomedSubmission?.id);
+    if (currentIndex > 0) {
+      setZoomedSubmission(filteredSubmissions[currentIndex - 1]);
+    }
+  };
+
+  // ✅ FASE 2 - Item 2.2: Wrapper para onReject com prompt
+  const handleRejectWithPrompt = (submissionId: string) => {
+    const reason = prompt('Motivo da reprovação:');
+    if (reason) {
+      handleRejectSubmission(submissionId, reason);
+    }
+  };
+
+  // ✅ FASE 2 - Item 2.3: Filtrar submissões por busca
+  const filteredSubmissions = submissions.filter((s: any) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      s.profiles?.full_name?.toLowerCase().includes(searchLower) ||
+      s.profiles?.instagram?.toLowerCase().includes(searchLower) ||
+      s.followers_range?.toLowerCase().includes(searchLower)
+    );
+  });
 
   if (guestLoading || permissionsLoading) {
     return (
@@ -151,10 +208,10 @@ export const GuestDashboard = () => {
   const permissionLevel = selectedEventId ? getPermissionLevel(selectedEventId) : null;
 
   const stats = {
-    total: submissions.length,
-    pending: submissions.filter((s: any) => s.status === 'pending').length,
-    approved: submissions.filter((s: any) => s.status === 'approved').length,
-    rejected: submissions.filter((s: any) => s.status === 'rejected').length,
+    total: filteredSubmissions.length,
+    pending: filteredSubmissions.filter((s: any) => s.status === 'pending').length,
+    approved: filteredSubmissions.filter((s: any) => s.status === 'approved').length,
+    rejected: filteredSubmissions.filter((s: any) => s.status === 'rejected').length,
   };
 
   return (
@@ -279,75 +336,166 @@ export const GuestDashboard = () => {
               </Card>
             )}
 
-            {/* Submissões */}
+            {/* ✅ FASE 2 - Item 2.3: Tabela de Submissões (layout igual Admin) */}
             <Card className="p-6">
-              <h3 className="text-xl font-semibold mb-4">Submissões - {selectedEvent.title}</h3>
-              
-              {loadingSubmissions ? (
-                <p className="text-center text-muted-foreground py-8">Carregando submissões...</p>
-              ) : submissions.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Nenhuma submissão encontrada</p>
-              ) : (
-                <div className="space-y-4">
-                  {submissions.map((submission: any) => (
-                    <Card key={submission.id} className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{submission.profiles?.full_name}</span>
-                            <Badge variant={
-                              submission.status === 'approved' ? 'default' :
-                              submission.status === 'rejected' ? 'destructive' :
-                              'secondary'
-                            }>
-                              {submission.status === 'approved' ? 'Aprovada' :
-                               submission.status === 'rejected' ? 'Reprovada' :
-                               'Pendente'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {submission.profiles?.instagram && `@${submission.profiles.instagram}`}
-                          </p>
-                          {submission.screenshot_url && (
-                            <img 
-                              src={submission.screenshot_url}
-                              alt="Screenshot"
-                              className="w-full max-w-xs rounded-lg border"
-                            />
-                          )}
-                        </div>
-
-                        {permissionLevel && hasPermission(selectedEventId!, 'moderator') && submission.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleApproveSubmission(submission.id)}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Aprovar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => {
-                                const reason = prompt('Motivo da reprovação:');
-                                if (reason) handleRejectSubmission(submission.id, reason);
-                              }}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Reprovar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold">Submissões - {selectedEvent.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Buscar por nome, Instagram..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 pr-4 py-2 border rounded-md text-sm w-64"
+                      />
+                    </div>
+                    <Badge variant="outline" className="text-sm">
+                      {filteredSubmissions.length} submiss{filteredSubmissions.length !== 1 ? 'ões' : 'ão'}
+                    </Badge>
+                  </div>
                 </div>
-              )}
+              
+                {loadingSubmissions ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ) : filteredSubmissions.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    {submissions.length === 0 ? 'Nenhuma submissão encontrada' : 'Nenhum resultado encontrado para sua busca'}
+                  </p>
+                ) : (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Usuário</TableHead>
+                          <TableHead>Faixa de Seguidores</TableHead>
+                          <TableHead>Evento</TableHead>
+                          <TableHead>Data de Envio</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Screenshot</TableHead>
+                          {permissionLevel && hasPermission(selectedEventId!, 'moderator') && (
+                            <TableHead className="text-right">Ações</TableHead>
+                          )}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSubmissions.map((submission: any) => (
+                          <TableRow key={submission.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{submission.profiles?.full_name || 'N/A'}</p>
+                                {submission.profiles?.instagram && (
+                                  <p className="text-sm text-muted-foreground">
+                                    @{submission.profiles.instagram}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{submission.followers_range || 'N/A'}</TableCell>
+                            <TableCell>{selectedEvent.title}</TableCell>
+                            <TableCell>
+                              {format(new Date(submission.submitted_at), 'dd/MM/yyyy HH:mm')}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                submission.status === 'approved' ? 'default' :
+                                submission.status === 'rejected' ? 'destructive' :
+                                'secondary'
+                              }>
+                                {submission.status === 'approved' ? 'Aprovada' :
+                                 submission.status === 'rejected' ? 'Reprovada' :
+                                 'Pendente'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                {/* ✅ FASE 2 - Item 2.1: Usar SubmissionImageDisplay */}
+                                <Suspense fallback={<Skeleton className="w-16 h-16" />}>
+                                  {submission.profile_screenshot_path && (
+                                    <div
+                                      className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() => setZoomedSubmission(submission)}
+                                    >
+                                      <SubmissionImageDisplay
+                                        screenshotPath={submission.profile_screenshot_path}
+                                        className="w-full h-full object-cover rounded"
+                                      />
+                                    </div>
+                                  )}
+                                  {submission.screenshot_path && (
+                                    <div
+                                      className="w-16 h-16 cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() => setZoomedSubmission(submission)}
+                                    >
+                                      <SubmissionImageDisplay
+                                        screenshotPath={submission.screenshot_path}
+                                        className="w-full h-full object-cover rounded"
+                                      />
+                                    </div>
+                                  )}
+                                </Suspense>
+                              </div>
+                            </TableCell>
+                            {permissionLevel && hasPermission(selectedEventId!, 'moderator') && (
+                              <TableCell className="text-right">
+                                {submission.status === 'pending' && (
+                                  <div className="flex gap-2 justify-end">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleApproveSubmission(submission.id)}
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Aprovar
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => {
+                                        const reason = prompt('Motivo da reprovação:');
+                                        if (reason) handleRejectSubmission(submission.id, reason);
+                                      }}
+                                    >
+                                      <XCircle className="h-4 w-4 mr-1" />
+                                      Reprovar
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             </Card>
           </>
         )}
       </div>
+
+      {/* ✅ FASE 2 - Item 2.2: Dialog de Zoom (igual Admin) */}
+      {zoomedSubmission && (
+        <Suspense fallback={null}>
+          <SubmissionZoomDialog
+            submission={zoomedSubmission}
+            open={!!zoomedSubmission}
+            onOpenChange={(open) => !open && setZoomedSubmission(null)}
+            onApprove={handleApproveSubmission}
+            onReject={handleRejectWithPrompt}
+            onNext={handleZoomNext}
+            onPrevious={handleZoomPrevious}
+            hasNext={filteredSubmissions.findIndex((s: any) => s.id === zoomedSubmission.id) < filteredSubmissions.length - 1}
+            hasPrevious={filteredSubmissions.findIndex((s: any) => s.id === zoomedSubmission.id) > 0}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };
