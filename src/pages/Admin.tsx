@@ -234,6 +234,9 @@ const Admin = () => {
   } = useSubmissionsQuery({
     agencyId: currentAgency?.id,
     eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
+    status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined, // 🆕 CORREÇÃO 1: Filtro de status no backend
+    postType: postTypeFilter !== "all" ? postTypeFilter : undefined, // 🆕 CORREÇÃO 1: Filtro de tipo de post no backend
+    searchTerm: searchTerm || undefined, // 🆕 CORREÇÃO 1: Busca textual no backend
     enrichProfiles: true,
     itemsPerPage: 50, // 🔴 ITEM 2: Reduzido de 10000 para 50 (performance crítica)
     page: currentPage, // 🔴 ITEM 2: Usar currentPage para paginação real
@@ -252,14 +255,18 @@ const Admin = () => {
   const loadingEvents = eventsLoading;
   const loadingSubmissions = submissionsLoading;
 
-  // Debug: Verificar submissões carregadas
+  // 🆕 CORREÇÃO 3: Logs de debug expandidos
   console.log("🔍 [Admin Debug] Total de submissões carregadas:", submissions.length);
   console.log("🔍 [Admin Debug] Total count do backend:", submissionsData?.count);
-  console.log("🔍 [Admin Debug] Filtro atual:", {
-    submissionEventFilter,
-    submissionStatusFilter,
-    postTypeFilter,
+  console.log("🔍 [Admin Debug] Filtros enviados ao backend:", {
+    agencyId: currentAgency?.id,
+    eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
+    status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined,
+    postType: postTypeFilter !== "all" ? postTypeFilter : undefined,
+    searchTerm: searchTerm || undefined,
   });
+  console.log("🔍 [Admin Debug] Agência atual:", currentAgency?.name);
+  console.log("🔍 [Admin Debug] Página atual:", currentPage);
 
   // Trial state management
   const [trialInfo, setTrialInfo] = useState<{
@@ -839,13 +846,13 @@ const Admin = () => {
     return {
       events: events.filter((e) => e.agency_id === agencyId).length,
       posts: posts.filter((p) => p.agency_id === agencyId).length,
-      submissions: submissions.filter((s) => s.agency_id === agencyId).length,
+      submissions: submissionsData?.count || 0, // 🆕 CORREÇÃO 2: Usar count real do backend (já filtrado por agencyId)
       users: usersCount,
       sales: submissions.filter(
         (s) => s.agency_id === agencyId && s.submission_type === "sale" && s.status === "approved",
       ).length,
     };
-  }, [events, posts, submissions, usersCount, currentAgency]);
+  }, [events, posts, submissions, usersCount, currentAgency, submissionsData?.count]);
 
   // ✅ Item 9: Filtrar eventos por ativo/inativo
   const filteredEvents = useMemo(() => {
