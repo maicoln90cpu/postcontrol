@@ -30,11 +30,15 @@ export async function getSubmissions(
     const {
       eventId,
       status,
+      postType,      // 🆕 SPRINT 2
+      searchTerm,    // 🆕 SPRINT 2
       userId,
       agencyId,
       page = 1,
       itemsPerPage = 10,
     } = filters;
+
+    console.log('🔍 [Backend] Filtros aplicados:', { eventId, status, postType, searchTerm, agencyId, page });
 
   let query = supabase
     .from('submissions')
@@ -52,6 +56,15 @@ export async function getSubmissions(
     }
     if (status) {
       query = query.eq('status', status);
+    }
+    // 🆕 SPRINT 2: Filtro por tipo de post
+    if (postType) {
+      query = query.eq('posts.post_type', postType);
+    }
+    // 🆕 SPRINT 2: Busca textual por Instagram (case-insensitive)
+    if (searchTerm && searchTerm.trim()) {
+      const search = searchTerm.trim();
+      query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,instagram.ilike.%${search}%`, { foreignTable: 'profiles' });
     }
     if (userId) {
       query = query.eq('user_id', userId);

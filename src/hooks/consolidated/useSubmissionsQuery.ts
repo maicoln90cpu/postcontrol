@@ -12,6 +12,8 @@ import { sb } from '@/lib/supabaseSafe';
 export interface UseSubmissionsQueryParams {
   eventId?: string;
   status?: string;
+  postType?: string;      // 🆕 SPRINT 2
+  searchTerm?: string;    // 🆕 SPRINT 2
   userId?: string;
   agencyId?: string;
   page?: number;
@@ -38,6 +40,8 @@ export interface UseSubmissionsQueryParams {
 export const useSubmissionsQuery = ({ 
   eventId,
   status,
+  postType,       // 🆕 SPRINT 2
+  searchTerm,     // 🆕 SPRINT 2
   userId,
   agencyId,
   page = 1,
@@ -46,15 +50,17 @@ export const useSubmissionsQuery = ({
   enabled = true
 }: UseSubmissionsQueryParams = {}) => {
   return useQuery({
-    queryKey: ['submissions', eventId, status, userId, agencyId, page, itemsPerPage],
+    queryKey: ['submissions', eventId, status, postType, searchTerm, userId, agencyId, page, itemsPerPage],
     queryFn: async () => {
       // 🔴 ITEM 2: Log de performance
       console.time(`⏱️ [Performance] Fetch Submissions (page ${page})`);
       
-      // ✅ Usa submissionService da Sprint 1
+      // ✅ SPRINT 2: Passa todos os filtros para o backend
       const { data: submissions, count, error } = await getSubmissions({
         eventId,
         status,
+        postType,     // 🆕 SPRINT 2
+        searchTerm,   // 🆕 SPRINT 2
         userId,
         agencyId,
         page,

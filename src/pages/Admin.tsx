@@ -645,7 +645,7 @@ const Admin = () => {
   };
 
   const handleZoomNext = () => {
-    if (zoomSubmissionIndex < getFilteredSubmissions.length - 1) {
+    if (zoomSubmissionIndex < getPaginatedSubmissions.length - 1) {
       setZoomSubmissionIndex((prev) => prev + 1);
     }
   };
@@ -743,98 +743,64 @@ const Admin = () => {
     }
   };
 
-  // ✅ FASE 2: Filtros memoizados para evitar recálculo desnecessário
+  // ✅ SPRINT 2: Backend já retorna dados filtrados e paginados
+  // Mantemos apenas filtros client-side que são edge cases raros (postNumber, datas)
+  // NOTA: Esses filtros client-side são aplicados AO LADO do backend, não em cima
   const getFilteredSubmissions = useMemo(() => {
     let filtered = submissions;
 
-    // Filtro de evento
-    if (submissionEventFilter !== "all") {
-      filtered = filtered.filter((s: any) => s.posts?.event_id === submissionEventFilter);
-    }
-
-    // Filtro de número da postagem
+    // Filtro por número de postagem específico (raro, usado principalmente em exports)
     if (submissionPostFilter !== "all") {
       filtered = filtered.filter((s: any) => s.posts?.post_number?.toString() === submissionPostFilter);
     }
 
-    // Filtro de status
-    if (submissionStatusFilter !== "all") {
-      filtered = filtered.filter((s: any) => s.status === submissionStatusFilter);
-    }
-
-    // ✅ Filtro único de tipo de postagem (baseado em post_type)
-    if (postTypeFilter !== "all") {
-      filtered = filtered.filter((s: any) => {
-        const postType = s.posts?.post_type || 'divulgacao';
-        return postType === postTypeFilter;
-      });
-    }
-
-    // Filtro de busca (nome, email, Instagram) - usando debounced search
-    if (debouncedSearch) {
-      const search = debouncedSearch.toLowerCase();
-      filtered = filtered.filter((s: any) => {
-        const profile = s.profiles || {};
-        return (
-          profile.full_name?.toLowerCase().includes(search) ||
-          profile.email?.toLowerCase().includes(search) ||
-          profile.instagram?.toLowerCase().includes(search)
-        );
-      });
-    }
-
-    // Filtro de data inicial
+    // Filtros de data (podem ser movidos para backend no futuro)
     if (dateFilterStart) {
       filtered = filtered.filter((s: any) => {
         const submitDate = new Date(s.submitted_at);
-        const startDate = new Date(dateFilterStart);
-        return submitDate >= startDate;
+        const filterDate = new Date(dateFilterStart);
+        return submitDate >= filterDate;
       });
     }
 
-    // Filtro de data final
     if (dateFilterEnd) {
       filtered = filtered.filter((s: any) => {
         const submitDate = new Date(s.submitted_at);
-        const endDate = new Date(dateFilterEnd);
-        endDate.setHours(23, 59, 59, 999); // Incluir todo o dia final
-        return submitDate <= endDate;
+        const filterDate = new Date(dateFilterEnd);
+        return submitDate <= filterDate;
       });
     }
 
     return filtered;
   }, [
     submissions,
-    submissionEventFilter,
     submissionPostFilter,
-    submissionStatusFilter,
-    postTypeFilter,
-    debouncedSearch,
     dateFilterStart,
     dateFilterEnd,
   ]);
 
+  // ✅ SPRINT 2: Backend já retorna paginado, apenas usamos os dados filtrados
   const getPaginatedSubmissions = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return getFilteredSubmissions.slice(startIndex, startIndex + itemsPerPage);
-  }, [getFilteredSubmissions, currentPage, itemsPerPage]);
+    return getFilteredSubmissions;
+  }, [getFilteredSubmissions]);
 
-  const totalPages = Math.ceil(getFilteredSubmissions.length / itemsPerPage);
+  // ✅ SPRINT 2: Usar count real do backend para totalPages
+  const totalPages = Math.ceil((submissionsData?.count || 0) / itemsPerPage);
 
   // 🔴 GUARD: Validar índice do zoom quando array muda
   useEffect(() => {
     if (zoomDialogOpen) {
       // Se o índice atual está fora dos limites, fechar o diálogo
-      if (zoomSubmissionIndex >= getFilteredSubmissions.length || zoomSubmissionIndex < 0) {
+      if (zoomSubmissionIndex >= getPaginatedSubmissions.length || zoomSubmissionIndex < 0) {
         console.warn('⚠️ Zoom index out of bounds, closing dialog', {
           index: zoomSubmissionIndex,
-          arrayLength: getFilteredSubmissions.length
+          arrayLength: getPaginatedSubmissions.length
         });
         setZoomDialogOpen(false);
         setZoomSubmissionIndex(0);
       }
       // Se a submissão no índice atual é undefined, fechar
-      else if (!getFilteredSubmissions[zoomSubmissionIndex]) {
+      else if (!getPaginatedSubmissions[zoomSubmissionIndex]) {
         console.warn('⚠️ Submission at index is undefined, closing dialog', {
           index: zoomSubmissionIndex
         });
@@ -842,7 +808,7 @@ const Admin = () => {
         setZoomSubmissionIndex(0);
       }
     }
-  }, [zoomDialogOpen, zoomSubmissionIndex, getFilteredSubmissions]);
+  }, [zoomDialogOpen, zoomSubmissionIndex, getPaginatedSubmissions]);
 
   // ✅ Item 7: Estatísticas filtradas por agência
   const agencyFilteredStats = useMemo(() => {
@@ -1835,16 +1801,26 @@ const Admin = () => {
               onKanbanViewToggle={() => setKanbanView(!kanbanView)}
               onCardsGridViewToggle={() => setCardsGridView(!cardsGridView)}
               onExport={handleExportToExcel}
-              filteredCount={getFilteredSubmissions.length}
+              filteredCount={getPaginatedSubmissions.length}
               totalCount={submissionsData?.count || 0} // ✅ SPRINT 1: Usar count real do backend
               isLoadingSubmissions={loadingSubmissions}
             />
+            
+            {/* ✅ SPRINT 2: Indicador de filtros ativos */}
+            {(submissionStatusFilter !== 'all' || postTypeFilter !== 'all' || debouncedSearch || submissionEventFilter !== 'all') && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md mb-4">
+                <span className="text-sm font-medium">🔍 Filtros ativos:</span>
+                <span className="text-sm text-muted-foreground">
+                  {submissionsData?.count || 0} resultado(s) encontrado(s)
+                </span>
+              </div>
+            )}
 
 
 
               {kanbanView ? (
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <SubmissionKanban submissions={getFilteredSubmissions as any} onUpdate={refetchSubmissions} userId={user?.id} />
+                  <SubmissionKanban submissions={getPaginatedSubmissions as any} onUpdate={refetchSubmissions} userId={user?.id} />
                 </Suspense>
               ) : cardsGridView ? (
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
@@ -1879,7 +1855,7 @@ const Admin = () => {
                   )}
 
                   <Card className="p-6">
-                    {getFilteredSubmissions.length === 0 ? (
+                    {getPaginatedSubmissions.length === 0 ? (
                       <p className="text-muted-foreground text-center py-8">
                         Nenhuma submissão encontrada com os filtros selecionados
                       </p>
@@ -2214,8 +2190,8 @@ const Admin = () => {
                           <div className="flex items-center justify-between mt-6 pt-4 border-t">
                             <div className="text-sm text-muted-foreground">
                               Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
-                              {Math.min(currentPage * itemsPerPage, getFilteredSubmissions.length)} de{" "}
-                              {getFilteredSubmissions.length} submissões
+                              {Math.min(currentPage * itemsPerPage, submissionsData?.count || 0)} de{" "}
+                              {submissionsData?.count || 0} submissões
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -2535,16 +2511,16 @@ const Admin = () => {
       </Suspense>
 
       {/* Zoom Dialog com navegação */}
-      {getFilteredSubmissions.length > 0 && zoomSubmissionIndex < getFilteredSubmissions.length && getFilteredSubmissions[zoomSubmissionIndex] && (
+      {getPaginatedSubmissions.length > 0 && zoomSubmissionIndex < getPaginatedSubmissions.length && getPaginatedSubmissions[zoomSubmissionIndex] && (
         <SubmissionZoomDialog
           open={zoomDialogOpen}
           onOpenChange={setZoomDialogOpen}
-          submission={getFilteredSubmissions[zoomSubmissionIndex] as any}
+          submission={getPaginatedSubmissions[zoomSubmissionIndex] as any}
           onApprove={handleApproveSubmission}
           onReject={handleRejectSubmission}
           onNext={handleZoomNext}
           onPrevious={handleZoomPrevious}
-          hasNext={zoomSubmissionIndex < getFilteredSubmissions.length - 1}
+          hasNext={zoomSubmissionIndex < getPaginatedSubmissions.length - 1}
           hasPrevious={zoomSubmissionIndex > 0}
         />
       )}

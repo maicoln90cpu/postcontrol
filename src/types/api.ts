@@ -76,6 +76,8 @@ export interface PaginatedResponse<T> {
 export interface SubmissionFilters {
   eventId?: string;
   status?: string;
+  postType?: string;      // 🆕 SPRINT 2: Filtro de tipo de post (feed, reels, stories)
+  searchTerm?: string;    // 🆕 SPRINT 2: Busca por nome, email, Instagram
   userId?: string;
   agencyId?: string;
   page?: number;
