@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Download, Columns3 } from 'lucide-react';
+import { Download, Columns3, Grid3x3, List } from 'lucide-react';
 import { formatPostName } from '@/lib/postNameFormatter';
 import { Event, Submission } from '@/types/admin';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,6 +36,8 @@ interface AdminFiltersProps {
   dateFilterEnd: string;
   /** Whether kanban view is enabled */
   kanbanView: boolean;
+  /** Whether cards grid view is enabled */
+  cardsGridView: boolean;
   
   /** Available events for dropdown */
   events: Event[];
@@ -58,6 +60,8 @@ interface AdminFiltersProps {
   onDateFilterEndChange: (value: string) => void;
   /** Callback when kanban view toggles */
   onKanbanViewToggle: () => void;
+  /** Callback when cards grid view toggles */
+  onCardsGridViewToggle: () => void;
   
   /** Optional export handler */
   onExport?: () => void;
@@ -80,6 +84,7 @@ const AdminFiltersComponent = ({
   dateFilterStart,
   dateFilterEnd,
   kanbanView,
+  cardsGridView,
   events,
   submissions,
   onSubmissionEventFilterChange,
@@ -90,6 +95,7 @@ const AdminFiltersComponent = ({
   onDateFilterStartChange,
   onDateFilterEndChange,
   onKanbanViewToggle,
+  onCardsGridViewToggle,
   onExport,
   filteredCount,
   totalCount,
@@ -118,9 +124,31 @@ const AdminFiltersComponent = ({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onKanbanViewToggle}>
+          <Button 
+            variant={cardsGridView ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={onCardsGridViewToggle}
+            disabled={kanbanView}
+          >
+            <Grid3x3 className="mr-2 h-4 w-4" />
+            Cards
+          </Button>
+          <Button 
+            variant={!cardsGridView && !kanbanView ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={onCardsGridViewToggle}
+            disabled={kanbanView}
+          >
+            <List className="mr-2 h-4 w-4" />
+            Lista
+          </Button>
+          <Button 
+            variant={kanbanView ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={onKanbanViewToggle}
+          >
             <Columns3 className="mr-2 h-4 w-4" />
-            {kanbanView ? 'Ver Lista' : 'Ver Kanban'}
+            Kanban
           </Button>
         </div>
       </div>

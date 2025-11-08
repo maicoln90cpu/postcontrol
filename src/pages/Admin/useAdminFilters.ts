@@ -50,6 +50,7 @@ export const useAdminFilters = () => {
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const itemsPerPage = parseInt(searchParams.get('perPage') || '30', 10);
   const kanbanView = searchParams.get('view') === 'kanban';
+  const cardsGridView = searchParams.get('view') === 'cards';
   const eventActiveFilter = searchParams.get('eventActive') || 'active'; // ✅ ITEM 8: Padrão 'active'
   const postEventFilter = searchParams.get('postEvent') || 'all';
   const postEventActiveFilter = searchParams.get('postEventActive') || 'active'; // ✅ FASE 3: Padrão 'active'
@@ -120,6 +121,10 @@ export const useAdminFilters = () => {
     updateFilter({ view: value ? 'kanban' : 'list' });
   }, [updateFilter]);
 
+  const setCardsGridView = useCallback((value: boolean) => {
+    updateFilter({ view: value ? 'cards' : 'list' });
+  }, [updateFilter]);
+
   const setEventActiveFilter = useCallback((value: string) => {
     updateFilter({ eventActive: value });
   }, [updateFilter]);
@@ -153,6 +158,7 @@ export const useAdminFilters = () => {
     currentPage,
     itemsPerPage,
     kanbanView,
+    cardsGridView,
     eventActiveFilter,
     postEventFilter,
     postEventActiveFilter,
@@ -167,6 +173,7 @@ export const useAdminFilters = () => {
     currentPage,
     itemsPerPage,
     kanbanView,
+    cardsGridView,
     eventActiveFilter,
     postEventFilter,
     postEventActiveFilter,
@@ -187,6 +194,7 @@ export const useAdminFilters = () => {
     setCurrentPage,
     setItemsPerPage,
     setKanbanView,
+    setCardsGridView,
     setEventActiveFilter,
     setPostEventFilter,
     setPostEventActiveFilter,

@@ -12,6 +12,7 @@ import { AdminFilters } from "./Admin/AdminFilters";
 import { AdminSubmissionList } from "./Admin/AdminSubmissionList";
 import { AdminEventList } from "./Admin/AdminEventList";
 import { useAdminFilters } from "./Admin/useAdminFilters";
+import { SubmissionCardsGrid } from "@/components/SubmissionCardsGrid";
 
 // ✅ Sprint 2B: Importar hooks consolidados
 import {
@@ -160,6 +161,7 @@ const Admin = () => {
       currentPage,
       itemsPerPage,
       kanbanView,
+      cardsGridView,
       eventActiveFilter,
       postEventFilter,
       postEventActiveFilter,
@@ -174,6 +176,7 @@ const Admin = () => {
     setCurrentPage,
     setItemsPerPage,
     setKanbanView,
+    setCardsGridView,
     setEventActiveFilter,
     setPostEventFilter,
     setPostEventActiveFilter,
@@ -1754,6 +1757,7 @@ const Admin = () => {
               dateFilterStart={dateFilterStart}
               dateFilterEnd={dateFilterEnd}
               kanbanView={kanbanView}
+              cardsGridView={cardsGridView}
               events={events}
               submissions={submissions}
               onSubmissionEventFilterChange={setSubmissionEventFilter}
@@ -1764,6 +1768,7 @@ const Admin = () => {
               onDateFilterStartChange={setDateFilterStart}
               onDateFilterEndChange={setDateFilterEnd}
               onKanbanViewToggle={() => setKanbanView(!kanbanView)}
+              onCardsGridViewToggle={() => setCardsGridView(!cardsGridView)}
               onExport={handleExportToExcel}
               filteredCount={getFilteredSubmissions.length}
               totalCount={submissions.length}
@@ -1771,9 +1776,28 @@ const Admin = () => {
             />
 
 
+
               {kanbanView ? (
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <SubmissionKanban submissions={getFilteredSubmissions as any} onUpdate={refetchSubmissions} userId={user?.id} />
+                </Suspense>
+              ) : cardsGridView ? (
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <SubmissionCardsGrid
+                    submissions={getFilteredSubmissions as any}
+                    currentPage={currentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalPages={totalPages}
+                    selectedSubmissions={selectedSubmissions}
+                    imageUrls={imageUrls}
+                    isReadOnly={isReadOnly}
+                    onPageChange={setCurrentPage}
+                    onApprove={handleApproveSubmission}
+                    onReject={handleRejectSubmission}
+                    onToggleSelection={toggleSubmissionSelection}
+                    onImageZoom={handleOpenZoom}
+                    SubmissionImageDisplay={SubmissionImageDisplay}
+                  />
                 </Suspense>
               ) : loadingSubmissions ? (
                 <Card className="p-12 text-center">
