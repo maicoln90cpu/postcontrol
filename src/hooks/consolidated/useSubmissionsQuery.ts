@@ -70,21 +70,30 @@ export const useSubmissionsQuery = ({
         
         const userIds = Array.from(new Set(submissions.map(s => s.user_id)));
 
-        // Buscar perfis e contagens em paralelo
-        const [profilesData, countsData] = await Promise.all([
+        // 🔴 FASE 2: Otimização de contagem com agregação SQL
+        console.time('⏱️ [Performance] Query Profiles');
+        console.time('⏱️ [Performance] Query Counts');
+        
+        const [profilesData, countsResult] = await Promise.all([
           sb.from('profiles')
             .select('id, full_name, email, instagram, avatar_url')
             .in('id', userIds)
-            .then(res => res.data || []),
+            .then(res => {
+              console.timeEnd('⏱️ [Performance] Query Profiles');
+              return res.data || [];
+            }),
           
+          // ✅ Usar agregação SQL nativa ao invés de JavaScript
           sb.from('submissions')
-            .select('user_id')
+            .select('user_id, count:id.count()')
             .in('user_id', userIds)
             .then(res => {
+              console.timeEnd('⏱️ [Performance] Query Counts');
               const counts: Record<string, number> = {};
-              (res.data || []).forEach((s: any) => {
-                counts[s.user_id] = (counts[s.user_id] || 0) + 1;
+              (res.data || []).forEach((item: any) => {
+                counts[item.user_id] = item.count || 0;
               });
+              console.log('📊 [Counts] Total por usuário:', counts);
               return counts;
             })
         ]);
@@ -101,7 +110,7 @@ export const useSubmissionsQuery = ({
         const enrichedSubmissions = submissions.map(s => ({
           ...s,
           profiles: profilesById[s.user_id] || null,
-          total_submissions: countsData[s.user_id] || 0,
+          total_submissions: countsResult[s.user_id] || 0,
         }));
 
         return {

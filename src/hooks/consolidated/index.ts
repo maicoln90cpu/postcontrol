@@ -37,6 +37,7 @@ export {
   useUpdateSubmissionStatusMutation,
   useDeleteSubmissionMutation,
   useCreateSubmissionMutation,
+  useBulkUpdateSubmissionStatusMutation, // 🔴 FASE 1: Export bulk mutation
   useUpsertEventMutation,
   useDeleteEventMutation,
   useCreatePostMutation,

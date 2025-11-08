@@ -218,6 +218,63 @@ export async function updateSubmissionStatus(
 }
 
 /**
+ * 🔴 FASE 1: Bulk update submission status
+ * Atualiza múltiplas submissões em uma única query SQL
+ * @param ids - Array de IDs de submissões
+ * @param status - Novo status
+ * @param approvedBy - ID do aprovador
+ * @returns Array de submissões atualizadas
+ */
+export async function bulkUpdateSubmissionStatus(
+  ids: string[],
+  status: 'approved' | 'rejected' | 'pending',
+  approvedBy?: string,
+  rejectionReason?: string
+): Promise<ServiceResponse<Submission[]>> {
+  try {
+    if (ids.length === 0) {
+      return {
+        data: [],
+        error: null,
+      };
+    }
+
+    const updates: SubmissionUpdate = {
+      status,
+      approved_by: approvedBy,
+      approved_at: status === 'approved' ? new Date().toISOString() : null,
+      rejection_reason: rejectionReason,
+    };
+
+    console.log(`🚀 [Bulk Update] Atualizando ${ids.length} submissões em massa...`);
+    console.time('⏱️ [Performance] Bulk Update');
+
+    const { data, error } = await supabase
+      .from('submissions')
+      .update(updates)
+      .in('id', ids)
+      .select();
+
+    console.timeEnd('⏱️ [Performance] Bulk Update');
+
+    if (error) throw error;
+
+    console.log(`✅ [Bulk Update] ${data?.length || 0} submissões atualizadas`);
+
+    return {
+      data: data || [],
+      error: null,
+    };
+  } catch (error) {
+    console.error('❌ [Bulk Update] Erro:', error);
+    return {
+      data: null,
+      error: error as Error,
+    };
+  }
+}
+
+/**
  * Deletes a submission
  * @param id - Submission ID
  * @returns Success status
