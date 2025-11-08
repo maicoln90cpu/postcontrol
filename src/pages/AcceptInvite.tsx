@@ -110,8 +110,11 @@ if (now > endDate) {
 
     if (!invite) return;
 
-    // Verificar se o email do usuário logado corresponde ao email do convite
-    if (user.email !== invite.guest_email) {
+    // 🆕 SPRINT 3: Verificar email com normalização (case-insensitive)
+    const userEmail = user.email?.toLowerCase().trim();
+    const inviteEmail = invite.guest_email?.toLowerCase().trim();
+    
+    if (userEmail !== inviteEmail) {
       toast.error('Este convite foi enviado para ' + invite.guest_email);
       return;
     }
@@ -238,7 +241,7 @@ if (now > endDate) {
                 Você precisa fazer login com o email {invite.guest_email}
               </p>
             </div>
-          ) : user.email === invite.guest_email ? (
+          ) : user.email?.toLowerCase().trim() === invite.guest_email?.toLowerCase().trim() ? ( // 🆕 SPRINT 3: Comparação case-insensitive
             <Button 
               onClick={handleAcceptInvite}
               disabled={accepting}

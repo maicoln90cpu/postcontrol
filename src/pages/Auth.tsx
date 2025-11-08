@@ -196,8 +196,9 @@ const Auth = () => {
           }
         }
 
+        // 🆕 SPRINT 3: Normalizar email para lowercase antes de fazer login
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.toLowerCase().trim(),
           password,
         });
         
@@ -237,13 +238,14 @@ const Auth = () => {
           }
         }
 
+        // 🆕 SPRINT 3: Normalizar email para lowercase antes de criar conta
         const { error } = await supabase.auth.signUp({
-          email,
+          email: email.toLowerCase().trim(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
-              full_name: fullName,
+              full_name: fullName.trim(),
               gender: gender,
             }
           }

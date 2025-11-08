@@ -91,7 +91,7 @@ export const GuestInviteDialog = ({ agencyId, open, onOpenChange }: GuestInviteD
     }));
 
     createInvite({
-      guest_email: values.guest_email,
+      guest_email: values.guest_email.toLowerCase().trim(), // 🆕 SPRINT 3: Normalizar email para lowercase
       access_end_date: values.access_end_date.toISOString(),
       event_permissions: eventPermissions,
       notify_new_submissions: values.notify_new_submissions,

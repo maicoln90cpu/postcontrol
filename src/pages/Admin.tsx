@@ -24,11 +24,11 @@ import {
   useDeleteSubmissionMutation,
 } from "@/hooks/consolidated";
 
-// 🆕 SPRINT 2: Importar funções de contagem agregada
+// 🆕 SPRINT 2 + CACHE: Importar hook de contadores com cache
 import { 
-  getSubmissionCountsByEvent, 
-  getSubmissionCountsByPost 
-} from "@/services/submissionService";
+  useSubmissionCountsByEvent, 
+  useSubmissionCountsByPost 
+} from "@/hooks/useSubmissionCounters";
 import {
   Calendar,
   Users,
@@ -233,37 +233,30 @@ const Admin = () => {
     })),
   );
 
-  // 🆕 SPRINT 2: Estados para contadores agregados do backend
-  const [submissionsByEvent, setSubmissionsByEvent] = useState<Record<string, number>>({});
-  const [submissionsByPost, setSubmissionsByPost] = useState<Record<string, number>>({});
-  const [loadingCounters, setLoadingCounters] = useState(false);
+  // 🆕 SPRINT 2 + CACHE: Buscar contadores com React Query (cache de 5 minutos)
+  const { 
+    data: submissionsByEvent = {}, 
+    isLoading: loadingEventCounters 
+  } = useSubmissionCountsByEvent(
+    currentAgency?.id, 
+    !!user && (isAgencyAdmin || isMasterAdmin)
+  );
 
-  // 🆕 SPRINT 2: Buscar contadores agregados quando agência mudar
-  useEffect(() => {
-    const fetchCounters = async () => {
-      if (!currentAgency?.id) return;
-      
-      setLoadingCounters(true);
-      console.log("📊 [Admin] Buscando contadores agregados para agência:", currentAgency.id);
+  const { 
+    data: submissionsByPost = {}, 
+    isLoading: loadingPostCounters 
+  } = useSubmissionCountsByPost(
+    currentAgency?.id, 
+    !!user && (isAgencyAdmin || isMasterAdmin)
+  );
 
-      try {
-        const [eventCounts, postCounts] = await Promise.all([
-          getSubmissionCountsByEvent(currentAgency.id),
-          getSubmissionCountsByPost(currentAgency.id),
-        ]);
+  const loadingCounters = loadingEventCounters || loadingPostCounters;
 
-        setSubmissionsByEvent(eventCounts);
-        setSubmissionsByPost(postCounts);
-        console.log("✅ [Admin] Contadores carregados:", { eventCounts, postCounts });
-      } catch (error) {
-        console.error("❌ [Admin] Erro ao buscar contadores:", error);
-      } finally {
-        setLoadingCounters(false);
-      }
-    };
-
-    fetchCounters();
-  }, [currentAgency?.id]);
+  console.log("📊 [Admin] Contadores carregados do cache:", { 
+    submissionsByEvent, 
+    submissionsByPost,
+    loadingCounters 
+  });
 
   const {
     data: submissionsData,
