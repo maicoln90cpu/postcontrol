@@ -804,6 +804,29 @@ const Admin = () => {
 
   const totalPages = Math.ceil(getFilteredSubmissions.length / itemsPerPage);
 
+  // 🔴 GUARD: Validar índice do zoom quando array muda
+  useEffect(() => {
+    if (zoomDialogOpen) {
+      // Se o índice atual está fora dos limites, fechar o diálogo
+      if (zoomSubmissionIndex >= getFilteredSubmissions.length || zoomSubmissionIndex < 0) {
+        console.warn('⚠️ Zoom index out of bounds, closing dialog', {
+          index: zoomSubmissionIndex,
+          arrayLength: getFilteredSubmissions.length
+        });
+        setZoomDialogOpen(false);
+        setZoomSubmissionIndex(0);
+      }
+      // Se a submissão no índice atual é undefined, fechar
+      else if (!getFilteredSubmissions[zoomSubmissionIndex]) {
+        console.warn('⚠️ Submission at index is undefined, closing dialog', {
+          index: zoomSubmissionIndex
+        });
+        setZoomDialogOpen(false);
+        setZoomSubmissionIndex(0);
+      }
+    }
+  }, [zoomDialogOpen, zoomSubmissionIndex, getFilteredSubmissions]);
+
   // ✅ Item 7: Estatísticas filtradas por agência
   const agencyFilteredStats = useMemo(() => {
     if (!currentAgency) {
@@ -2495,7 +2518,7 @@ const Admin = () => {
       </Suspense>
 
       {/* Zoom Dialog com navegação */}
-      {getFilteredSubmissions.length > 0 && (
+      {getFilteredSubmissions.length > 0 && zoomSubmissionIndex < getFilteredSubmissions.length && getFilteredSubmissions[zoomSubmissionIndex] && (
         <SubmissionZoomDialog
           open={zoomDialogOpen}
           onOpenChange={setZoomDialogOpen}

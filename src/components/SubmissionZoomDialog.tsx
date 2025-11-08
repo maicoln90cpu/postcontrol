@@ -50,6 +50,19 @@ export const SubmissionZoomDialog = ({
   const isMobile = useIsMobile();
   const touchStartX = useRef<number>(0);
   
+  // 🔴 GUARD: Fechar diálogo se submission for undefined
+  useEffect(() => {
+    if (open && !submission) {
+      console.warn('⚠️ SubmissionZoomDialog: submission is undefined, closing dialog');
+      onOpenChange(false);
+    }
+  }, [open, submission, onOpenChange]);
+  
+  // 🔴 GUARD: Não renderizar se submission não existir
+  if (!submission) {
+    return null;
+  }
+  
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
