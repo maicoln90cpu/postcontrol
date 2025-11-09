@@ -18,7 +18,9 @@ import AgencySignupBySlug from "./pages/AgencySignupBySlug";
 import PublicEvent from "./pages/PublicEvent";
 import { AcceptInvite } from "./pages/AcceptInvite";
 import { GuestDashboard } from "./pages/GuestDashboard";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PWAInstallPrompt />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
@@ -39,6 +42,7 @@ const App = () => {
             <Route path="/agencia/:slug" element={<AgencySignupBySlug />} />
             <Route path="/agencia/:agencySlug/evento/:eventSlug" element={<PublicEvent />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />
+            <Route path="/install" element={<Install />} />
             
             {/* Protected Routes - Require Authentication */}
             <Route path="/submit" element={
