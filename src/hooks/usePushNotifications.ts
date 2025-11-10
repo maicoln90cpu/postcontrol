@@ -45,15 +45,18 @@ export const usePushNotifications = () => {
         const subscription = await registration.pushManager.getSubscription();
 
         if (subscription) {
-          // Verificar se a inscrição existe no banco
-          const { data } = await supabase
+          // Buscar todas as inscrições do usuário e filtrar manualmente
+          const { data: subscriptions } = await supabase
             .from("push_subscriptions")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("endpoint", subscription.endpoint)
-            .maybeSingle();
+            .select("id, endpoint")
+            .eq("user_id", user.id);
 
-          setIsSubscribed(!!data);
+          // Filtrar pelo endpoint no JavaScript (evita erro 406 com URLs longas)
+          const existingSubscription = subscriptions?.find(
+            sub => sub.endpoint === subscription.endpoint
+          );
+
+          setIsSubscribed(!!existingSubscription);
         } else {
           setIsSubscribed(false);
         }
@@ -67,14 +70,12 @@ export const usePushNotifications = () => {
   }, [isSupported, user]);
 
   const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+    // Converter base64url para base64 padrão (atob aceita sem padding)
+    const base64 = base64String.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Decode e converter para Uint8Array diretamente
     const rawData = atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
+    return Uint8Array.from(rawData, c => c.charCodeAt(0));
   };
 
   const subscribe = async () => {
