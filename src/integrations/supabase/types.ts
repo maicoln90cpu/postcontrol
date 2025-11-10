@@ -757,6 +757,39 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           action_type: string
@@ -1407,6 +1440,16 @@ export type Database = {
       is_master_admin: { Args: { _user_id: string }; Returns: boolean }
       link_admin_to_agency: {
         Args: { p_admin_email: string; p_agency_id: string }
+        Returns: undefined
+      }
+      send_event_reminders: { Args: never; Returns: undefined }
+      send_push_to_user: {
+        Args: {
+          p_body: string
+          p_data?: Json
+          p_title: string
+          p_user_id: string
+        }
         Returns: undefined
       }
       user_can_view_agency: { Args: { _agency_id: string }; Returns: boolean }
