@@ -41,7 +41,7 @@ export const useUserAgenciesQuery = (userId?: string) => {
           )
         `)
         .eq('user_id', userId)
-        .order('created_at', { ascending: true });
+        .order('joined_at', { ascending: true });
 
       if (error) throw error;
 
