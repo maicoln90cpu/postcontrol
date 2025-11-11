@@ -7,10 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { useIsGuest } from '@/hooks/useIsGuest';
 import { useGuestPermissions } from '@/hooks/useGuestPermissions';
+import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Users, Trophy, Eye, CheckCircle, XCircle, Clock, AlertCircle, Search } from 'lucide-react';
+import { Calendar, Users, Trophy, Eye, CheckCircle, XCircle, Clock, AlertCircle, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { PERMISSION_LABELS } from '@/types/guest';
@@ -31,8 +33,15 @@ export const GuestDashboard = () => {
   const { hasPermission, getPermissionLevel, allowedEvents, loading: permissionsLoading } = useGuestPermissions();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string>('all');
-  const [zoomedSubmission, setZoomedSubmission] = useState<any>(null); // ✅ FASE 2 - Item 2.2
-  const [searchTerm, setSearchTerm] = useState(''); // ✅ FASE 2 - Item 2.3
+  const [zoomedSubmission, setZoomedSubmission] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // ✅ FASE 3: Estados para filtros avançados
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedFollowerRange, setSelectedFollowerRange] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [itemsPerPage, setItemsPerPage] = useState<number>(30);
 
   // ✅ Usar hooks consolidados em vez de fetch manual
   const { data: eventsData, isLoading: loadingEvents } = useEventsQuery({
@@ -182,10 +191,20 @@ export const GuestDashboard = () => {
     }
   };
 
-  // ✅ FASE 2 - Item 2.3: Filtrar submissões por busca e post
+  // ✅ FASE 3: Filtrar submissões com todos os filtros
   const filteredSubmissions = submissions.filter((s: any) => {
     // Filtro por post
     if (selectedPostId !== 'all' && s.post_id !== selectedPostId) return false;
+    
+    // Filtro por status
+    if (selectedStatus !== 'all' && s.status !== selectedStatus) return false;
+    
+    // Filtro por faixa de seguidores
+    if (selectedFollowerRange !== 'all' && s.profiles?.followers_range !== selectedFollowerRange) return false;
+    
+    // Filtro por período de data
+    if (startDate && new Date(s.submitted_at) < new Date(startDate)) return false;
+    if (endDate && new Date(s.submitted_at) > new Date(endDate + 'T23:59:59')) return false;
     
     // Filtro por busca
     if (!searchTerm) return true;
@@ -196,6 +215,27 @@ export const GuestDashboard = () => {
       s.profiles?.followers_range?.toLowerCase().includes(searchLower)
     );
   });
+
+  // ✅ FASE 3: Paginação
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems: paginatedSubmissions,
+    goToPage,
+    nextPage,
+    previousPage,
+    hasNextPage,
+    hasPreviousPage,
+    resetPage,
+  } = usePagination({
+    items: filteredSubmissions,
+    itemsPerPage,
+  });
+
+  // ✅ FASE 3: Reset página quando filtros mudarem
+  useEffect(() => {
+    resetPage();
+  }, [selectedPostId, selectedStatus, selectedFollowerRange, startDate, endDate, searchTerm, resetPage]);
 
   // Contar total de posts aprovados por usuário
   const getUserApprovedCount = (userId: string) => {
@@ -237,11 +277,28 @@ export const GuestDashboard = () => {
   const selectedEvent = allowedEventsData.find(e => e.id === selectedEventId);
   const permissionLevel = selectedEventId ? getPermissionLevel(selectedEventId) : null;
 
+  // ✅ FASE 3: Stats baseados em TODAS as submissions (não paginadas)
   const stats = {
-    total: filteredSubmissions.length,
-    pending: filteredSubmissions.filter((s: any) => s.status === 'pending').length,
-    approved: filteredSubmissions.filter((s: any) => s.status === 'approved').length,
-    rejected: filteredSubmissions.filter((s: any) => s.status === 'rejected').length,
+    total: submissions.length,
+    pending: submissions.filter((s: any) => s.status === 'pending').length,
+    approved: submissions.filter((s: any) => s.status === 'approved').length,
+    rejected: submissions.filter((s: any) => s.status === 'rejected').length,
+    uniqueUsers: new Set(submissions.map((s: any) => s.user_id)).size,
+  };
+
+  // ✅ FASE 3: Extrair faixas de seguidores únicas para o filtro
+  const uniqueFollowerRanges = Array.from(
+    new Set(submissions.map((s: any) => s.profiles?.followers_range).filter(Boolean))
+  ).sort();
+
+  // ✅ FASE 3: Função para limpar todos os filtros
+  const clearAllFilters = () => {
+    setSelectedPostId('all');
+    setSelectedStatus('all');
+    setSelectedFollowerRange('all');
+    setStartDate('');
+    setEndDate('');
+    setSearchTerm('');
   };
 
   return (
@@ -298,8 +355,8 @@ export const GuestDashboard = () => {
 
         {selectedEvent && (
           <>
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Stats - FASE 3: 5 cards incluindo Usuários */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <Card className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-primary/10 rounded-lg">
@@ -347,6 +404,18 @@ export const GuestDashboard = () => {
                   </div>
                 </div>
               </Card>
+
+              <Card className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-500/10 rounded-lg">
+                    <Users className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Usuários</p>
+                    <p className="text-2xl font-bold">{stats.uniqueUsers}</p>
+                  </div>
+                </div>
+              </Card>
             </div>
 
             {/* Permissões Info */}
@@ -366,39 +435,93 @@ export const GuestDashboard = () => {
               </Card>
             )}
 
-            {/* ✅ FASE 2 - Item 2.3: Tabela de Submissões (layout igual Admin) */}
+            {/* ✅ FASE 3: Tabela de Submissões com filtros avançados e paginação */}
             <Card className="p-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-semibold">Submissões - {selectedEvent.title}</h3>
-                  <div className="flex items-center gap-2">
-                    <Select value={selectedPostId} onValueChange={setSelectedPostId}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Filtrar por post" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos os posts</SelectItem>
-                        {uniquePosts.map((post) => (
-                          <SelectItem key={post.id} value={post.id}>
-                            Post {post.number}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Buscar por nome, Instagram..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-2 border rounded-md text-sm w-64"
-                      />
-                    </div>
-                    <Badge variant="outline" className="text-sm">
-                      {filteredSubmissions.length} submiss{filteredSubmissions.length !== 1 ? 'ões' : 'ão'}
-                    </Badge>
-                  </div>
+                  <Badge variant="outline" className="text-sm">
+                    {filteredSubmissions.length} de {submissions.length} submiss{filteredSubmissions.length !== 1 ? 'ões' : 'ão'}
+                  </Badge>
+                </div>
+
+                {/* ✅ FASE 3: Filtros Avançados */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+                  <Select value={selectedPostId} onValueChange={setSelectedPostId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Post" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os posts</SelectItem>
+                      {uniquePosts.map((post) => (
+                        <SelectItem key={post.id} value={post.id}>
+                          Post {post.number}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="approved">Aprovada</SelectItem>
+                      <SelectItem value="rejected">Reprovada</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={selectedFollowerRange} onValueChange={setSelectedFollowerRange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seguidores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as faixas</SelectItem>
+                      {uniqueFollowerRanges.map((range) => (
+                        <SelectItem key={range} value={range}>
+                          {range}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    placeholder="Data inicial"
+                    className="text-sm"
+                  />
+
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    placeholder="Data final"
+                    className="text-sm"
+                  />
+
+                  <Button
+                    variant="outline"
+                    onClick={clearAllFilters}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Limpar
+                  </Button>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar por nome, Instagram ou faixa de seguidores..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
               
                 {loadingSubmissions ? (
@@ -412,24 +535,25 @@ export const GuestDashboard = () => {
                     {submissions.length === 0 ? 'Nenhuma submissão encontrada' : 'Nenhum resultado encontrado para sua busca'}
                   </p>
                 ) : (
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Usuário</TableHead>
-                          <TableHead>Faixa de Seguidores</TableHead>
-                          <TableHead>Total Posts</TableHead>
-                          <TableHead>Evento</TableHead>
-                          <TableHead>Data de Envio</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Screenshot</TableHead>
-                          {permissionLevel && hasPermission(selectedEventId!, 'moderator') && (
-                            <TableHead className="text-right">Ações</TableHead>
-                          )}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredSubmissions.map((submission: any) => (
+                  <>
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Usuário</TableHead>
+                            <TableHead>Faixa de Seguidores</TableHead>
+                            <TableHead>Total Posts</TableHead>
+                            <TableHead>Evento</TableHead>
+                            <TableHead>Data de Envio</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Screenshot</TableHead>
+                            {permissionLevel && hasPermission(selectedEventId!, 'moderator') && (
+                              <TableHead className="text-right">Ações</TableHead>
+                            )}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedSubmissions.map((submission: any) => (
                           <TableRow key={submission.id}>
                             <TableCell>
                               <div>
@@ -518,10 +642,55 @@ export const GuestDashboard = () => {
                               </TableCell>
                             )}
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* ✅ FASE 3: Controles de Paginação */}
+                    <div className="flex items-center justify-between pt-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Itens por página:</span>
+                        <Select 
+                          value={itemsPerPage.toString()} 
+                          onValueChange={(value) => setItemsPerPage(Number(value))}
+                        >
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="30">30</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          Página {currentPage} de {totalPages}
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={previousPage}
+                            disabled={!hasPreviousPage}
+                          >
+                            Anterior
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={nextPage}
+                            disabled={!hasNextPage}
+                          >
+                            Próxima
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </Card>
