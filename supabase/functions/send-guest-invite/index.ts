@@ -89,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Enviar email
     try {
       const emailResponse = await sendEmail({
-        from: "Sua Agência <noreply@projetopost.infoprolab.com.br>",
+        from: "Sua Agência <noreply@infoprolab.com.br>",
         to: [guest.guest_email],
         subject: `Convite: Acesso aos Eventos - ${guest.agencies.name}`,
         html: `
