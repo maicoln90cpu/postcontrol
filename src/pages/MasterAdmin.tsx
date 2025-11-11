@@ -27,6 +27,8 @@ const AdminSettings = lazy(() => import("@/components/AdminSettings").then(m => 
 const ChangelogManager = lazy(() => import("@/components/ChangelogManager").then(m => ({ default: m.ChangelogManager })));
 const GuestManager = lazy(() => import("@/components/GuestManager").then(m => ({ default: m.GuestManager })));
 const MasterPostsManager = lazy(() => import("@/components/MasterPostsManager").then(m => ({ default: m.MasterPostsManager })));
+const GTMDiagnostic = lazy(() => import("@/components/GTMDiagnostic").then(m => ({ default: m.GTMDiagnostic })));
+const PushNotificationTest = lazy(() => import("@/components/PushNotificationTest").then(m => ({ default: m.PushNotificationTest })));
 import { AgencyRequestsManager } from "@/components/AgencyRequestsManager";
 import { ConversionDashboard } from "@/components/ConversionDashboard";
 
@@ -622,9 +624,17 @@ const MasterAdmin = () => {
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
               <AdminSettings isMasterAdmin={true} />
+            </Suspense>
+            
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <GTMDiagnostic />
+            </Suspense>
+            
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <PushNotificationTest />
             </Suspense>
           </TabsContent>
 
