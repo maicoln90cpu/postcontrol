@@ -103,17 +103,20 @@ const MasterAdmin = () => {
     max_events: 10, // Será atualizado baseado no plano
   });
 
+  // ✅ SOLUÇÃO 1 e 2: useEffect separado para autenticação/redirecionamento
   useEffect(() => {
-    // Enquanto estiver carregando ou user ainda não foi definido, não faz nada
-    if (roleLoading || user === undefined || isMasterAdmin === undefined) {
+    // Enquanto estiver carregando, não faz nada
+    if (roleLoading) {
       return;
     }
 
+    // Redirect se não estiver autenticado
     if (!user) {
       navigate("/auth");
       return;
     }
 
+    // Redirect se não for master admin
     if (!isMasterAdmin) {
       navigate("/dashboard");
       toast({
@@ -123,10 +126,15 @@ const MasterAdmin = () => {
       });
       return;
     }
+  }, [user, isMasterAdmin, roleLoading]); // ✅ SOLUÇÃO 1: Removido navigate das dependências
 
-    loadAgencies();
-    loadPlans();
-  }, [user, isMasterAdmin, roleLoading, navigate]);
+  // ✅ SOLUÇÃO 2: useEffect separado para carregar dados (executa uma única vez quando autorizado)
+  useEffect(() => {
+    if (!roleLoading && user && isMasterAdmin) {
+      loadAgencies();
+      loadPlans();
+    }
+  }, [user, isMasterAdmin, roleLoading]);
 
   const loadPlans = async () => {
     const { data } = await sb

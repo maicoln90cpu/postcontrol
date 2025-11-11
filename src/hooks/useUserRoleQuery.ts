@@ -15,7 +15,7 @@ interface UseUserRoleQueryReturn {
 export const useUserRoleQuery = (): UseUserRoleQueryReturn => {
   const { user } = useAuthStore();
 
-  const { data: roles = [], isLoading, isFetching } = useQuery({
+  const { data: roles = [], isLoading } = useQuery({
     queryKey: ['userRoles', user?.id],
     queryFn: async () => {
       if (!user) {
@@ -54,7 +54,7 @@ export const useUserRoleQuery = (): UseUserRoleQueryReturn => {
 
   return {
     roles,
-    loading: isLoading || isFetching,
+    loading: isLoading, // ✅ SOLUÇÃO 3: Removido isFetching para evitar loading desnecessário
     hasRole,
     isAgencyAdmin: roles.includes('agency_admin'),
     isMasterAdmin: roles.includes('master_admin'),

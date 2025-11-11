@@ -12,6 +12,8 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutos
       retry: 1,
+      refetchOnWindowFocus: false, // ✅ SOLUÇÃO 4: Evita refetch ao trocar de aba
+      refetchOnReconnect: false, // ✅ SOLUÇÃO 4: Evita refetch ao reconectar
     },
   },
 });
