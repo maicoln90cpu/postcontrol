@@ -6,9 +6,9 @@ import { toast } from "sonner";
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 // 🔍 DEBUG - Verificar se key está carregada (ETAPA 1)
-console.log('🔑 VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY);
-console.log('🔑 Tamanho:', VAPID_PUBLIC_KEY?.length || 0, 'caracteres');
-console.log('🔑 Tipo:', typeof VAPID_PUBLIC_KEY);
+console.log("🔑 VAPID_PUBLIC_KEY:", VAPID_PUBLIC_KEY);
+console.log("🔑 Tamanho:", VAPID_PUBLIC_KEY?.length || 0, "caracteres");
+console.log("🔑 Tipo:", typeof VAPID_PUBLIC_KEY);
 
 interface PushSubscriptionData {
   endpoint: string;
@@ -57,9 +57,7 @@ export const usePushNotifications = () => {
             .eq("user_id", user.id);
 
           // Filtrar pelo endpoint no JavaScript (evita erro 406 com URLs longas)
-          const existingSubscription = subscriptions?.find(
-            sub => sub.endpoint === subscription.endpoint
-          );
+          const existingSubscription = subscriptions?.find((sub) => sub.endpoint === subscription.endpoint);
 
           setIsSubscribed(!!existingSubscription);
         } else {
@@ -75,12 +73,21 @@ export const usePushNotifications = () => {
   }, [isSupported, user]);
 
   const urlBase64ToUint8Array = (base64String: string) => {
-    // Converter base64url para base64 padrão (atob aceita sem padding)
-    const base64 = base64String.replace(/-/g, '+').replace(/_/g, '/');
-    
-    // Decode e converter para Uint8Array diretamente
+    // Adicionar padding se necessário
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+
+    // Converter base64url para base64 padrão
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+
+    // Decode e converter para Uint8Array
     const rawData = atob(base64);
-    return Uint8Array.from(rawData, c => c.charCodeAt(0));
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+
+    return outputArray;
   };
 
   const subscribe = async () => {
@@ -102,17 +109,17 @@ export const usePushNotifications = () => {
       }
 
       // 2. Obter Service Worker
-      console.log('🔧 Verificando Service Worker...');
+      console.log("🔧 Verificando Service Worker...");
       const registration = await navigator.serviceWorker.ready;
-      console.log('✅ Service Worker pronto:', registration);
-      console.log('📍 Scope:', registration.scope);
-      console.log('🔗 Active:', registration.active?.scriptURL);
+      console.log("✅ Service Worker pronto:", registration);
+      console.log("📍 Scope:", registration.scope);
+      console.log("🔗 Active:", registration.active?.scriptURL);
 
       // 🔍 DEBUG - Verificar conversão da key (ETAPA 2)
       const convertedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      console.log('🔐 Converted Key:', convertedKey);
-      console.log('🔐 Key Length:', convertedKey.byteLength, 'bytes (esperado: 65)');
-      console.log('🔐 Primeiros bytes:', Array.from(convertedKey.slice(0, 5)));
+      console.log("🔐 Converted Key:", convertedKey);
+      console.log("🔐 Key Length:", convertedKey.byteLength, "bytes (esperado: 65)");
+      console.log("🔐 Primeiros bytes:", Array.from(convertedKey.slice(0, 5)));
 
       // 3. Criar inscrição push
       const subscription = await registration.pushManager.subscribe({
