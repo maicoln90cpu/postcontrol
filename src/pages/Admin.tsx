@@ -1114,6 +1114,25 @@ const Admin = () => {
         profilesMap[profile.id] = profile;
       });
 
+      // 🆕 Buscar total de submissões aprovadas por usuário
+      const { data: approvedCountsData } = await sb
+        .from("submissions")
+        .select("user_id, status")
+        .in("user_id", userIds)
+        .eq("status", "approved")
+        .eq("submission_type", "post");
+
+      // Criar map: user_id => total de submissões aprovadas
+      const approvedCountsMap: Record<string, number> = {};
+      (approvedCountsData || []).forEach((item) => {
+        approvedCountsMap[item.user_id] = (approvedCountsMap[item.user_id] || 0) + 1;
+      });
+
+      console.log("✅ Contagens de aprovados carregadas:", {
+        usuariosComAprovados: Object.keys(approvedCountsMap).length,
+        totalUsuarios: userIds.length,
+      });
+
       // Enriquecer submissions com profiles
       const enrichedSubmissions = submissionsData.map((sub) => ({
         ...sub,
@@ -1212,6 +1231,7 @@ const Admin = () => {
           Seguidores: sub.profiles?.followers_range || "N/A",
           Status: sub.status === "approved" ? "Aprovado" : sub.status === "rejected" ? "Rejeitado" : "Pendente",
           "Data de Envio": new Date(sub.submitted_at).toLocaleString("pt-BR"),
+          "Total de Submissões Aprovadas": approvedCountsMap[sub.user_id] || 0,
           "Motivo Rejeição": sub.rejection_reason || "N/A",
         };
       });
