@@ -6,7 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Building2, Users, DollarSign, TrendingUp, Plus, Settings, ExternalLink, Copy, Calendar } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Users,
+  DollarSign,
+  TrendingUp,
+  Plus,
+  Settings,
+  ExternalLink,
+  Copy,
+  Calendar,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
@@ -17,18 +28,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // M2: Lazy loading de componentes pesados
-const PlanManager = lazy(() => import("@/components/PlanManager").then(m => ({ default: m.PlanManager })));
-const AdminManager = lazy(() => import("@/components/AdminManager").then(m => ({ default: m.AdminManager })));
-const FinancialReports = lazy(() => import("@/components/FinancialReports").then(m => ({ default: m.FinancialReports })));
-const EditAgencyDialog = lazy(() => import("@/components/EditAgencyDialog").then(m => ({ default: m.EditAgencyDialog })));
-const AgencyAdminCard = lazy(() => import("@/components/AgencyAdminCard").then(m => ({ default: m.AgencyAdminCard })));
-const AllUsersManagement = lazy(() => import("@/components/AllUsersManagement").then(m => ({ default: m.AllUsersManagement })));
-const AdminSettings = lazy(() => import("@/components/AdminSettings").then(m => ({ default: m.AdminSettings })));
-const ChangelogManager = lazy(() => import("@/components/ChangelogManager").then(m => ({ default: m.ChangelogManager })));
-const GuestManager = lazy(() => import("@/components/GuestManager").then(m => ({ default: m.GuestManager })));
-const MasterPostsManager = lazy(() => import("@/components/MasterPostsManager").then(m => ({ default: m.MasterPostsManager })));
-const GTMDiagnostic = lazy(() => import("@/components/GTMDiagnostic").then(m => ({ default: m.GTMDiagnostic })));
-const PushNotificationTest = lazy(() => import("@/components/PushNotificationTest").then(m => ({ default: m.PushNotificationTest })));
+const PlanManager = lazy(() => import("@/components/PlanManager").then((m) => ({ default: m.PlanManager })));
+const AdminManager = lazy(() => import("@/components/AdminManager").then((m) => ({ default: m.AdminManager })));
+const FinancialReports = lazy(() =>
+  import("@/components/FinancialReports").then((m) => ({ default: m.FinancialReports })),
+);
+const EditAgencyDialog = lazy(() =>
+  import("@/components/EditAgencyDialog").then((m) => ({ default: m.EditAgencyDialog })),
+);
+const AgencyAdminCard = lazy(() =>
+  import("@/components/AgencyAdminCard").then((m) => ({ default: m.AgencyAdminCard })),
+);
+const AllUsersManagement = lazy(() =>
+  import("@/components/AllUsersManagement").then((m) => ({ default: m.AllUsersManagement })),
+);
+const AdminSettings = lazy(() => import("@/components/AdminSettings").then((m) => ({ default: m.AdminSettings })));
+const ChangelogManager = lazy(() =>
+  import("@/components/ChangelogManager").then((m) => ({ default: m.ChangelogManager })),
+);
+const GuestManager = lazy(() => import("@/components/GuestManager").then((m) => ({ default: m.GuestManager })));
+const MasterPostsManager = lazy(() =>
+  import("@/components/MasterPostsManager").then((m) => ({ default: m.MasterPostsManager })),
+);
+const GTMDiagnostic = lazy(() => import("@/components/GTMDiagnostic").then((m) => ({ default: m.GTMDiagnostic })));
+const PushNotificationTest = lazy(() =>
+  import("@/components/PushNotificationTest").then((m) => ({ default: m.PushNotificationTest })),
+);
 import { AgencyRequestsManager } from "@/components/AgencyRequestsManager";
 import { ConversionDashboard } from "@/components/ConversionDashboard";
 
@@ -79,8 +104,8 @@ const MasterAdmin = () => {
   });
 
   useEffect(() => {
-    // Se ainda está carregando roles, não fazer nada
-    if (roleLoading) {
+    // Enquanto estiver carregando ou user ainda não foi definido, não faz nada
+    if (roleLoading || user === undefined || isMasterAdmin === undefined) {
       return;
     }
 
@@ -118,41 +143,35 @@ const MasterAdmin = () => {
   const loadEventStats = async (eventIds: string[]) => {
     const participants: Record<string, number> = {};
     const submissions: Record<string, number> = {};
-    
+
     await Promise.all(
       eventIds.map(async (eventId) => {
         // Buscar todos os posts desse evento
-        const { data: postsData } = await sb
-          .from('posts')
-          .select('id')
-          .eq('event_id', eventId);
-        
-        const postIds = postsData?.map(p => p.id) || [];
-        
+        const { data: postsData } = await sb.from("posts").select("id").eq("event_id", eventId);
+
+        const postIds = postsData?.map((p) => p.id) || [];
+
         if (postIds.length > 0) {
           // Contar usuários únicos que submeteram algo nesse evento
-          const { data: submissionsData } = await sb
-            .from('submissions')
-            .select('user_id')
-            .in('post_id', postIds);
-          
-          const uniqueUserIds = new Set(submissionsData?.map(s => s.user_id) || []);
+          const { data: submissionsData } = await sb.from("submissions").select("user_id").in("post_id", postIds);
+
+          const uniqueUserIds = new Set(submissionsData?.map((s) => s.user_id) || []);
           participants[eventId] = uniqueUserIds.size;
-          
+
           // Contar total de submissões
           const { count } = await sb
-            .from('submissions')
-            .select('id', { count: 'exact', head: true })
-            .in('post_id', postIds);
-          
+            .from("submissions")
+            .select("id", { count: "exact", head: true })
+            .in("post_id", postIds);
+
           submissions[eventId] = count || 0;
         } else {
           participants[eventId] = 0;
           submissions[eventId] = 0;
         }
-      })
+      }),
     );
-    
+
     setEventParticipants(participants);
     setEventSubmissions(submissions);
   };
@@ -201,7 +220,7 @@ const MasterAdmin = () => {
         // Buscar influencers ativos (com submissões nos últimos 30 dias)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
+
         const { data: activeUsers } = await sb
           .from("submissions")
           .select("user_id")
@@ -214,7 +233,7 @@ const MasterAdmin = () => {
           sb.from("submissions").select("id", { count: "exact", head: true }).eq("agency_id", agency.id),
         ]);
 
-        const uniqueActiveUsers = new Set(activeUsers?.map(u => u.user_id) || []);
+        const uniqueActiveUsers = new Set(activeUsers?.map((u) => u.user_id) || []);
 
         stats[agency.id] = {
           totalInfluencers: influencersRes.count || 0,
@@ -234,8 +253,8 @@ const MasterAdmin = () => {
     e.preventDefault();
 
     // Buscar limites do plano selecionado
-    const selectedPlan = plans.find(p => p.plan_key === newAgency.subscription_plan);
-    
+    const selectedPlan = plans.find((p) => p.plan_key === newAgency.subscription_plan);
+
     const { error } = await sb.from("agencies").insert({
       name: newAgency.name,
       slug: newAgency.slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
@@ -262,7 +281,7 @@ const MasterAdmin = () => {
 
     setDialogOpen(false);
     // Reset com valores do plano básico
-    const basicPlan = plans.find(p => p.plan_key === 'basic');
+    const basicPlan = plans.find((p) => p.plan_key === "basic");
     setNewAgency({
       name: "",
       slug: "",
@@ -424,7 +443,6 @@ const MasterAdmin = () => {
             </TabsList>
           </div>
 
-
           <TabsContent value="conversion" className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
               <ConversionDashboard />
@@ -450,9 +468,7 @@ const MasterAdmin = () => {
                   <Calendar className="h-5 w-5" />
                   Eventos por Agência
                 </CardTitle>
-                <CardDescription>
-                  Selecione uma agência para visualizar seus eventos
-                </CardDescription>
+                <CardDescription>Selecione uma agência para visualizar seus eventos</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -462,13 +478,13 @@ const MasterAdmin = () => {
                     onValueChange={async (value) => {
                       setSelectedAgencyForEvents(value);
                       const { data } = await sb
-                        .from('events')
-                        .select('*')
-                        .eq('agency_id', value)
-                        .order('created_at', { ascending: false });
+                        .from("events")
+                        .select("*")
+                        .eq("agency_id", value)
+                        .order("created_at", { ascending: false });
                       setAgencyEvents(data || []);
                       if (data && data.length > 0) {
-                        await loadEventStats(data.map(e => e.id));
+                        await loadEventStats(data.map((e) => e.id));
                       }
                     }}
                   >
@@ -513,20 +529,15 @@ const MasterAdmin = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="secondary">
-                                {eventParticipants[event.id] || 0} usuários
-                              </Badge>
+                              <Badge variant="secondary">{eventParticipants[event.id] || 0} usuários</Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline">
-                                {eventSubmissions[event.id] || 0} submissões
-                              </Badge>
+                              <Badge variant="outline">{eventSubmissions[event.id] || 0} submissões</Badge>
                             </TableCell>
                             <TableCell>
-                              {event.event_date 
-                                ? new Date(event.event_date).toLocaleDateString('pt-BR')
-                                : 'Não definida'
-                              }
+                              {event.event_date
+                                ? new Date(event.event_date).toLocaleDateString("pt-BR")
+                                : "Não definida"}
                             </TableCell>
                           </TableRow>
                         ))
@@ -571,13 +582,13 @@ const MasterAdmin = () => {
                         description: "Criando produtos e preços na Stripe",
                       });
 
-                      const { data, error } = await sb.functions.invoke('create-stripe-products');
-                      
+                      const { data, error } = await sb.functions.invoke("create-stripe-products");
+
                       if (error) {
                         throw error;
                       }
 
-                      console.log('✅ Resultado da sincronização:', data);
+                      console.log("✅ Resultado da sincronização:", data);
 
                       const results = data?.results || [];
                       const successCount = results.filter((r: any) => r.success).length;
@@ -599,7 +610,7 @@ const MasterAdmin = () => {
                       // Reload plans to show updated Stripe IDs
                       loadPlans();
                     } catch (error) {
-                      console.error('❌ Erro ao sincronizar:', error);
+                      console.error("❌ Erro ao sincronizar:", error);
                       toast({
                         title: "Erro na Sincronização",
                         description: error instanceof Error ? error.message : "Erro desconhecido",
@@ -633,11 +644,11 @@ const MasterAdmin = () => {
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
               <AdminSettings isMasterAdmin={true} />
             </Suspense>
-            
+
             <Suspense fallback={<Skeleton className="h-64 w-full" />}>
               <GTMDiagnostic />
             </Suspense>
-            
+
             <Suspense fallback={<Skeleton className="h-64 w-full" />}>
               <PushNotificationTest />
             </Suspense>
@@ -702,9 +713,9 @@ const MasterAdmin = () => {
               <Select
                 value={newAgency.subscription_plan}
                 onValueChange={(value) => {
-                  const selectedPlan = plans.find(p => p.plan_key === value);
-                  setNewAgency({ 
-                    ...newAgency, 
+                  const selectedPlan = plans.find((p) => p.plan_key === value);
+                  setNewAgency({
+                    ...newAgency,
                     subscription_plan: value,
                     max_influencers: selectedPlan?.max_influencers || 100,
                     max_events: selectedPlan?.max_events || 10,
