@@ -133,3 +133,20 @@ All colors MUST be HSL.
     animation: float 3s ease-in-out infinite;
   }
 }
+
+@layer utilities {
+  /* ✅ OTIMIZAÇÃO 3: Utility classes para aspect-ratio custom */
+  .aspect-9-16 {
+    aspect-ratio: 9 / 16; /* Stories Instagram */
+  }
+  
+  .aspect-4-5 {
+    aspect-ratio: 4 / 5; /* Posts Instagram */
+  }
+
+  /* Prevent layout shift during image load */
+  .contain-layout {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 300px;
+  }
+}

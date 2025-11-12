@@ -75,6 +75,9 @@ export const SubmissionImageDisplay = memo(({
       alt={alt}
       className={className}
       loading={loading}
+      width={1080}
+      height={1920}
+      decoding="async"
       onError={() => setError(true)}
     />
   );

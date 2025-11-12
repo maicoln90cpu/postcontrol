@@ -123,13 +123,15 @@ const DashboardSubmissionHistoryComponent = ({
                   )}
                 </div>
                 {submission.screenshot_url && SubmissionImageDisplay && (
-                  <Suspense fallback={<Skeleton className="h-20 w-20" />}>
-                    <SubmissionImageDisplay
-                      screenshotPath={submission.screenshot_path}
-                      screenshotUrl={submission.screenshot_url}
-                      className="h-20 w-20 object-cover rounded"
-                    />
-                  </Suspense>
+                  <div className="w-20 h-20 aspect-square bg-muted rounded overflow-hidden flex-shrink-0">
+                    <Suspense fallback={<Skeleton className="w-full h-full" />}>
+                      <SubmissionImageDisplay
+                        screenshotPath={submission.screenshot_path}
+                        screenshotUrl={submission.screenshot_url}
+                        className="w-full h-full object-cover"
+                      />
+                    </Suspense>
+                  </div>
                 )}
               </div>
               {/* Botão excluir apenas para submissões pendentes */}

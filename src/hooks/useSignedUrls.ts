@@ -1,20 +1,37 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { SignedUrlCache } from '@/lib/signedUrlCache';
 
 /**
- * ✅ FASE 1: Hook para geração lazy de signed URLs
- * Gera URLs apenas quando necessário (visíveis na tela)
+ * ✅ FASE 2: Hook com cache persistente em localStorage
  */
 export const useSignedUrls = () => {
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
+  // ✅ NOVO: Limpar cache expirado ao montar componente
+  useEffect(() => {
+    SignedUrlCache.clearExpired();
+    
+    // Debug: Mostrar estatísticas do cache
+    const stats = SignedUrlCache.getStats();
+    console.log('📦 [Cache] Estatísticas:', stats);
+  }, []);
+
   const getSignedUrl = useCallback(async (screenshotUrl: string | null): Promise<string | null> => {
     if (!screenshotUrl) return null;
 
-    // Retornar do cache se já existe
+    // ✅ OTIMIZAÇÃO: Verificar cache em memória primeiro (mais rápido)
     if (urlCache[screenshotUrl]) {
       return urlCache[screenshotUrl];
+    }
+
+    // ✅ OTIMIZAÇÃO: Verificar localStorage (cache persistente)
+    const cachedUrl = SignedUrlCache.get(screenshotUrl);
+    if (cachedUrl) {
+      console.log('✅ [Cache] Hit do localStorage:', screenshotUrl.slice(0, 50));
+      setUrlCache(prev => ({ ...prev, [screenshotUrl]: cachedUrl }));
+      return cachedUrl;
     }
 
     // Evitar múltiplas requisições simultâneas
@@ -28,23 +45,26 @@ export const useSignedUrls = () => {
       const path = screenshotUrl.split('/screenshots/')[1];
       if (!path) return screenshotUrl;
 
+      console.log('🌐 [Cache] Miss - Gerando signed URL:', path.slice(0, 50));
+
       const { data, error } = await supabase.storage
         .from('screenshots')
-        .createSignedUrl(path, 31536000); // 1 year
+        .createSignedUrl(path, 86400); // 24 horas
 
       if (error) {
-        console.error('Erro ao gerar signed URL:', error);
+        console.error('❌ [Cache] Erro ao gerar signed URL:', error);
         return screenshotUrl;
       }
 
       const signedUrl = data?.signedUrl || screenshotUrl;
       
-      // Cachear resultado
+      // ✅ Salvar nos dois caches (memória + localStorage)
       setUrlCache(prev => ({ ...prev, [screenshotUrl]: signedUrl }));
+      SignedUrlCache.set(screenshotUrl, signedUrl);
       
       return signedUrl;
     } catch (error) {
-      console.error('Erro ao gerar signed URL:', error);
+      console.error('❌ [Cache] Exception:', error);
       return screenshotUrl;
     } finally {
       setLoading(prev => ({ ...prev, [screenshotUrl]: false }));
@@ -55,6 +75,8 @@ export const useSignedUrls = () => {
     const validUrls = urls.filter((url): url is string => !!url && !urlCache[url]);
     
     if (validUrls.length === 0) return;
+
+    console.log(`📦 [Cache] Preload de ${validUrls.length} URLs`);
 
     const results = await Promise.all(
       validUrls.map(url => getSignedUrl(url))
