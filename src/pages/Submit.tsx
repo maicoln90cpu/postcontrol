@@ -160,6 +160,7 @@ const Submit = () => {
       setSelectedPost("");
       setUserSubmissions([]);
     }
+    console.log('🔄 submissionType mudou:', submissionType);
   }, [selectedEvent, submissionType]);
 
   const loadEvents = async () => {
@@ -891,8 +892,11 @@ const Submit = () => {
             variant: "destructive",
           });
           setIsSubmitting(false);
-          return; // ⛔ BLOQUEIA envio duplicado
+          return; // ⛔ BLOQUEIA apenas postagens normais
         }
+      } else if (submissionType === "sale") {
+        // ✅ Para vendas: PERMITIR múltiplas submissões
+        console.log('[Submit] Comprovante de venda: múltiplas submissões permitidas');
       }
 
       // Rate limiting check (5 submissions per hour)
