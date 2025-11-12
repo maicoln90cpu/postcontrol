@@ -43,7 +43,16 @@ export const useAdminFilters = () => {
   const submissionEventFilter = searchParams.get('event') || 'all';
   const submissionPostFilter = searchParams.get('post') || 'all';
   const submissionStatusFilter = searchParams.get('status') || 'all';
-  const postTypeFilter = searchParams.get('type') || 'all';
+  // 🔄 NORMALIZAÇÃO: Converter valores antigos da URL
+  const rawPostType = searchParams.get('type') || 'all';
+  const postTypeFilter = rawPostType === 'venda' ? 'sale' : rawPostType;
+  
+  // Se valor foi normalizado, atualizar URL silenciosamente
+  if (rawPostType === 'venda') {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('type', 'sale');
+    setSearchParams(newParams, { replace: true });
+  }
   const searchTerm = searchParams.get('search') || '';
   const dateFilterStart = searchParams.get('dateStart') || '';
   const dateFilterEnd = searchParams.get('dateEnd') || '';
