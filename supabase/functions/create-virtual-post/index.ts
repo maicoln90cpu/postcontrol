@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
         deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         created_by: user.id,
         agency_id: event.agency_id,
-        post_type: 'sale',
+        post_type: 'venda', // ✅ Corrigido: usar 'venda' (PT) ao invés de 'sale' (EN)
       })
       .select()
       .single()
@@ -116,7 +116,8 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[create-virtual-post] Exception:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
