@@ -1600,7 +1600,7 @@ const Submit = () => {
                         id="screenshot"
                         type="file"
                         accept="image/*"
-                        onChange={handleFileChange}
+                        onChange={(e) => handleFileChange(e, submissionType === "post" ? "post" : "sale")}
                         className="hidden"
                         required
                       />

@@ -11,9 +11,11 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutos
+      gcTime: 1000 * 60 * 10, // 10 minutos - mantém cache por mais tempo
       retry: 1,
-      refetchOnWindowFocus: false, // ✅ SOLUÇÃO 4: Evita refetch ao trocar de aba
-      refetchOnReconnect: false, // ✅ SOLUÇÃO 4: Evita refetch ao reconectar
+      refetchOnWindowFocus: false, // ✅ FASE B: Evita refetch ao trocar de aba
+      refetchOnReconnect: false, // ✅ FASE B: Evita refetch ao reconectar rede
+      refetchOnMount: false, // ✅ FASE B: Não refetch ao montar se dados em cache
     },
   },
 });

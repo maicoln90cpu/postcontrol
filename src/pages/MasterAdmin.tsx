@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense, Profiler } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -106,6 +106,32 @@ const MasterAdmin = () => {
   // 🆕 FASE 1: Debug mode
   const [debugMode] = useState(() => new URLSearchParams(window.location.search).has('debug'));
   const [isStabilizing, setIsStabilizing] = useState(true);
+
+  // ✅ FASE D: Logs de diagnóstico para detectar recarregamentos
+  useEffect(() => {
+    console.warn('[MasterAdmin] 🟢 Componente montado', {
+      timestamp: new Date().toISOString(),
+      user: user?.id,
+      isMasterAdmin,
+      roleLoading,
+    });
+    
+    return () => {
+      console.warn('[MasterAdmin] 🔴 Componente desmontado', {
+        timestamp: new Date().toISOString(),
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    console.warn('[MasterAdmin] 🔄 Refetch disparado', {
+      timestamp: new Date().toISOString(),
+      isStabilizing,
+      user: user?.id,
+      isMasterAdmin,
+      roleLoading,
+    });
+  }, [isStabilizing, user, isMasterAdmin, roleLoading]);
 
   // ✅ FASE 1: useEffect separado para autenticação/redirecionamento com guard de estabilização
   useEffect(() => {
@@ -280,7 +306,8 @@ const MasterAdmin = () => {
     setLoading(false);
   };
 
-  const handleCreateAgency = async (e: React.FormEvent) => {
+  // ✅ FASE E: Memoizar callback para evitar re-renders desnecessários
+  const handleCreateAgency = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Buscar limites do plano selecionado
@@ -322,7 +349,7 @@ const MasterAdmin = () => {
     });
 
     loadAgencies();
-  };
+  }, [plans, newAgency, toast, navigate]);
 
   const getTotalRevenue = () => {
     return agencies
@@ -377,8 +404,30 @@ const MasterAdmin = () => {
     );
   }
 
+  // ✅ FASE E: Callback do Profiler para medir performance
+  const onRenderProfiler = useCallback(
+    (
+      id: string,
+      phase: "mount" | "update",
+      actualDuration: number,
+      baseDuration: number,
+      startTime: number,
+      commitTime: number
+    ) => {
+      if (actualDuration > 100) {
+        console.warn(`[Profiler] ⚠️ ${id} levou ${actualDuration.toFixed(2)}ms (${phase})`, {
+          baseDuration: baseDuration.toFixed(2),
+          startTime: startTime.toFixed(2),
+          commitTime: commitTime.toFixed(2),
+        });
+      }
+    },
+    []
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-8 px-4">
+    <Profiler id="MasterAdmin" onRender={onRenderProfiler}>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -813,6 +862,7 @@ const MasterAdmin = () => {
         </div>
       )}
     </div>
+    </Profiler>
   );
 };
 
