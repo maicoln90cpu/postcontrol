@@ -1001,33 +1001,62 @@ const Submit = () => {
         insertData.post_id = selectedPost;
         // event_id virá do post automaticamente
       } else {
-        // Para vendas: sem post, mas COM event_id
+        // ✅ FASE A: CORREÇÃO - Para vendas: criar post virtual SEMPRE
         insertData.post_id = null;
 
-        // ✅ CRÍTICO: Adicionar event_id manualmente para vendas
-        if (selectedEvent && agencyId) {
-          // Buscar o event_id real para inserir na submission
-          const { data: eventData } = await sb.from("events").select("id").eq("id", selectedEvent).single();
-
-          if (eventData) {
-            // Criar entrada virtual em posts para manter compatibilidade com queries
-            const { data: virtualPost } = await sb
-              .from("posts")
-              .insert({
-                event_id: eventData.id,
-                post_number: 0, // Número especial para vendas
-                deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano no futuro
-                created_by: user.id,
-                agency_id: agencyId,
-              })
-              .select()
-              .single();
-
-            if (virtualPost) {
-              insertData.post_id = virtualPost.id;
-            }
-          }
+        if (!selectedEvent) {
+          throw new Error("Evento não selecionado para submissão de venda");
         }
+
+        console.warn('[Submit] 🔧 Criando post virtual para venda', {
+          selectedEvent,
+          userId: user.id,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Buscar dados completos do evento (incluindo agency_id)
+        const { data: eventData, error: eventError } = await sb
+          .from("events")
+          .select("id, agency_id")
+          .eq("id", selectedEvent)
+          .single();
+
+        if (eventError || !eventData) {
+          console.error('[Submit] ❌ Erro ao buscar evento:', eventError);
+          throw new Error("Evento não encontrado");
+        }
+
+        if (!eventData.agency_id) {
+          console.error('[Submit] ❌ Evento sem agency_id:', eventData);
+          throw new Error("Evento sem agência associada");
+        }
+
+        console.warn('[Submit] ✅ Evento encontrado:', {
+          eventId: eventData.id,
+          agencyId: eventData.agency_id,
+        });
+
+        // Criar entrada virtual em posts para manter compatibilidade com queries
+        const { data: virtualPost, error: postError } = await sb
+          .from("posts")
+          .insert({
+            event_id: eventData.id,
+            post_number: 0, // Número especial para vendas
+            deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 ano no futuro
+            created_by: user.id,
+            agency_id: eventData.agency_id, // ✅ Usar agency_id do evento
+            post_type: "sale", // Identificar como venda
+          })
+          .select()
+          .single();
+
+        if (postError || !virtualPost) {
+          console.error('[Submit] ❌ Erro ao criar post virtual:', postError);
+          throw new Error("Falha ao criar registro de venda");
+        }
+
+        console.warn('[Submit] ✅ Post virtual criado:', virtualPost.id);
+        insertData.post_id = virtualPost.id;
       }
 
       const { error } = await sb.from("submissions").insert(insertData);
