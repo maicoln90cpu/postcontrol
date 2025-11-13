@@ -156,7 +156,7 @@ export async function getSubmissionCountsByPost(
 
     let query = supabase
       .from('submissions')
-      .select('post_id, posts!inner(agency_id, post_number, event_id, events!inner(title, is_active))');
+      .select('post_id, posts!inner(agency_id, post_number, event_id, events(title, is_active))'); // ✅ CORREÇÃO #2: LEFT JOIN com events
 
     if (agencyId) {
       query = query.eq('posts.agency_id', agencyId);
@@ -170,6 +170,18 @@ export async function getSubmissionCountsByPost(
     }
 
     console.log(`📊 [Backend] Total de submissões encontradas: ${data?.length || 0}`);
+
+    // ✅ CORREÇÃO #2: Logs detalhados para debug de contagens
+    const sampleData = data?.slice(0, 15).map((s: any) => ({
+      post_id: s.post_id,
+      post_num: s.posts?.post_number,
+      event: s.posts?.events?.title || 'Sem evento',
+      active: s.posts?.events?.is_active ?? 'N/A'
+    }));
+    
+    if (sampleData && sampleData.length > 0) {
+      console.table(sampleData);
+    }
 
     // 🆕 CORREÇÃO #4: Logs detalhados para debug
     const postDetails: Record<string, any> = {};

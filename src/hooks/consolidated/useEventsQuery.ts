@@ -31,12 +31,13 @@ export interface UseEventsQueryParams {
  */
 export const useEventsQuery = ({ 
   agencyId, 
-  isActive = true, // 🆕 FASE 3: Filtro ativo por padrão
+  isActive, // ✅ CORREÇÃO #1: Remover default para permitir buscar todos os eventos
   includePosts = false,
   enabled = true 
 }: UseEventsQueryParams = {}) => {
   return useQuery({
     queryKey: ['events', agencyId, isActive, includePosts],
+    refetchOnMount: true, // ✅ CORREÇÃO #4: Garantir que eventos sejam recarregados ao montar
     queryFn: async () => {
       // ✅ Usa eventService da Sprint 1
       const { data: events, error } = await getEvents({ agencyId, isActive });

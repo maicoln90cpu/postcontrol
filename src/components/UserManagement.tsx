@@ -286,7 +286,7 @@ export const UserManagement = () => {
             type="number" 
             placeholder="Min. submissões" 
             value={minSubmissions} 
-            onChange={(e) => setMinSubmissions(e.target.value)}
+            onChange={(e) => setMinSubmissions(Number(e.target.value))}
             min="0"
           />
 
@@ -295,7 +295,7 @@ export const UserManagement = () => {
             type="number" 
             placeholder="Min. eventos" 
             value={minEvents} 
-            onChange={(e) => setMinEvents(e.target.value)}
+            onChange={(e) => setMinEvents(Number(e.target.value))}
             min="0"
           />
           
