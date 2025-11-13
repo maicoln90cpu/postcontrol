@@ -76,32 +76,53 @@ export const useSubmissionsQuery = ({
         
         const userIds = Array.from(new Set(submissions.map(s => s.user_id)));
 
-        // 🔴 FASE 2: Otimização de contagem com agregação SQL
+        // Helper: Dividir array em chunks para evitar URLs muito longas
+        const chunkArray = <T,>(array: T[], size: number): T[][] => {
+          const chunks: T[][] = [];
+          for (let i = 0; i < array.length; i += size) {
+            chunks.push(array.slice(i, i + size));
+          }
+          return chunks;
+        };
+
+        // 🔴 FASE 2: Otimização de contagem com agregação SQL + Batching
         console.time('⏱️ [Performance] Query Profiles');
         console.time('⏱️ [Performance] Query Counts');
         
+        // Dividir userIds em chunks de 20
+        const userIdChunks = chunkArray(userIds, 20);
+        
         const [profilesData, countsResult] = await Promise.all([
-          sb.from('profiles')
-            .select('id, full_name, email, instagram, avatar_url')
-            .in('id', userIds)
-            .then(res => {
-              console.timeEnd('⏱️ [Performance] Query Profiles');
-              return res.data || [];
-            }),
+          // Buscar perfis em batches
+          Promise.all(
+            userIdChunks.map(chunk =>
+              sb.from('profiles')
+                .select('id, full_name, email, instagram, avatar_url')
+                .in('id', chunk)
+                .then(res => res.data || [])
+            )
+          ).then(results => {
+            console.timeEnd('⏱️ [Performance] Query Profiles');
+            return results.flat();
+          }),
           
-          // ✅ Usar agregação SQL nativa ao invés de JavaScript
-          sb.from('submissions')
-            .select('user_id, count:id.count()')
-            .in('user_id', userIds)
-            .then(res => {
-              console.timeEnd('⏱️ [Performance] Query Counts');
-              const counts: Record<string, number> = {};
-              (res.data || []).forEach((item: any) => {
-                counts[item.user_id] = item.count || 0;
-              });
-              console.log('📊 [Counts] Total por usuário:', counts);
-              return counts;
-            })
+          // Buscar contagens em batches usando agregação SQL
+          Promise.all(
+            userIdChunks.map(chunk =>
+              sb.from('submissions')
+                .select('user_id, count:id.count()')
+                .in('user_id', chunk)
+                .then(res => res.data || [])
+            )
+          ).then(results => {
+            console.timeEnd('⏱️ [Performance] Query Counts');
+            const counts: Record<string, number> = {};
+            results.flat().forEach((item: any) => {
+              counts[item.user_id] = item.count || 0;
+            });
+            console.log('📊 [Counts] Total por usuário:', counts);
+            return counts;
+          })
         ]);
         
         console.timeEnd('⏱️ [Performance] Enrich Profiles');

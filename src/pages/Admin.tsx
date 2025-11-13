@@ -373,12 +373,16 @@ const Admin = () => {
     initializeData();
   }, [user, isAgencyAdmin, isMasterAdmin]);
 
+  // Estado para prevenir refetch duplicado
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+
   // Recarregar eventos quando currentAgency estiver disponível
   useEffect(() => {
-    if (currentAgency) {
+    if (currentAgency && !hasLoadedInitialData) {
       console.log("✅ [Admin] currentAgency carregado, recarregando eventos...", currentAgency.name);
       refetchEvents();
       loadUsersCount();
+      setHasLoadedInitialData(true);
 
       // Check trial status
       if (currentAgency.subscription_status === "trial") {
@@ -1129,12 +1133,28 @@ const Admin = () => {
         return;
       }
 
-      // Buscar perfis dos usuários
+      // Buscar perfis dos usuários com batching
       const userIds = [...new Set(fullSubmissionsData.map((s) => s.user_id))];
-      const { data: profilesData } = await sb
-        .from("profiles")
-        .select("id, full_name, instagram, email, gender, followers_range")
-        .in("id", userIds);
+      
+      // Dividir em chunks de 20 para evitar URLs longas
+      const chunkArray = <T,>(array: T[], size: number): T[][] => {
+        const chunks: T[][] = [];
+        for (let i = 0; i < array.length; i += size) {
+          chunks.push(array.slice(i, i + size));
+        }
+        return chunks;
+      };
+      
+      const userIdChunks = chunkArray(userIds, 20);
+      const profilesResults = await Promise.all(
+        userIdChunks.map(chunk =>
+          sb.from("profiles")
+            .select("id, full_name, instagram, email, gender, followers_range")
+            .in("id", chunk)
+            .then(res => res.data || [])
+        )
+      );
+      const profilesData = profilesResults.flat();
 
       // Criar map de profiles
       const profilesMap: Record<string, any> = {};

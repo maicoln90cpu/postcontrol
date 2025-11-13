@@ -743,6 +743,7 @@ const setCachedStats = (key: string, data: any) => {
           .select('gender')
           .in('id', userIds);
         
+        // Normalização de gênero memoizada (dentro do loop - não ideal mas necessário)
         (profilesGender || []).forEach((p: any) => {
           // Usar GENDER_MAP para consistência
           let displayGender = 'Não informado';
@@ -800,7 +801,7 @@ const setCachedStats = (key: string, data: any) => {
     
     setTimelineData(sortedTimeline.map(d => ({ date: d.date, submissions: d.count })));
 
-    // Processar gênero
+    // Processar gênero (memoizado através de useMemo no componente)
     const genderArray: GenderDistribution[] = Array.from(allGenderData.entries()).map(([gender, count]) => ({
       gender,
       count

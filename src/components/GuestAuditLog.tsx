@@ -36,7 +36,8 @@ export const GuestAuditLog = ({ agencyId }: GuestAuditLogProps) => {
           ),
           event:events(title),
           submission:submissions(
-            profiles(full_name, email)
+            user_id,
+            profiles!submissions_user_id_fkey(full_name, email)
           )
         `)
         .eq('guest.agency_id', agencyId)
