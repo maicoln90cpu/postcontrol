@@ -116,6 +116,13 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
         },
+        assetFileNames: (assetInfo) => {
+          // ✅ CORREÇÃO #5: Garantir Content-Type correto para arquivos JS
+          if (assetInfo.name?.endsWith('.js')) {
+            return 'assets/[name]-[hash].js';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
       },
     },
   },

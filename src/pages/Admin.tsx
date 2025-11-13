@@ -460,11 +460,13 @@ const Admin = () => {
     }
   }, [submissionEventFilter, currentAgency?.id]);
 
-  // 🆕 CORREÇÃO #4: Invalidar cache de contadores quando agência mudar
+  // ✅ CORREÇÃO #3+4: Invalidar todos os caches quando agência mudar
   useEffect(() => {
     if (currentAgency?.id) {
-      console.log('🔄 [Admin] Invalidando cache de contadores para agência:', currentAgency.id);
+      console.log('🔄 [Admin] Invalidando caches para agência:', currentAgency.id);
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['submission-counters'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions'] });
     }
   }, [currentAgency?.id, queryClient]);
 
