@@ -1547,12 +1547,10 @@ const Submit = () => {
                     <span className="text-2xl">📧</span>
                     <div className="flex-1">
                       <Label htmlFor="userTicketerEmail" className="font-semibold flex items-center gap-1">
-                        E-mail para {events.find(e => e.id === selectedEvent)?.ticketer_email || "Ticketeira"} *
+                        E-mail para {events.find((e) => e.id === selectedEvent)?.ticketer_email || "Ticketeira"} *
                         <span className="text-red-500">★</span>
                       </Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Informe um e-mail secundário para receber confirmações da ticketeira
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Informe o seu e-mail da ticketeira informada</p>
                     </div>
                   </div>
                   <Input
