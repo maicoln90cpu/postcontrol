@@ -76,9 +76,9 @@ export async function getSubmissions(
     if (status) {
       query = query.eq('status', status);
     }
-    // 🆕 SPRINT 2: Filtro por tipo de post
-    if (postType) {
-      query = query.eq('posts.post_type', postType);
+    // 🆕 SPRINT 2: Filtro por tipo de post (usar submission_type da tabela submissions)
+    if (postType && postType !== 'all') {
+      query = query.eq('submission_type', postType);
     }
     // 🆕 CORREÇÃO #2: Aplicar filtro de user_ids da busca
     if (userIdsFromSearch) {

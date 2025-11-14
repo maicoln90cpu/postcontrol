@@ -45,6 +45,8 @@ interface AdminFiltersProps {
   events: Event[];
   /** All submissions for post number extraction */
   submissions: any[];
+  /** All posts available in the event for number extraction */
+  allPosts?: any[];
   
   /** ✅ ITEM 5: Callback quando filtro de status muda */
   onSubmissionActiveFilterChange: (value: string) => void;
@@ -92,6 +94,7 @@ const AdminFiltersComponent = ({
   cardsGridView,
   events,
   submissions,
+  allPosts,
   onSubmissionActiveFilterChange, // ✅ ITEM 5
   onSubmissionEventFilterChange,
   onSubmissionPostFilterChange,
@@ -109,12 +112,16 @@ const AdminFiltersComponent = ({
 }: AdminFiltersProps) => {
   /**
    * Obter números de postagens disponíveis baseado no evento selecionado
+   * Usa allPosts (todos os posts carregados) ao invés de submissions (apenas página atual)
    */
   const getAvailablePostNumbers = () => {
-    const filtered = submissions.filter(
-      (s: any) => submissionEventFilter === 'all' || s.posts?.event_id === submissionEventFilter
+    // Se allPosts foi fornecido, usar ele ao invés de submissions
+    const postsToUse = allPosts || submissions.map((s: any) => s.posts).filter(Boolean);
+    
+    const filtered = postsToUse.filter(
+      (p: any) => submissionEventFilter === 'all' || p?.event_id === submissionEventFilter
     );
-    const postNumbers = new Set(filtered.map((s: any) => s.posts?.post_number).filter(Boolean));
+    const postNumbers = new Set(filtered.map((p: any) => p?.post_number).filter(Boolean));
     return Array.from(postNumbers).sort((a, b) => a - b);
   };
 

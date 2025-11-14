@@ -1154,8 +1154,25 @@ const Admin = () => {
         return;
       }
 
-      // Usar dados diretos do React Query (sempre frescos)
-      const freshSubmissions = submissionsData?.data || [];
+      // 🔥 CORREÇÃO: Buscar TODAS as submissões do evento, não apenas a página atual
+      toast.info("🔄 Buscando todas as submissões do evento...");
+      
+      const { data: allEventSubmissions, error: fetchError } = await sb
+        .from('submissions')
+        .select(`
+          *,
+          posts(id, post_number, deadline, event_id, post_type)
+        `)
+        .eq('posts.event_id', submissionEventFilter)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        console.error("❌ Erro ao buscar submissões:", fetchError);
+        toast.error("Erro ao buscar submissões para exportação");
+        return;
+      }
+
+      const freshSubmissions = allEventSubmissions || [];
 
       if (!freshSubmissions || freshSubmissions.length === 0) {
         toast.error(`❌ Nenhuma submissão encontrada para o evento selecionado`);
@@ -2075,6 +2092,7 @@ const Admin = () => {
               cardsGridView={cardsGridView}
               events={events}
               submissions={submissions}
+              allPosts={submissionsData?.data?.map((s: any) => s.posts).filter(Boolean) || []}
               onSubmissionActiveFilterChange={setSubmissionActiveFilter} // ✅ ITEM 5: Handler
               onSubmissionEventFilterChange={setSubmissionEventFilter}
               onSubmissionPostFilterChange={setSubmissionPostFilter}
