@@ -1,32 +1,19 @@
-// Service Worker para PWA e Push Notifications
-// Este arquivo é gerado pelo vite-plugin-pwa e estendido manualmente
+/// <reference lib="webworker" />
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { clientsClaim } from 'workbox-core';
 
-self.addEventListener('install', (event) => {
-  console.log('[SW] Service Worker instalado');
-  self.skipWaiting();
-});
+declare const self: ServiceWorkerGlobalScope;
 
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Service Worker ativado');
-  
-  const cacheWhitelist = ['supabase-images-cache']; // Manter cache de imagens
-  
-  event.waitUntil(
-    Promise.all([
-      clients.claim(),
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (!cacheWhitelist.includes(cacheName) && cacheName.includes('supabase')) {
-              console.log('[SW] Limpando cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-    ])
-  );
-});
+// ========================================
+// WORKBOX PRECACHING
+// ========================================
+
+// Este ponto de injeção será substituído pelo Workbox durante o build
+precacheAndRoute(self.__WB_MANIFEST);
+cleanupOutdatedCaches();
+
+self.skipWaiting();
+clientsClaim();
 
 // ========================================
 // SKIP WAITING PARA FORÇAR ATUALIZAÇÃO
@@ -47,7 +34,7 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push notification recebida', event);
 
   try {
-    let notificationData = {
+    let notificationData: any = {
       title: 'Nova Notificação',
       body: 'Você tem uma nova atualização',
       icon: '/pwa-192x192.png',
@@ -73,7 +60,7 @@ self.addEventListener('push', (event) => {
         tag: notificationData.data?.type || 'general',
         requireInteraction: false,
         vibrate: [200, 100, 200],
-      }
+      } as any
     );
 
     event.waitUntil(promiseChain);
@@ -90,13 +77,12 @@ self.addEventListener('notificationclick', (event) => {
 
     const urlToOpen = event.notification.data?.url || '/dashboard';
 
-    const promiseChain = clients
+    const promiseChain = self.clients
       .matchAll({
         type: 'window',
         includeUncontrolled: true,
       })
       .then((windowClients) => {
-        // Verificar se já existe uma janela aberta
         for (let i = 0; i < windowClients.length; i++) {
           const client = windowClients[i];
           if (client.url.includes(urlToOpen) && 'focus' in client) {
@@ -104,9 +90,8 @@ self.addEventListener('notificationclick', (event) => {
           }
         }
 
-        // Se não encontrou, abrir nova janela
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(urlToOpen);
         }
       })
       .catch(error => {
