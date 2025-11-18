@@ -78,6 +78,8 @@ export interface SubmissionFilters {
   status?: string;
   postType?: string;      // 🆕 SPRINT 2: Filtro de tipo de post (feed, reels, stories)
   searchTerm?: string;    // 🆕 SPRINT 2: Busca por nome, email, Instagram
+  isActive?: boolean;     // 🆕 Filtro por status ativo do evento
+  postNumber?: number;    // 🆕 Filtro por número do post
   userId?: string;
   agencyId?: string;
   page?: number;

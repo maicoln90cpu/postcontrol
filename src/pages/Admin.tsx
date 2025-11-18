@@ -283,6 +283,8 @@ const Admin = () => {
     status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined, // 🆕 CORREÇÃO 1: Filtro de status no backend
     postType: postTypeFilter !== "all" ? postTypeFilter : undefined, // 🆕 CORREÇÃO 1: Filtro de tipo de post no backend
     searchTerm: searchTerm || undefined, // 🆕 CORREÇÃO 1: Busca textual no backend
+    isActive: submissionActiveFilter === "all" ? undefined : submissionActiveFilter === "active", // 🆕 Filtro por status ativo do evento
+    postNumber: submissionPostFilter !== "all" ? parseInt(submissionPostFilter) : undefined, // 🆕 Filtro por número do post
     enrichProfiles: true,
     itemsPerPage: 50, // 🔴 ITEM 2: Reduzido de 10000 para 50 (performance crítica)
     page: currentPage, // 🔴 ITEM 2: Usar currentPage para paginação real

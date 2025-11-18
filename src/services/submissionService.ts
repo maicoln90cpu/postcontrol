@@ -32,13 +32,15 @@ export async function getSubmissions(
       status,
       postType,      // 🆕 SPRINT 2
       searchTerm,    // 🆕 SPRINT 2
+      isActive,      // 🆕 Filtro por status ativo do evento
+      postNumber,    // 🆕 Filtro por número do post
       userId,
       agencyId,
       page = 1,
       itemsPerPage = 10,
     } = filters;
 
-    console.log('🔍 [Backend] Filtros aplicados:', { eventId, status, postType, searchTerm, agencyId, page });
+    console.log('🔍 [Backend] Filtros aplicados:', { eventId, status, postType, searchTerm, isActive, postNumber, agencyId, page });
 
   // 🆕 CORREÇÃO #2: Se houver busca por nome/email/instagram, buscar user_ids primeiro
   let userIdsFromSearch: string[] | null = null;
@@ -64,7 +66,8 @@ export async function getSubmissions(
     .select(
       `
       *,
-      posts(id, post_number, deadline, event_id, post_type)
+      posts!inner(id, post_number, deadline, event_id, post_type),
+      events!inner(id, title, is_active)
     `,
       { count: 'exact' }
     );
@@ -79,6 +82,16 @@ export async function getSubmissions(
     // 🆕 SPRINT 2: Filtro por tipo de post (usar submission_type da tabela submissions)
     if (postType && postType !== 'all') {
       query = query.eq('submission_type', postType);
+    }
+    // 🆕 Filtro por status ativo do evento
+    if (isActive !== undefined) {
+      query = query.eq('events.is_active', isActive);
+      console.log('🔍 [Backend] Aplicando filtro is_active:', isActive);
+    }
+    // 🆕 Filtro por número do post
+    if (postNumber !== undefined) {
+      query = query.eq('posts.post_number', postNumber);
+      console.log('🔍 [Backend] Aplicando filtro post_number:', postNumber);
     }
     // 🆕 CORREÇÃO #2: Aplicar filtro de user_ids da busca
     if (userIdsFromSearch) {
