@@ -5,6 +5,18 @@ import { toast } from "sonner";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
+// ✅ Helper function para converter ArrayBuffer para Base64URL
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const binary = String.fromCharCode(...bytes);
+  const base64 = btoa(binary);
+  // Converter Base64 padrão → Base64URL
+  return base64
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, ''); // Remove padding
+}
+
 // 🔍 FASE 5: Logger centralizado
 const pushLog = {
   group: (title: string) => console.group(`🔔 [Push] ${title}`),
@@ -219,12 +231,12 @@ export const usePushNotifications = () => {
         expirationTime: subscription.expirationTime
       });
 
-      // Salvar no banco
+      // Salvar no banco com encoding correto em Base64URL
       const subscriptionData: PushSubscriptionData = {
         endpoint: subscription.endpoint,
         keys: {
-          p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!))),
-          auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!))),
+          p256dh: arrayBufferToBase64Url(subscription.getKey("p256dh")!),
+          auth: arrayBufferToBase64Url(subscription.getKey("auth")!),
         },
       };
 
