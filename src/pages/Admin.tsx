@@ -84,6 +84,9 @@ const GuestAuditLog = lazy(() => import("@/components/GuestAuditLog").then((m) =
 const SuggestionDialog = lazy(() =>
   import("@/components/SuggestionDialog").then((m) => ({ default: m.SuggestionDialog })),
 ); // ✅ ITEM 5 FASE 2
+const PushNotificationAnalytics = lazy(() =>
+  import("@/components/PushNotificationAnalytics").then((m) => ({ default: m.PushNotificationAnalytics })),
+);
 
 // FASE 2: Componentes memoizados para performance
 const MemoizedDashboardStats = lazy(() =>
@@ -1771,7 +1774,7 @@ const Admin = () => {
             }
           }}
         >
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-9 gap-1 h-auto">
             <TabsTrigger value="events" className="text-xs sm:text-sm py-2">
               Eventos
             </TabsTrigger>
@@ -1792,6 +1795,9 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="statistics" className="text-xs sm:text-sm py-2">
               Estatísticas
+            </TabsTrigger>
+            <TabsTrigger value="push-analytics" className="text-xs sm:text-sm py-2">
+              Push
             </TabsTrigger>
             <TabsTrigger id="settings-tab" value="settings" className="text-xs sm:text-sm py-2">
               Configurações
@@ -2703,6 +2709,12 @@ const Admin = () => {
                 </Suspense>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          <TabsContent value="push-analytics" className="space-y-6">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <PushNotificationAnalytics />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
