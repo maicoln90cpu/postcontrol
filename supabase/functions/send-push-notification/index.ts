@@ -116,34 +116,13 @@ async function sendWebPush(
       vapidKeys,
     });
 
-    // 🧩 Log detalhado das chaves antes da normalização
-    logPushStep("🔑 Chaves originais", {
-      p256dh: subscription.p256dh.substring(0, 20) + "...",
-      auth: subscription.auth.substring(0, 10) + "...",
-      containsPlus: subscription.p256dh.includes("+") || subscription.auth.includes("+"),
-      containsSlash: subscription.p256dh.includes("/") || subscription.auth.includes("/"),
-      containsEqual: subscription.p256dh.includes("=") || subscription.auth.includes("="),
-    });
-
-    // ⚙️ Normalizar chaves Base64 → Base64URL antes de criar subscriber
-    const normalizedKeys = {
-      p256dh: normalizeBase64Url(subscription.p256dh),
-      auth: normalizeBase64Url(subscription.auth),
-    };
-
-    // 🧩 Log detalhado das chaves após normalização
-    logPushStep("✅ Chaves normalizadas", {
-      p256dh: normalizedKeys.p256dh.substring(0, 20) + "...",
-      auth: normalizedKeys.auth.substring(0, 10) + "...",
-      changed:
-        normalizedKeys.p256dh !== subscription.p256dh ||
-        normalizedKeys.auth !== subscription.auth,
-    });
-
-    // Criar um subscriber a partir da subscription com chaves corrigidas
+    // ✅ Usar chaves diretas do banco (já estão em Base64URL correto)
     const subscriber = appServer.subscribe({
       endpoint: subscription.endpoint,
-      keys: normalizedKeys,
+      keys: {
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+      },
     });
 
     // Preparar a mensagem
