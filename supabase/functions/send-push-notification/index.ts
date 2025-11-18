@@ -51,6 +51,11 @@ async function vapidKeysToJWK(publicKeyString: string, privateKeyString: string)
   return { publicKey: publicKeyJWK, privateKey: privateKeyJWK };
 }
 
+// Normaliza Base64 padrão para Base64URL (corrige + / = → - _ sem-padding)
+function normalizeBase64Url(input: string): string {
+  return input.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -105,13 +110,16 @@ async function sendWebPush(
       vapidKeys,
     });
 
-    // Criar um subscriber a partir da subscription
+    // ⚙️ Normalizar chaves Base64 → Base64URL antes de criar subscriber
+    const normalizedKeys = {
+      p256dh: normalizeBase64Url(subscription.p256dh),
+      auth: normalizeBase64Url(subscription.auth),
+    };
+
+    // Criar um subscriber a partir da subscription com chaves corrigidas
     const subscriber = appServer.subscribe({
       endpoint: subscription.endpoint,
-      keys: {
-        p256dh: subscription.p256dh,
-        auth: subscription.auth,
-      },
+      keys: normalizedKeys,
     });
 
     // Preparar a mensagem
