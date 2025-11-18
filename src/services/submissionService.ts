@@ -140,36 +140,55 @@ export async function getSubmissionCountsByEvent(
   agencyId?: string
 ): Promise<Record<string, number>> {
   try {
-    console.log('📊 [Backend] Buscando contadores por evento, agencyId:', agencyId);
+    console.log('📊 [DEBUG-EVENT-COUNTER] ========== INICIANDO ==========');
+    console.log('📊 [DEBUG-EVENT-COUNTER] Agency ID:', agencyId);
 
+    // ✅ CORREÇÃO: Usar event_id diretamente da tabela submissions
     let query = supabase
       .from('submissions')
-      .select('post_id, posts!inner(event_id, agency_id)');
+      .select('id, event_id, agency_id');
 
     if (agencyId) {
-      query = query.eq('posts.agency_id', agencyId);
+      query = query.eq('agency_id', agencyId);
     }
 
     const { data, error } = await query;
 
+    console.log('📊 [DEBUG-EVENT-COUNTER] Total de submissões retornadas:', data?.length);
+    console.log('📊 [DEBUG-EVENT-COUNTER] Primeiras 5 submissões:', data?.slice(0, 5));
+
     if (error) {
-      console.error('❌ Erro ao buscar contadores por evento:', error);
+      console.error('❌ [DEBUG-EVENT-COUNTER] Erro ao buscar contadores por evento:', error);
       throw error;
     }
+
+    // 🔍 DEBUG: Buscar evento Sasha & John Digweed especificamente
+    const sashaEventId = '3b6dbdcd-cc78-448d-9035-0cb3d2371576';
+    const sashaSubmissions = data?.filter((s: any) => s.event_id === sashaEventId);
+    console.log('📊 [DEBUG-EVENT-COUNTER] ========== EVENTO SASHA ==========');
+    console.log('📊 [DEBUG-EVENT-COUNTER] Event ID Sasha:', sashaEventId);
+    console.log('📊 [DEBUG-EVENT-COUNTER] Submissões encontradas para Sasha:', sashaSubmissions?.length);
+    console.log('📊 [DEBUG-EVENT-COUNTER] Detalhes das submissões Sasha:', sashaSubmissions);
 
     // Agregar contagens por evento
     const counts: Record<string, number> = {};
     data?.forEach((submission: any) => {
-      const eventId = submission.posts?.event_id;
+      const eventId = submission.event_id;
       if (eventId) {
         counts[eventId] = (counts[eventId] || 0) + 1;
+      } else {
+        console.warn('⚠️ [DEBUG-EVENT-COUNTER] Submissão sem event_id:', submission);
       }
     });
 
-    console.log('✅ [Backend] Contadores por evento:', counts);
+    console.log('✅ [DEBUG-EVENT-COUNTER] ========== RESULTADO FINAL ==========');
+    console.log('✅ [DEBUG-EVENT-COUNTER] Total de eventos com submissões:', Object.keys(counts).length);
+    console.log('✅ [DEBUG-EVENT-COUNTER] Contador para evento Sasha:', counts[sashaEventId]);
+    console.log('✅ [DEBUG-EVENT-COUNTER] Todos os contadores:', counts);
+
     return counts;
   } catch (error) {
-    console.error('❌ Erro na função getSubmissionCountsByEvent:', error);
+    console.error('❌ [DEBUG-EVENT-COUNTER] Erro na função:', error);
     return {};
   }
 }
@@ -183,12 +202,13 @@ export async function getSubmissionCountsByPost(
   agencyId?: string
 ): Promise<Record<string, number>> {
   try {
-    console.log('📊 [Backend] Buscando contadores por post (otimizado), agencyId:', agencyId);
+    console.log('📊 [DEBUG-POST-COUNTER] ========== INICIANDO ==========');
+    console.log('📊 [DEBUG-POST-COUNTER] Agency ID:', agencyId);
 
-    // ✅ CORREÇÃO #1: Query direta sem JOINs - apenas os dados necessários
+    // ✅ CORREÇÃO: Query direta sem JOINs - apenas os dados necessários
     let query = supabase
       .from('submissions')
-      .select('post_id');
+      .select('id, post_id, agency_id');
 
     if (agencyId) {
       query = query.eq('agency_id', agencyId);
@@ -196,12 +216,28 @@ export async function getSubmissionCountsByPost(
 
     const { data, error } = await query;
 
+    console.log('📊 [DEBUG-POST-COUNTER] Total de submissões retornadas:', data?.length);
+    console.log('📊 [DEBUG-POST-COUNTER] Primeiras 5 submissões:', data?.slice(0, 5));
+
     if (error) {
-      console.error('❌ Erro ao buscar contadores por post:', error);
+      console.error('❌ [DEBUG-POST-COUNTER] Erro ao buscar contadores por post:', error);
       throw error;
     }
 
-    console.log(`✅ [Backend] ${data?.length || 0} submissões encontradas`);
+    // 🔍 DEBUG: Posts do evento Sasha & John Digweed
+    const sashaPost1 = '8ec034e6-1a36-4cd6-beaf-05df2b7c611c';
+    const sashaPost2 = '52130432-54a0-47cf-ba76-2a69d719f4d3';
+    
+    const post1Subs = data?.filter((s: any) => s.post_id === sashaPost1);
+    const post2Subs = data?.filter((s: any) => s.post_id === sashaPost2);
+    
+    console.log('📊 [DEBUG-POST-COUNTER] ========== POSTS SASHA ==========');
+    console.log('📊 [DEBUG-POST-COUNTER] Post #1 ID:', sashaPost1);
+    console.log('📊 [DEBUG-POST-COUNTER] Submissões Post #1:', post1Subs?.length);
+    console.log('📊 [DEBUG-POST-COUNTER] Detalhes Post #1:', post1Subs);
+    console.log('📊 [DEBUG-POST-COUNTER] Post #2 ID:', sashaPost2);
+    console.log('📊 [DEBUG-POST-COUNTER] Submissões Post #2:', post2Subs?.length);
+    console.log('📊 [DEBUG-POST-COUNTER] Detalhes Post #2:', post2Subs);
 
     // Agregar contagens localmente (muito mais rápido que no DB)
     const counts: Record<string, number> = {};
@@ -209,13 +245,20 @@ export async function getSubmissionCountsByPost(
       const postId = submission.post_id;
       if (postId) {
         counts[postId] = (counts[postId] || 0) + 1;
+      } else {
+        console.warn('⚠️ [DEBUG-POST-COUNTER] Submissão sem post_id:', submission);
       }
     });
 
-    console.log(`✅ [Backend] ${Object.keys(counts).length} posts com submissões`);
+    console.log('✅ [DEBUG-POST-COUNTER] ========== RESULTADO FINAL ==========');
+    console.log('✅ [DEBUG-POST-COUNTER] Total de posts com submissões:', Object.keys(counts).length);
+    console.log('✅ [DEBUG-POST-COUNTER] Contador Post #1 Sasha:', counts[sashaPost1]);
+    console.log('✅ [DEBUG-POST-COUNTER] Contador Post #2 Sasha:', counts[sashaPost2]);
+    console.log('✅ [DEBUG-POST-COUNTER] Todos os contadores:', counts);
+
     return counts;
   } catch (error) {
-    console.error('❌ Erro na função getSubmissionCountsByPost:', error);
+    console.error('❌ [DEBUG-POST-COUNTER] Erro na função:', error);
     return {};
   }
 }

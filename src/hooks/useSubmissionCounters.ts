@@ -17,9 +17,9 @@ export const useSubmissionCountsByEvent = (agencyId?: string, enabled: boolean =
   return useQuery({
     queryKey: ['submission-counters', 'by-event', agencyId],
     queryFn: () => getSubmissionCountsByEvent(agencyId),
-    staleTime: 0, // ✅ CORREÇÃO #5: Sempre buscar dados frescos
+    staleTime: 0, // ✅ Sempre buscar dados frescos
     gcTime: 0, // ✅ Não manter cache antigo
-    refetchOnWindowFocus: false, // ✅ Não refetch ao voltar à aba
+    refetchOnWindowFocus: true, // 🔴 DEBUG: Forçar refetch ao voltar à aba
     refetchOnMount: true, // ✅ Sempre buscar ao montar componente
     enabled: enabled && !!agencyId,
   });
@@ -34,9 +34,9 @@ export const useSubmissionCountsByPost = (agencyId?: string, enabled: boolean = 
   return useQuery({
     queryKey: ['submission-counters', 'by-post', agencyId],
     queryFn: () => getSubmissionCountsByPost(agencyId),
-    staleTime: 0, // ✅ CORREÇÃO #4: Sempre buscar dados frescos
+    staleTime: 0, // ✅ Sempre buscar dados frescos
     gcTime: 0, // ✅ Não manter cache antigo
-    refetchOnWindowFocus: false, // ✅ Não refetch ao voltar à aba
+    refetchOnWindowFocus: true, // 🔴 DEBUG: Forçar refetch ao voltar à aba
     refetchOnMount: true, // ✅ Sempre buscar ao montar componente
     enabled: enabled && !!agencyId,
   });
