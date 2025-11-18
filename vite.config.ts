@@ -73,10 +73,9 @@ export default defineConfig(({ mode }) => ({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        globIgnores: ['**/node_modules/**', '**/*.map', '**/dev-sw.js']
       },
       devOptions: {
-        enabled: false,
+        enabled: true,
         type: 'module'
       }
     })
