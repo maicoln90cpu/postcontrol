@@ -14,6 +14,8 @@ export interface UseSubmissionsQueryParams {
   status?: string;
   postType?: string;      // 🆕 SPRINT 2
   searchTerm?: string;    // 🆕 SPRINT 2
+  isActive?: boolean;     // 🆕 Filtro por status ativo do evento
+  postNumber?: number;    // 🆕 Filtro por número do post
   userId?: string;
   agencyId?: string;
   page?: number;
@@ -42,6 +44,8 @@ export const useSubmissionsQuery = ({
   status,
   postType,       // 🆕 SPRINT 2
   searchTerm,     // 🆕 SPRINT 2
+  isActive,       // 🆕 Filtro por status ativo do evento
+  postNumber,     // 🆕 Filtro por número do post
   userId,
   agencyId,
   page = 1,
@@ -50,7 +54,7 @@ export const useSubmissionsQuery = ({
   enabled = true
 }: UseSubmissionsQueryParams = {}) => {
   return useQuery({
-    queryKey: ['submissions', eventId, status, postType, searchTerm, userId, agencyId, page, itemsPerPage],
+    queryKey: ['submissions', eventId, status, postType, searchTerm, isActive, postNumber, userId, agencyId, page, itemsPerPage],
     queryFn: async () => {
       // 🔴 ITEM 2: Log de performance
       console.time(`⏱️ [Performance] Fetch Submissions (page ${page})`);
@@ -61,6 +65,8 @@ export const useSubmissionsQuery = ({
         status,
         postType,     // 🆕 SPRINT 2
         searchTerm,   // 🆕 SPRINT 2
+        isActive,     // 🆕 Filtro por status ativo do evento
+        postNumber,   // 🆕 Filtro por número do post
         userId,
         agencyId,
         page,
