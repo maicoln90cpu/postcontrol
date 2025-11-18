@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,8 @@ import {
   RefreshCw,
   Database,
   Wifi,
-  Smartphone
+  Smartphone,
+  ArrowLeft
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
@@ -357,6 +359,17 @@ export const PWADiagnosticDashboard = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <Button 
+        asChild 
+        variant="ghost" 
+        className="mb-4"
+      >
+        <Link to="/dashboard" className="flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao Dashboard
+        </Link>
+      </Button>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
