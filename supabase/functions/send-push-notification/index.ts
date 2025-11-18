@@ -25,7 +25,7 @@ const logStep = (step: string, details?: any) => {
 };
 
 async function sendWebPush(
-  subscription: PushSubscription,
+  subscription: { endpoint: string; p256dh: string; auth: string },
   payload: { title: string; body: string; data?: Record<string, any> },
 ) {
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
@@ -36,13 +36,12 @@ async function sendWebPush(
     throw new Error("Chaves VAPID não configuradas");
   }
 
-  if (!vapidSubject.startsWith('mailto:')) {
-    throw new Error('VAPID_SUBJECT deve começar com mailto: (ex: mailto:suporte@dominio.com)');
+  if (!vapidSubject.startsWith("mailto:")) {
+    throw new Error("VAPID_SUBJECT deve começar com mailto:");
   }
 
   logStep("Preparando envio Web Push", { endpoint: subscription.endpoint });
 
-  // Preparar payload da notificação
   const message = JSON.stringify({
     title: payload.title,
     body: payload.body,
@@ -52,19 +51,7 @@ async function sendWebPush(
   });
 
   try {
-    // Import dinâmico para evitar crash na inicialização
-    const wpModule = await import("https://esm.sh/web-push@3.6.7");
-    const webpush = wpModule.default ?? wpModule;
-
-    // Configurar VAPID
-    webpush.setVapidDetails(
-      vapidSubject,
-      vapidPublicKey,
-      vapidPrivateKey
-    );
-
-    // Enviar usando biblioteca (faz encriptação aes128gcm + VAPID automaticamente)
-    await webpush.sendNotification(
+    await sendNotification(
       {
         endpoint: subscription.endpoint,
         keys: {
@@ -74,8 +61,13 @@ async function sendWebPush(
       },
       message,
       {
-        TTL: 86400, // 24 horas
-      }
+        vapid: {
+          subject: vapidSubject,
+          publicKey: vapidPublicKey,
+          privateKey: vapidPrivateKey,
+        },
+        ttl: 86400, // 24 horas
+      },
     );
 
     logStep("✅ Push enviado com sucesso");
@@ -83,8 +75,7 @@ async function sendWebPush(
   } catch (error: any) {
     logStep("❌ Erro ao enviar push", error);
 
-    // Detectar subscription expirada (código 410 Gone)
-    if (error.statusCode === 410 || error.message?.includes('410')) {
+    if (error.message?.includes("410") || error.statusCode === 410) {
       throw new Error("SUBSCRIPTION_EXPIRED");
     }
 
@@ -95,9 +86,9 @@ async function sendWebPush(
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { 
+    return new Response("ok", {
       status: 200,
-      headers: corsHeaders 
+      headers: corsHeaders,
     });
   }
 
@@ -166,20 +157,20 @@ serve(async (req) => {
 
     // Filtrar apenas subscriptions usadas nos últimos 30 dias
     const now = new Date();
-    const validSubscriptions = subscriptions.filter(sub => {
+    const validSubscriptions = subscriptions.filter((sub) => {
       if (!sub.last_used_at) return true;
-      
+
       const lastUsed = new Date(sub.last_used_at);
       const diffMs = now.getTime() - lastUsed.getTime();
       const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      
+
       return diffDays < 30;
     });
 
-    logStep(`📊 Filtro de uso recente`, { 
-      total: subscriptions.length, 
+    logStep(`📊 Filtro de uso recente`, {
+      total: subscriptions.length,
       válidas: validSubscriptions.length,
-      ignoradas: subscriptions.length - validSubscriptions.length 
+      ignoradas: subscriptions.length - validSubscriptions.length,
     });
 
     if (validSubscriptions.length === 0) {
