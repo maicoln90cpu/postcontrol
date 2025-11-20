@@ -1256,7 +1256,7 @@ const Admin = () => {
       const profilesResults = await Promise.all(
         userIdChunks.map(chunk =>
           sb.from("profiles")
-            .select("id, full_name, instagram, email, gender, followers_range")
+            .select("id, full_name, instagram, email, phone, gender, followers_range")
             .in("id", chunk)
             .then(res => res.data || [])
         )
