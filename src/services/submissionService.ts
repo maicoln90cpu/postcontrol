@@ -1,6 +1,7 @@
 /**
  * Submission Service
  * Handles all submission-related data operations
+ * Updated: 2025-01-20 - Added getApprovedSalesCount
  */
 
 import { supabase } from '@/integrations/supabase/client';
