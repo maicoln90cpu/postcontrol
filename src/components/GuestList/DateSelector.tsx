@@ -77,7 +77,7 @@ export const DateSelector = ({
     <div className="space-y-4">
       <div className="space-y-3">
         <label className="text-sm font-medium text-foreground">
-          📅 Selecione as datas do evento
+          4c5 Selecione as datas do evento
         </label>
         <p className="text-xs text-muted-foreground">
           Você pode selecionar múltiplas datas para se inscrever de uma vez
@@ -85,7 +85,6 @@ export const DateSelector = ({
         
         <div className="space-y-3">
           {dates.map((date) => {
-            console.log('DateSelector - Date important_info:', date.name, date.important_info); // DEBUG
             const isSelected = selectedDateIds.includes(date.id);
             
             return (
@@ -108,11 +107,11 @@ export const DateSelector = ({
                     <div className="flex-1 space-y-2">
                       {date.image_url && (
                         <div className="rounded-lg overflow-hidden">
-              <img 
-                src={date.image_url} 
-                alt={date.name || "Evento"} 
-                className="w-full h-40 md:h-48 object-contain bg-muted/20"
-              />
+                          <img 
+                            src={date.image_url} 
+                            alt={date.name || "Evento"} 
+                            className="w-full h-40 md:h-48 object-contain bg-muted/20"
+                          />
                         </div>
                       )}
                       
@@ -142,19 +141,15 @@ export const DateSelector = ({
                         
                         <div className="flex items-center justify-between pt-1">
                           <span className="text-xs text-muted-foreground">Valor:</span>
-              <span className="text-base font-semibold text-primary">
-                {getDatePrice(date)}
-              </span>
+                          <span className="text-base font-semibold text-primary">
+                            {getDatePrice(date)}
+                          </span>
                         </div>
                         
                         {date.important_info && (
-                          <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
-                            <div className="flex items-start gap-2">
-                              <FileText className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                              <div className="text-sm text-yellow-800 dark:text-yellow-200 whitespace-pre-wrap">
-                                {date.important_info}
-                              </div>
-                            </div>
+                          <div className="mt-3 text-sm font-medium text-primary whitespace-pre-wrap flex gap-2">
+                            <FileText className="h-4 w-4 mt-0.5" />
+                            <span>{date.important_info}</span>
                           </div>
                         )}
                       </div>
