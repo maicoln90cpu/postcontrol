@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Check } from "lucide-react";
+import { Calendar, Check, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ interface GuestListDate {
   start_time?: string | null;
   end_time?: string | null;
   price_type?: string;
+  important_info?: string | null;
 }
 
 interface DateSelectorProps {
@@ -144,6 +145,17 @@ export const DateSelector = ({
                 {getDatePrice(date)}
               </span>
                         </div>
+                        
+                        {date.important_info && (
+                          <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                              <div className="text-sm text-yellow-800 dark:text-yellow-200 whitespace-pre-wrap">
+                                {date.important_info}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     

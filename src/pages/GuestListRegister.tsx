@@ -36,6 +36,7 @@ interface GuestListDate {
   start_time?: string;
   end_time?: string;
   auto_deactivate_after_start?: boolean;
+  important_info?: string | null;
 }
 
 export default function GuestListRegister() {
@@ -109,7 +110,8 @@ export default function GuestListRegister() {
         // Só filtrar por horário se start_time estiver definido
         if (!date.start_time) return true;
         
-        const eventDateTime = new Date(`${date.event_date}T${date.start_time}:00`);
+        // Criar datetime com timezone BRT (UTC-3) para comparação consistente
+        const eventDateTime = new Date(`${date.event_date}T${date.start_time}:00-03:00`);
         const now = new Date();
         
         return eventDateTime > now;

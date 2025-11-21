@@ -52,6 +52,7 @@ import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { GuestListAnalytics } from "./GuestListAnalytics";
 import imageCompression from "browser-image-compression";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface GuestListEvent {
   id: string;
@@ -79,6 +80,7 @@ interface GuestListDate {
   end_time?: string | null;
   auto_deactivate_after_start?: boolean;
   price_type?: string;
+  important_info?: string | null;
   created_at?: string;
 }
 
@@ -108,6 +110,9 @@ export default function GuestListManager() {
   const [filterEventId, setFilterEventId] = useState<string>("all");
   const [filterDateId, setFilterDateId] = useState<string>("all");
   const [filterGender, setFilterGender] = useState<string>("all");
+  
+  // Seleção múltipla de inscritos
+  const [selectedRegistrations, setSelectedRegistrations] = useState<string[]>([]);
   
   const queryClient = useQueryClient();
 
@@ -156,21 +161,24 @@ export default function GuestListManager() {
     },
   });
 
-  // Query: Buscar inscritos
+  // Query: Buscar inscritos (funciona com ou sem selectedEvent)
   const { data: registrations, isLoading: registrationsLoading } = useQuery({
-    queryKey: ["guest-list-registrations", selectedEvent],
+    queryKey: ["guest-list-registrations", selectedEvent || "all"],
     queryFn: async () => {
-      if (!selectedEvent) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("guest_list_registrations")
         .select("*")
-        .eq("event_id", selectedEvent)
         .order("registered_at", { ascending: false });
-
+      
+      // Só filtrar por evento se houver seleção
+      if (selectedEvent) {
+        query = query.eq("event_id", selectedEvent);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data as GuestListRegistration[];
     },
-    enabled: !!selectedEvent,
   });
 
   // Mutation: Criar/Editar evento
@@ -349,6 +357,66 @@ export default function GuestListManager() {
     }
   };
 
+  // Funções de seleção múltipla
+  const toggleRegistration = (id: string) => {
+    setSelectedRegistrations(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAllRegistrations = () => {
+    setSelectedRegistrations(prev =>
+      prev.length === filteredRegistrations.length 
+        ? [] 
+        : filteredRegistrations.map(r => r.id)
+    );
+  };
+
+  const exportSelectedToExcel = () => {
+    const selected = filteredRegistrations.filter(r => 
+      selectedRegistrations.includes(r.id)
+    );
+    
+    if (selected.length === 0) {
+      toast.error("Nenhum inscrito selecionado");
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(
+      selected.map((reg) => ({
+        Nome: reg.full_name,
+        Email: reg.email,
+        Sexo: reg.gender,
+        "Data de Registro": format(new Date(reg.registered_at), "dd/MM/yyyy HH:mm", {
+          locale: ptBR,
+        }),
+        "UTM Source": reg.utm_source || "-",
+        "UTM Medium": reg.utm_medium || "-",
+        "UTM Campaign": reg.utm_campaign || "-",
+        "Compartilhou WhatsApp": reg.shared_via_whatsapp ? "Sim" : "Não",
+        "Bot Suspeito": reg.is_bot_suspected ? "Sim" : "Não",
+      }))
+    );
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Selecionados");
+    XLSX.writeFile(
+      workbook,
+      `inscritos-selecionados-${format(new Date(), "yyyy-MM-dd")}.xlsx`
+    );
+
+    toast.success("Arquivo exportado com sucesso!");
+  };
+
+  const deleteSelectedRegistrations = () => {
+    if (!confirm(`Deletar ${selectedRegistrations.length} inscrições selecionadas?`)) return;
+    
+    selectedRegistrations.forEach(id => {
+      deleteRegistrationMutation.mutate(id);
+    });
+    setSelectedRegistrations([]);
+  };
+
   // Exportar para XLSX (com filtros aplicados)
   const handleExportXLSX = () => {
     if (filteredRegistrations.length === 0) {
@@ -418,7 +486,7 @@ export default function GuestListManager() {
                   <TabsTrigger value="dates" disabled={!selectedEvent}>
                     Datas e Valores
                   </TabsTrigger>
-                  <TabsTrigger value="registrations" disabled={!selectedEvent}>
+                  <TabsTrigger value="registrations">
                     Inscritos
                   </TabsTrigger>
                 </TabsList>
@@ -658,23 +726,50 @@ export default function GuestListManager() {
 
             {/* TAB: Inscritos */}
             <TabsContent value="registrations" className="space-y-4">
-              {selectedEventData && (
-                <>
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">
-                      Inscritos - {selectedEventData.name}
-                    </h3>
-                    <div className="flex gap-2">
-                      <Button onClick={copyFilteredNames} variant="outline" size="sm">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Copiar Nomes
-                      </Button>
-                      <Button onClick={handleExportXLSX} variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Exportar XLSX
-                      </Button>
-                    </div>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">
+                  {selectedEventData ? `Inscritos - ${selectedEventData.name}` : 'Todos os Inscritos'}
+                </h3>
+                <div className="flex gap-2">
+                  <Button onClick={copyFilteredNames} variant="outline" size="sm">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Copiar Nomes
+                  </Button>
+                  <Button onClick={handleExportXLSX} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar XLSX
+                  </Button>
+                </div>
+              </div>
+              
+              {selectedRegistrations.length > 0 && (
+                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">
+                      {selectedRegistrations.length} selecionado(s)
+                    </Badge>
                   </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportSelectedToExcel}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Exportar Selecionados
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={deleteSelectedRegistrations}
+                      disabled={deleteRegistrationMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Deletar Selecionados
+                    </Button>
+                  </div>
+                </div>
+              )}
 
                   {/* Filtros em Cascata */}
                   <Card className="p-4">
@@ -791,6 +886,12 @@ export default function GuestListManager() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]">
+                          <Checkbox
+                            checked={selectedRegistrations.length === filteredRegistrations.length && filteredRegistrations.length > 0}
+                            onCheckedChange={toggleAllRegistrations}
+                          />
+                        </TableHead>
                         <TableHead>Nome</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Sexo</TableHead>
@@ -802,13 +903,19 @@ export default function GuestListManager() {
                     <TableBody>
                       {registrationsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center">
+                          <TableCell colSpan={7} className="text-center">
                             Carregando...
                           </TableCell>
                         </TableRow>
                       ) : filteredRegistrations.length > 0 ? (
                         filteredRegistrations.map((reg) => (
                           <TableRow key={reg.id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedRegistrations.includes(reg.id)}
+                                onCheckedChange={() => toggleRegistration(reg.id)}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">{reg.full_name}</TableCell>
                             <TableCell>{reg.email}</TableCell>
                             <TableCell>
@@ -850,15 +957,13 @@ export default function GuestListManager() {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center text-muted-foreground">
                             Nenhum inscrito encontrado com os filtros aplicados
                           </TableCell>
                         </TableRow>
                       )}
                     </TableBody>
                   </Table>
-                </>
-              )}
             </TabsContent>
           </Tabs>
             </CardContent>
@@ -1015,6 +1120,7 @@ function DateDialogForm({
     end_time: date?.end_time?.slice(0, 5) || "",
     auto_deactivate_after_start: date?.auto_deactivate_after_start ?? false,
     price_type: date?.price_type || "entry_only",
+    important_info: date?.important_info || "",
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -1091,6 +1197,7 @@ function DateDialogForm({
       end_time: formData.end_time ? `${formData.end_time}:00` : null,
       auto_deactivate_after_start: formData.auto_deactivate_after_start,
       price_type: formData.price_type,
+      important_info: formData.important_info || null,
     });
   };
 
@@ -1140,6 +1247,24 @@ function DateDialogForm({
             Imagem específica para esta data/festa
           </p>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="important_info">
+          <FileText className="inline h-3 w-3 mr-1" />
+          Informações Importantes
+        </Label>
+        <Textarea
+          id="important_info"
+          value={formData.important_info}
+          onChange={(e) => setFormData({ ...formData, important_info: e.target.value })}
+          placeholder="Ex: Dress code obrigatório, menores de 18 não entram, etc."
+          rows={3}
+          className="resize-none"
+        />
+        <p className="text-xs text-muted-foreground">
+          ℹ️ Será exibido na página de inscrição para os usuários
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
