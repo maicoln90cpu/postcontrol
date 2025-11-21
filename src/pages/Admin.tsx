@@ -15,110 +15,89 @@ import { useAdminFilters } from "./Admin/useAdminFilters";
 import { SubmissionCardsGrid } from "@/components/SubmissionCardsGrid";
 
 // ✅ Sprint 2B: Importar hooks consolidados
-import {
-  useEventsQuery,
-  useSubmissionsQuery,
-  useUpdateSubmissionStatusMutation,
-  useBulkUpdateSubmissionStatusMutation, // 🔴 FASE 1: Import bulk mutation
-  useDeleteEventMutation,
-  useDeleteSubmissionMutation,
-} from "@/hooks/consolidated";
+import { useEventsQuery, useSubmissionsQuery, useUpdateSubmissionStatusMutation, useBulkUpdateSubmissionStatusMutation,
+// 🔴 FASE 1: Import bulk mutation
+useDeleteEventMutation, useDeleteSubmissionMutation } from "@/hooks/consolidated";
 import { useQueryClient } from "@tanstack/react-query";
 
 // 🆕 SPRINT 2 + CACHE: Importar hook de contadores com cache
-import { 
-  useSubmissionCountsByEvent, 
-  useSubmissionCountsByPost,
-  useApprovedSalesCount
-} from "@/hooks/useSubmissionCounters";
-import {
-  Calendar,
-  Users,
-  Trophy,
-  Plus,
-  Send,
-  Pencil,
-  Check,
-  X,
-  CheckCheck,
-  Trash2,
-  Copy,
-  Columns3,
-  Building2,
-  ArrowLeft,
-  Download,
-  User,
-  Clock,
-  XCircle,
-  MessageSquare,
-  Lightbulb,
-  CreditCard, // ✅ ITEM 1
+import { useSubmissionCountsByEvent, useSubmissionCountsByPost, useApprovedSalesCount } from "@/hooks/useSubmissionCounters";
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard // ✅ ITEM 1
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
 import { useNavigate, Link } from "react-router-dom";
 
 // Lazy loading de componentes pesados
-const EventDialog = lazy(() => import("@/components/EventDialog").then((m) => ({ default: m.EventDialog })));
-const PostDialog = lazy(() => import("@/components/PostDialog").then((m) => ({ default: m.PostDialog })));
-const AddManualSubmissionDialog = lazy(() =>
-  import("@/components/AddManualSubmissionDialog").then((m) => ({ default: m.AddManualSubmissionDialog })),
-);
-const AgencyAdminSettings = lazy(() =>
-  import("@/components/AgencyAdminSettings").then((m) => ({ default: m.AgencyAdminSettings })),
-);
+const EventDialog = lazy(() => import("@/components/EventDialog").then(m => ({
+  default: m.EventDialog
+})));
+const PostDialog = lazy(() => import("@/components/PostDialog").then(m => ({
+  default: m.PostDialog
+})));
+const AddManualSubmissionDialog = lazy(() => import("@/components/AddManualSubmissionDialog").then(m => ({
+  default: m.AddManualSubmissionDialog
+})));
+const AgencyAdminSettings = lazy(() => import("@/components/AgencyAdminSettings").then(m => ({
+  default: m.AgencyAdminSettings
+})));
 const AdminTutorialGuide = lazy(() => import("@/components/AdminTutorialGuide"));
-const SubmissionKanban = lazy(() =>
-  import("@/components/SubmissionKanban").then((m) => ({ default: m.SubmissionKanban })),
-);
-const SubmissionAuditLog = lazy(() =>
-  import("@/components/SubmissionAuditLog").then((m) => ({ default: m.SubmissionAuditLog })),
-);
-const SubmissionComments = lazy(() =>
-  import("@/components/SubmissionComments").then((m) => ({ default: m.SubmissionComments })),
-);
-const SubmissionImageDisplay = lazy(() =>
-  import("@/components/SubmissionImageDisplay").then((m) => ({ default: m.SubmissionImageDisplay })),
-);
-const GuestManager = lazy(() => import("@/components/GuestManager").then((m) => ({ default: m.GuestManager })));
-const GuestListManager = lazy(() => import("@/components/GuestListManager").then((m) => ({ default: m.default })));
-const GuestAuditLog = lazy(() => import("@/components/GuestAuditLog").then((m) => ({ default: m.GuestAuditLog })));
-const SuggestionDialog = lazy(() =>
-  import("@/components/SuggestionDialog").then((m) => ({ default: m.SuggestionDialog })),
-); // ✅ ITEM 5 FASE 2
-const PushNotificationAnalytics = lazy(() =>
-  import("@/components/PushNotificationAnalytics").then((m) => ({ default: m.PushNotificationAnalytics })),
-);
-const TopPromotersRanking = lazy(() =>
-  import("@/components/TopPromotersRanking").then((m) => ({ default: m.TopPromotersRanking })),
-);
-const GoalNotificationSettings = lazy(() =>
-  import("@/components/GoalNotificationSettings").then((m) => ({ default: m.GoalNotificationSettings })),
-);
-const EventSlotsCounter = lazy(() =>
-  import("@/components/EventSlotsCounter").then((m) => ({ default: m.EventSlotsCounter })),
-);
-const SlotExhaustionPrediction = lazy(() =>
-  import("@/components/SlotExhaustionPrediction").then((m) => ({ default: m.SlotExhaustionPrediction })),
-);
-const SlotExhaustionAlert = lazy(() =>
-  import("@/components/SlotExhaustionAlert").then((m) => ({ default: m.SlotExhaustionAlert })),
-);
+const SubmissionKanban = lazy(() => import("@/components/SubmissionKanban").then(m => ({
+  default: m.SubmissionKanban
+})));
+const SubmissionAuditLog = lazy(() => import("@/components/SubmissionAuditLog").then(m => ({
+  default: m.SubmissionAuditLog
+})));
+const SubmissionComments = lazy(() => import("@/components/SubmissionComments").then(m => ({
+  default: m.SubmissionComments
+})));
+const SubmissionImageDisplay = lazy(() => import("@/components/SubmissionImageDisplay").then(m => ({
+  default: m.SubmissionImageDisplay
+})));
+const GuestManager = lazy(() => import("@/components/GuestManager").then(m => ({
+  default: m.GuestManager
+})));
+const GuestListManager = lazy(() => import("@/components/GuestListManager").then(m => ({
+  default: m.default
+})));
+const GuestAuditLog = lazy(() => import("@/components/GuestAuditLog").then(m => ({
+  default: m.GuestAuditLog
+})));
+const SuggestionDialog = lazy(() => import("@/components/SuggestionDialog").then(m => ({
+  default: m.SuggestionDialog
+}))); // ✅ ITEM 5 FASE 2
+const PushNotificationAnalytics = lazy(() => import("@/components/PushNotificationAnalytics").then(m => ({
+  default: m.PushNotificationAnalytics
+})));
+const TopPromotersRanking = lazy(() => import("@/components/TopPromotersRanking").then(m => ({
+  default: m.TopPromotersRanking
+})));
+const GoalNotificationSettings = lazy(() => import("@/components/GoalNotificationSettings").then(m => ({
+  default: m.GoalNotificationSettings
+})));
+const EventSlotsCounter = lazy(() => import("@/components/EventSlotsCounter").then(m => ({
+  default: m.EventSlotsCounter
+})));
+const SlotExhaustionPrediction = lazy(() => import("@/components/SlotExhaustionPrediction").then(m => ({
+  default: m.SlotExhaustionPrediction
+})));
+const SlotExhaustionAlert = lazy(() => import("@/components/SlotExhaustionAlert").then(m => ({
+  default: m.SlotExhaustionAlert
+})));
 
 // FASE 2: Componentes memoizados para performance
-const MemoizedDashboardStats = lazy(() =>
-  import("@/components/memoized/MemoizedDashboardStats").then((m) => ({ default: m.MemoizedDashboardStats })),
-);
-const MemoizedUserManagement = lazy(() =>
-  import("@/components/memoized/MemoizedUserManagement").then((m) => ({ default: m.MemoizedUserManagement })),
-);
-const MemoizedAdminSettings = lazy(() =>
-  import("@/components/memoized/MemoizedAdminSettings").then((m) => ({ default: m.MemoizedAdminSettings })),
-);
-const MemoizedUserPerformance = lazy(() =>
-  import("@/components/memoized/MemoizedUserPerformance").then((m) => ({ default: m.MemoizedUserPerformance })),
-);
-
+const MemoizedDashboardStats = lazy(() => import("@/components/memoized/MemoizedDashboardStats").then(m => ({
+  default: m.MemoizedDashboardStats
+})));
+const MemoizedUserManagement = lazy(() => import("@/components/memoized/MemoizedUserManagement").then(m => ({
+  default: m.MemoizedUserManagement
+})));
+const MemoizedAdminSettings = lazy(() => import("@/components/memoized/MemoizedAdminSettings").then(m => ({
+  default: m.MemoizedAdminSettings
+})));
+const MemoizedUserPerformance = lazy(() => import("@/components/memoized/MemoizedUserPerformance").then(m => ({
+  default: m.MemoizedUserPerformance
+})));
 import { SubmissionZoomDialog } from "@/components/SubmissionZoomDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { sb } from "@/lib/supabaseSafe";
@@ -127,30 +106,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
-
 const Admin = () => {
-  const { user, loading, signOut } = useAuthStore();
-  const { isAgencyAdmin, isMasterAdmin } = useUserRoleQuery();
+  const {
+    user,
+    loading,
+    signOut
+  } = useAuthStore();
+  const {
+    isAgencyAdmin,
+    isMasterAdmin
+  } = useUserRoleQuery();
   const navigate = useNavigate();
   const [currentAgency, setCurrentAgency] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -165,7 +134,10 @@ const Admin = () => {
   const [addSubmissionDialogOpen, setAddSubmissionDialogOpen] = useState(false);
   const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-  const [postToDelete, setPostToDelete] = useState<{ id: string; submissionsCount: number } | null>(null);
+  const [postToDelete, setPostToDelete] = useState<{
+    id: string;
+    submissionsCount: number;
+  } | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedSubmissionForRejection, setSelectedSubmissionForRejection] = useState<string | null>(null);
@@ -219,7 +191,7 @@ const Admin = () => {
       postEventFilter,
       postEventActiveFilter,
       eventSortOrder,
-      submissionActiveFilter, // ✅ ITEM 5
+      submissionActiveFilter // ✅ ITEM 5
     },
     setSubmissionEventFilter,
     setSubmissionPostFilter,
@@ -236,8 +208,9 @@ const Admin = () => {
     setPostEventFilter,
     setPostEventActiveFilter,
     setEventSortOrder,
-    setSubmissionActiveFilter, // ✅ ITEM 5
-    clearFilters, // ✅ ITEM 3 FASE 1: Adicionar clearFilters
+    setSubmissionActiveFilter,
+    // ✅ ITEM 5
+    clearFilters // ✅ ITEM 3 FASE 1: Adicionar clearFilters
   } = useAdminFilters();
 
   // ✅ ITEM 1: Estados locais para popup de seleção de colunas
@@ -248,12 +221,13 @@ const Admin = () => {
   const {
     data: eventsData,
     isLoading: eventsLoading,
-    refetch: refetchEvents,
+    refetch: refetchEvents
   } = useEventsQuery({
     agencyId: currentAgency?.id,
-    isActive: undefined, // ✅ Buscar TODOS os eventos (ativos + inativos)
+    isActive: undefined,
+    // ✅ Buscar TODOS os eventos (ativos + inativos)
     includePosts: true,
-    enabled: !!user && (isAgencyAdmin || isMasterAdmin),
+    enabled: !!user && (isAgencyAdmin || isMasterAdmin)
   });
 
   // Debug: Verificar eventos carregados (incluindo inativos)
@@ -261,63 +235,56 @@ const Admin = () => {
   const allPosts = eventsData?.posts || []; // 🆕 CORREÇÃO #3: Extrair posts do eventsData
   console.log("🔍 [Admin Debug] Total de eventos carregados:", events.length);
   console.log("🔍 [Admin Debug] Total de posts carregados:", allPosts.length);
-  console.log(
-    "🔍 [Admin Debug] Eventos:",
-    events.map((e) => ({
-      title: e.title,
-      active: e.is_active,
-      id: e.id,
-    })),
-  );
+  console.log("🔍 [Admin Debug] Eventos:", events.map(e => ({
+    title: e.title,
+    active: e.is_active,
+    id: e.id
+  })));
 
   // 🆕 SPRINT 2 + CACHE: Buscar contadores com React Query (cache de 5 minutos)
-  const { 
-    data: submissionsByEvent = {}, 
-    isLoading: loadingEventCounters 
-  } = useSubmissionCountsByEvent(
-    currentAgency?.id, 
-    !!user && (isAgencyAdmin || isMasterAdmin)
-  );
-
-  const { 
-    data: submissionsByPost = {}, 
-    isLoading: loadingPostCounters 
-  } = useSubmissionCountsByPost(
-    currentAgency?.id, 
-    !!user && (isAgencyAdmin || isMasterAdmin)
-  );
-
+  const {
+    data: submissionsByEvent = {},
+    isLoading: loadingEventCounters
+  } = useSubmissionCountsByEvent(currentAgency?.id, !!user && (isAgencyAdmin || isMasterAdmin));
+  const {
+    data: submissionsByPost = {},
+    isLoading: loadingPostCounters
+  } = useSubmissionCountsByPost(currentAgency?.id, !!user && (isAgencyAdmin || isMasterAdmin));
   const {
     data: approvedSalesCount = 0,
     isLoading: loadingSalesCount
   } = useApprovedSalesCount(currentAgency?.id, !!currentAgency?.id);
-
   const loadingCounters = loadingEventCounters || loadingPostCounters;
-
-  console.log("📊 [Admin] Contadores carregados do cache:", { 
-    submissionsByEvent, 
+  console.log("📊 [Admin] Contadores carregados do cache:", {
+    submissionsByEvent,
     submissionsByPost,
     approvedSalesCount,
     loadingCounters,
     loadingSalesCount
   });
-
   const {
     data: submissionsData,
     isLoading: submissionsLoading,
-    refetch: refetchSubmissions,
+    refetch: refetchSubmissions
   } = useSubmissionsQuery({
     agencyId: currentAgency?.id,
     eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
-    status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined, // 🆕 CORREÇÃO 1: Filtro de status no backend
-    postType: postTypeFilter !== "all" ? postTypeFilter : undefined, // 🆕 CORREÇÃO 1: Filtro de tipo de post no backend
-    searchTerm: searchTerm || undefined, // 🆕 CORREÇÃO 1: Busca textual no backend
-    isActive: submissionActiveFilter === "all" ? undefined : submissionActiveFilter === "active", // 🆕 Filtro por status ativo do evento
-    postNumber: submissionPostFilter !== "all" ? parseInt(submissionPostFilter) : undefined, // 🆕 Filtro por número do post
+    status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined,
+    // 🆕 CORREÇÃO 1: Filtro de status no backend
+    postType: postTypeFilter !== "all" ? postTypeFilter : undefined,
+    // 🆕 CORREÇÃO 1: Filtro de tipo de post no backend
+    searchTerm: searchTerm || undefined,
+    // 🆕 CORREÇÃO 1: Busca textual no backend
+    isActive: submissionActiveFilter === "all" ? undefined : submissionActiveFilter === "active",
+    // 🆕 Filtro por status ativo do evento
+    postNumber: submissionPostFilter !== "all" ? parseInt(submissionPostFilter) : undefined,
+    // 🆕 Filtro por número do post
     enrichProfiles: true,
-    itemsPerPage: 50, // 🔴 ITEM 2: Reduzido de 10000 para 50 (performance crítica)
-    page: currentPage, // 🔴 ITEM 2: Usar currentPage para paginação real
-    enabled: !!user && (isAgencyAdmin || isMasterAdmin) && !!currentAgency,
+    itemsPerPage: 50,
+    // 🔴 ITEM 2: Reduzido de 10000 para 50 (performance crítica)
+    page: currentPage,
+    // 🔴 ITEM 2: Usar currentPage para paginação real
+    enabled: !!user && (isAgencyAdmin || isMasterAdmin) && !!currentAgency
   });
 
   // ✅ Sprint 2B: Usar mutations consolidadas
@@ -340,7 +307,7 @@ const Admin = () => {
     eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
     status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined,
     postType: postTypeFilter !== "all" ? postTypeFilter : undefined,
-    searchTerm: searchTerm || undefined,
+    searchTerm: searchTerm || undefined
   });
   console.log("🔍 [Admin Debug] Agência atual:", currentAgency?.name);
   console.log("🔍 [Admin Debug] Página atual:", currentPage);
@@ -358,34 +325,29 @@ const Admin = () => {
   // ✅ FASE 2: Map memoizado para lookups O(1) de eventos
   const eventsById = useMemo(() => {
     const map = new Map();
-    events.forEach((event) => map.set(event.id, event));
+    events.forEach(event => map.set(event.id, event));
     return map;
   }, [events]);
 
   // ✅ ITEM 10: Helper memoizado com useCallback para evitar re-renders
-  const getEventTitle = useCallback(
-    (post: any): string => {
-      // Método 1: Tentar pelo objeto events
-      if (post.events?.title) return post.events.title;
-      if (Array.isArray(post.events) && post.events[0]?.title) return post.events[0].title;
+  const getEventTitle = useCallback((post: any): string => {
+    // Método 1: Tentar pelo objeto events
+    if (post.events?.title) return post.events.title;
+    if (Array.isArray(post.events) && post.events[0]?.title) return post.events[0].title;
 
-      // Método 2: Lookup O(1) usando Map
-      if (post.event_id) {
-        const foundEvent = eventsById.get(post.event_id);
-        if (foundEvent) return foundEvent.title;
-      }
-
-      return "Evento não encontrado";
-    },
-    [eventsById],
-  );
+    // Método 2: Lookup O(1) usando Map
+    if (post.event_id) {
+      const foundEvent = eventsById.get(post.event_id);
+      if (foundEvent) return foundEvent.title;
+    }
+    return "Evento não encontrado";
+  }, [eventsById]);
 
   // Debounce para busca
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -394,10 +356,8 @@ const Admin = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const agencySlug = urlParams.get("agency");
     const agencyId = urlParams.get("agencyId");
-
     const initializeData = async () => {
-      if (!user || (!isAgencyAdmin && !isMasterAdmin)) return;
-
+      if (!user || !isAgencyAdmin && !isMasterAdmin) return;
       console.log("🚀 [Admin] Inicializando dados...");
 
       // 1. Carregar agência se houver slug/id na URL
@@ -413,7 +373,6 @@ const Admin = () => {
       loadRejectionTemplates();
       loadUsersCount();
     };
-
     initializeData();
   }, [user, isAgencyAdmin, isMasterAdmin]);
 
@@ -438,14 +397,12 @@ const Admin = () => {
         const now = new Date();
         const startDate = currentAgency.trial_start_date ? new Date(currentAgency.trial_start_date) : null;
         const endDate = currentAgency.trial_end_date ? new Date(currentAgency.trial_end_date) : null;
-
         if (endDate) {
           const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
           setTrialInfo({
             inTrial: daysRemaining > 0,
             expired: daysRemaining <= 0,
-            daysRemaining: Math.max(0, daysRemaining),
+            daysRemaining: Math.max(0, daysRemaining)
           });
         }
       } else {
@@ -457,28 +414,22 @@ const Admin = () => {
   // ✅ CORREÇÃO 5: Adicionar Realtime listener para atualizar logo automaticamente
   useEffect(() => {
     if (!currentAgency?.id) return;
-
-    const channel = sb
-      .channel("agency-logo-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "agencies",
-          filter: `id=eq.${currentAgency.id}`,
-        },
-        (payload: any) => {
-          console.log("🔄 [Realtime] Agência atualizada:", payload.new);
-          if (payload.new.logo_url !== currentAgency.logo_url) {
-            console.log("🖼️ [Realtime] Logo atualizado:", payload.new.logo_url);
-            setCurrentAgency((prev: any) => ({ ...prev, logo_url: payload.new.logo_url }));
-            toast.success("Logo atualizado!");
-          }
-        },
-      )
-      .subscribe();
-
+    const channel = sb.channel("agency-logo-updates").on("postgres_changes", {
+      event: "UPDATE",
+      schema: "public",
+      table: "agencies",
+      filter: `id=eq.${currentAgency.id}`
+    }, (payload: any) => {
+      console.log("🔄 [Realtime] Agência atualizada:", payload.new);
+      if (payload.new.logo_url !== currentAgency.logo_url) {
+        console.log("🖼️ [Realtime] Logo atualizado:", payload.new.logo_url);
+        setCurrentAgency((prev: any) => ({
+          ...prev,
+          logo_url: payload.new.logo_url
+        }));
+        toast.success("Logo atualizado!");
+      }
+    }).subscribe();
     return () => {
       sb.removeChannel(channel);
     };
@@ -488,7 +439,6 @@ const Admin = () => {
   // 🔴 CORREÇÃO 4: Proteção contra refetch duplicado
   const [hasLoadedSubmissions, setHasLoadedSubmissions] = useState(false);
   const [lastSubmissionFilter, setLastSubmissionFilter] = useState('');
-
   useEffect(() => {
     if (user && (isAgencyAdmin || isMasterAdmin) && currentAgency) {
       const filterKey = `${submissionEventFilter}-${currentAgency.id}`;
@@ -499,7 +449,9 @@ const Admin = () => {
         setHasLoadedSubmissions(true);
         setLastSubmissionFilter(filterKey);
         // ✅ Invalidar cache de contadores ao trocar de agência/filtro
-        queryClient.invalidateQueries({ queryKey: ['submission-counters'] });
+        queryClient.invalidateQueries({
+          queryKey: ['submission-counters']
+        });
       }
     }
   }, [submissionEventFilter, currentAgency?.id]);
@@ -508,85 +460,73 @@ const Admin = () => {
   useEffect(() => {
     if (currentAgency?.id) {
       console.log('🔄 [Admin] Invalidando caches para agência:', currentAgency.id);
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['submission-counters'] });
-      queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      queryClient.invalidateQueries({
+        queryKey: ['events']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['submission-counters']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['submissions']
+      });
     }
   }, [currentAgency?.id, queryClient]);
-
   const loadAgencyById = async (id: string) => {
-    const { data } = await sb
-      .from("agencies")
-      .select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date")
-      .eq("id", id)
-      .maybeSingle();
-
+    const {
+      data
+    } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", id).maybeSingle();
     if (data) {
       setCurrentAgency(data);
       console.log("🏢 Master Admin visualizando agência:", data.name);
     }
   };
-
   const loadCurrentAgency = async () => {
     if (!user) return;
-
     console.log("🔍 [loadCurrentAgency] Iniciando...");
 
     // Load user profile
-    const { data: profileData, error: profileError } = await sb
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-
+    const {
+      data: profileData,
+      error: profileError
+    } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
     if (profileError) {
       console.error("❌ Erro ao carregar profile:", profileError);
       return;
     }
-
     console.log("✅ Profile carregado:", {
       id: profileData?.id,
       email: profileData?.email,
-      agency_id: profileData?.agency_id,
+      agency_id: profileData?.agency_id
     });
-
     setProfile(profileData);
 
     // If master admin and viewing specific agency, use query param
     const urlParams = new URLSearchParams(window.location.search);
     const agencySlug = urlParams.get("agency");
     const agencyId = urlParams.get("agencyId");
-
     if (agencySlug) {
-      const { data, error } = await sb
-        .from("agencies")
-        .select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date")
-        .eq("slug", agencySlug)
-        .maybeSingle();
-
+      const {
+        data,
+        error
+      } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("slug", agencySlug).maybeSingle();
       if (error) {
         console.error("❌ Erro ao carregar agência por slug:", error);
         return;
       }
-
       console.log("🏢 Loaded agency from URL (slug):", data);
       setCurrentAgency(data);
       setAgencySlug(data?.slug || "");
       return;
     }
-
     if (agencyId && isMasterAdmin) {
-      const { data, error } = await sb
-        .from("agencies")
-        .select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date")
-        .eq("id", agencyId)
-        .maybeSingle();
-
+      const {
+        data,
+        error
+      } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", agencyId).maybeSingle();
       if (error) {
         console.error("❌ Erro ao carregar agência por ID:", error);
         return;
       }
-
       console.log("🏢 Loaded agency from URL (id):", data);
       setCurrentAgency(data);
       setAgencySlug(data?.slug || "");
@@ -596,25 +536,20 @@ const Admin = () => {
     // If agency admin, load their own agency
     if (isAgencyAdmin && !isMasterAdmin && profileData?.agency_id) {
       console.log("👤 Agency Admin detectado, carregando agência:", profileData.agency_id);
-
-      const { data: agencyData, error: agencyError } = await sb
-        .from("agencies")
-        .select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date")
-        .eq("id", profileData.agency_id)
-        .maybeSingle();
-
+      const {
+        data: agencyData,
+        error: agencyError
+      } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", profileData.agency_id).maybeSingle();
       if (agencyError) {
         console.error("❌ Erro ao carregar agência:", agencyError);
         toast.error("Erro ao carregar dados da agência");
         return;
       }
-
       if (!agencyData) {
         console.error("❌ Agência não encontrada para ID:", profileData.agency_id);
         toast.error("Agência não encontrada");
         return;
       }
-
       console.log("✅ Agência carregada:", agencyData);
       setCurrentAgency(agencyData);
       setAgencySlug(agencyData?.slug || "");
@@ -622,30 +557,23 @@ const Admin = () => {
       console.log("👑 Master Admin sem filtro de agência - visualizando todos os dados");
     }
   };
-
   const loadAgencyBySlug = async (slug: string) => {
-    const { data } = await sb
-      .from("agencies")
-      .select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date")
-      .eq("slug", slug)
-      .maybeSingle();
-
+    const {
+      data
+    } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("slug", slug).maybeSingle();
     setCurrentAgency(data);
   };
-
   const loadRejectionTemplates = async () => {
-    const { data } = await sb.from("rejection_templates").select("*").order("title");
+    const {
+      data
+    } = await sb.from("rejection_templates").select("*").order("title");
     setRejectionTemplatesFromDB(data || []);
   };
-
   const loadUsersCount = async () => {
     if (!user) return;
-
     let agencyIdFilter = null;
-
     const urlParams = new URLSearchParams(window.location.search);
     const queryAgencyId = urlParams.get("agencyId");
-
     if (queryAgencyId && isMasterAdmin) {
       agencyIdFilter = queryAgencyId;
     } else if (isMasterAdmin && !currentAgency) {
@@ -653,18 +581,21 @@ const Admin = () => {
     } else if (currentAgency) {
       agencyIdFilter = currentAgency.id;
     } else if (isAgencyAdmin) {
-      const { data: profileData } = await sb.from("profiles").select("agency_id").eq("id", user.id).maybeSingle();
-
+      const {
+        data: profileData
+      } = await sb.from("profiles").select("agency_id").eq("id", user.id).maybeSingle();
       agencyIdFilter = profileData?.agency_id;
     }
-
-    let countQuery = sb.from("profiles").select("*", { count: "exact", head: true });
-
+    let countQuery = sb.from("profiles").select("*", {
+      count: "exact",
+      head: true
+    });
     if (agencyIdFilter) {
       countQuery = countQuery.eq("agency_id", agencyIdFilter);
     }
-
-    const { count } = await countQuery;
+    const {
+      count
+    } = await countQuery;
     setUsersCount(count || 0);
   };
 
@@ -673,15 +604,14 @@ const Admin = () => {
     const url = `${window.location.origin}/agencia/${agencySlug}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado!", {
-      description: "URL de cadastro copiada para a área de transferência",
+      description: "URL de cadastro copiada para a área de transferência"
     });
   }, [agencySlug]);
-
   const copyEventUrl = useCallback((agencySlug: string, eventSlug: string) => {
     const url = `${window.location.origin}/agencia/${agencySlug}/evento/${eventSlug}`;
     navigator.clipboard.writeText(url);
     toast.success("URL do Evento Copiada!", {
-      description: "A URL pública do evento foi copiada para a área de transferência.",
+      description: "A URL pública do evento foi copiada para a área de transferência."
     });
   }, []);
 
@@ -691,22 +621,22 @@ const Admin = () => {
       await updateStatusMutation.mutateAsync({
         submissionId,
         status: "approved",
-        userId: user?.id || "",
+        userId: user?.id || ""
       });
 
       // Confetti ao aprovar
       confetti({
         particleCount: 100,
         spread: 70,
-        origin: { y: 0.6 },
+        origin: {
+          y: 0.6
+        }
       });
-
       refetchSubmissions();
     } catch (error) {
       console.error("Exception:", error);
     }
   };
-
   const handleRejectSubmission = async (submissionId: string) => {
     setSelectedSubmissionForRejection(submissionId);
     setRejectionReason("");
@@ -718,13 +648,12 @@ const Admin = () => {
   // ✅ Sprint 2B: Refatorar confirmRejection para usar mutation
   const confirmRejection = async () => {
     if (!selectedSubmissionForRejection) return;
-
     try {
       await updateStatusMutation.mutateAsync({
         submissionId: selectedSubmissionForRejection,
         status: "rejected",
         userId: user?.id || "",
-        rejectionReason: rejectionReason || undefined,
+        rejectionReason: rejectionReason || undefined
       });
 
       // Recarregar dados antes de fechar
@@ -742,41 +671,45 @@ const Admin = () => {
 
   // Funções de navegação do zoom
   const handleOpenZoom = (submissionId: string) => {
-    const index = getFilteredSubmissions.findIndex((s) => s.id === submissionId);
+    const index = getFilteredSubmissions.findIndex(s => s.id === submissionId);
     if (index !== -1) {
       setZoomSubmissionIndex(index);
       setZoomDialogOpen(true);
     }
   };
-
   const handleZoomNext = () => {
     if (zoomSubmissionIndex < getPaginatedSubmissions.length - 1) {
-      setZoomSubmissionIndex((prev) => prev + 1);
+      setZoomSubmissionIndex(prev => prev + 1);
     }
   };
-
   const handleZoomPrevious = () => {
     if (zoomSubmissionIndex > 0) {
-      setZoomSubmissionIndex((prev) => prev - 1);
+      setZoomSubmissionIndex(prev => prev - 1);
     }
   };
-
-  const rejectionTemplates = [
-    { value: "formato", label: "Imagem fora do padrão" },
-    { value: "conteudo", label: "Post não relacionado ao evento" },
-    { value: "prazo", label: "Prazo expirado" },
-    { value: "qualidade", label: "Qualidade da imagem inadequada" },
-    { value: "outro", label: "Outro (especificar abaixo)" },
-  ];
-
+  const rejectionTemplates = [{
+    value: "formato",
+    label: "Imagem fora do padrão"
+  }, {
+    value: "conteudo",
+    label: "Post não relacionado ao evento"
+  }, {
+    value: "prazo",
+    label: "Prazo expirado"
+  }, {
+    value: "qualidade",
+    label: "Qualidade da imagem inadequada"
+  }, {
+    value: "outro",
+    label: "Outro (especificar abaixo)"
+  }];
   const handleStatusChange = async (submissionId: string, newStatus: string) => {
     try {
       await updateStatusMutation.mutateAsync({
         submissionId,
         status: newStatus as "approved" | "rejected" | "pending",
-        userId: user?.id || "",
+        userId: user?.id || ""
       });
-
       refetchSubmissions();
     } catch (error) {
       console.error("Exception:", error);
@@ -805,19 +738,21 @@ const Admin = () => {
       toast.error("Selecione pelo menos uma submissão");
       return;
     }
-
     try {
       console.log(`🚀 [Bulk Approve] Iniciando aprovação em massa de ${ids.length} submissões...`);
-      toast.loading(`Aprovando ${ids.length} submissões...`, { id: "bulk-approve" });
+      toast.loading(`Aprovando ${ids.length} submissões...`, {
+        id: "bulk-approve"
+      });
 
       // ✅ Usar bulk mutation ao invés de Promise.all
       await bulkUpdateStatusMutation.mutateAsync({
         submissionIds: ids,
         status: "approved",
-        userId: user?.id || "",
+        userId: user?.id || ""
       });
-
-      toast.success(`${ids.length} submissões aprovadas com sucesso`, { id: "bulk-approve" });
+      toast.success(`${ids.length} submissões aprovadas com sucesso`, {
+        id: "bulk-approve"
+      });
 
       // ✅ Limpar seleção após sucesso
       setSelectedSubmissions(new Set());
@@ -826,10 +761,11 @@ const Admin = () => {
       console.log(`✅ [Bulk Approve] Concluído`);
     } catch (error) {
       console.error("❌ [Bulk Approve] Erro:", error);
-      toast.error("Erro ao aprovar submissões em massa", { id: "bulk-approve" });
+      toast.error("Erro ao aprovar submissões em massa", {
+        id: "bulk-approve"
+      });
     }
   };
-
   const toggleSubmissionSelection = (submissionId: string) => {
     const newSet = new Set(selectedSubmissions);
     if (newSet.has(submissionId)) {
@@ -839,7 +775,6 @@ const Admin = () => {
     }
     setSelectedSubmissions(newSet);
   };
-
   const toggleSelectAll = () => {
     if (selectedSubmissions.size === getPaginatedSubmissions.length && getPaginatedSubmissions.length > 0) {
       setSelectedSubmissions(new Set());
@@ -865,7 +800,6 @@ const Admin = () => {
         return submitDate >= filterDate;
       });
     }
-
     if (dateFilterEnd) {
       filtered = filtered.filter((s: any) => {
         const submitDate = new Date(s.submitted_at);
@@ -873,7 +807,6 @@ const Admin = () => {
         return submitDate <= filterDate;
       });
     }
-
     return filtered;
   }, [submissions, submissionPostFilter, dateFilterStart, dateFilterEnd]);
 
@@ -892,7 +825,7 @@ const Admin = () => {
       if (zoomSubmissionIndex >= getPaginatedSubmissions.length || zoomSubmissionIndex < 0) {
         console.warn("⚠️ Zoom index out of bounds, closing dialog", {
           index: zoomSubmissionIndex,
-          arrayLength: getPaginatedSubmissions.length,
+          arrayLength: getPaginatedSubmissions.length
         });
         setZoomDialogOpen(false);
         setZoomSubmissionIndex(0);
@@ -900,7 +833,7 @@ const Admin = () => {
       // Se a submissão no índice atual é undefined, fechar
       else if (!getPaginatedSubmissions[zoomSubmissionIndex]) {
         console.warn("⚠️ Submission at index is undefined, closing dialog", {
-          index: zoomSubmissionIndex,
+          index: zoomSubmissionIndex
         });
         setZoomDialogOpen(false);
         setZoomSubmissionIndex(0);
@@ -914,19 +847,20 @@ const Admin = () => {
       return {
         events: events.length,
         posts: posts.length,
-        submissions: submissionsData?.count || 0, // ✅ SPRINT 1: Usar count real do backend
+        submissions: submissionsData?.count || 0,
+        // ✅ SPRINT 1: Usar count real do backend
         users: usersCount,
-        sales: approvedSalesCount,
+        sales: approvedSalesCount
       };
     }
-
     const agencyId = currentAgency.id;
     return {
-      events: events.filter((e) => e.agency_id === agencyId).length,
-      posts: posts.filter((p) => p.agency_id === agencyId).length,
-      submissions: submissionsData?.count || 0, // 🆕 CORREÇÃO 2: Usar count real do backend (já filtrado por agencyId)
+      events: events.filter(e => e.agency_id === agencyId).length,
+      posts: posts.filter(p => p.agency_id === agencyId).length,
+      submissions: submissionsData?.count || 0,
+      // 🆕 CORREÇÃO 2: Usar count real do backend (já filtrado por agencyId)
       users: usersCount,
-      sales: approvedSalesCount,
+      sales: approvedSalesCount
     };
   }, [events, posts, submissions, usersCount, currentAgency, submissionsData?.count, approvedSalesCount]);
 
@@ -936,25 +870,20 @@ const Admin = () => {
     // 1. Aplicar filtro de status
     let filtered = events;
     if (eventActiveFilter === "active") {
-      filtered = events.filter((e) => e.is_active === true);
+      filtered = events.filter(e => e.is_active === true);
     } else if (eventActiveFilter === "inactive") {
       // 🆕 CORREÇÃO #2: Filtrar por is_active !== true (captura false, null, undefined)
-      filtered = events.filter((e) => e.is_active !== true);
+      filtered = events.filter(e => e.is_active !== true);
     }
 
     // 2. Aplicar ordenação
     const sorted = [...filtered];
     switch (eventSortOrder) {
       case 'newest':
-        return sorted.sort((a, b) => 
-          new Date(b.event_date || b.created_at).getTime() - new Date(a.event_date || a.created_at).getTime()
-        );
-      
+        return sorted.sort((a, b) => new Date(b.event_date || b.created_at).getTime() - new Date(a.event_date || a.created_at).getTime());
       case 'oldest':
       default:
-        return sorted.sort((a, b) => 
-          new Date(a.event_date || a.created_at).getTime() - new Date(b.event_date || b.created_at).getTime()
-        );
+        return sorted.sort((a, b) => new Date(a.event_date || a.created_at).getTime() - new Date(b.event_date || b.created_at).getTime());
     }
   }, [events, eventActiveFilter, eventSortOrder]);
 
@@ -964,21 +893,19 @@ const Admin = () => {
 
     // Filtrar por evento específico
     if (postEventFilter !== "all") {
-      filtered = filtered.filter((p) => p.event_id === postEventFilter);
+      filtered = filtered.filter(p => p.event_id === postEventFilter);
     }
 
     // Filtrar por status do evento (ativo/inativo)
     if (postEventActiveFilter !== "all") {
-      filtered = filtered.filter((p) => {
-        const event = events.find((e) => e.id === p.event_id);
+      filtered = filtered.filter(p => {
+        const event = events.find(e => e.id === p.event_id);
         if (!event) return false;
         return postEventActiveFilter === "active" ? event.is_active === true : event.is_active === false;
       });
     }
-
     return filtered;
   }, [posts, postEventFilter, postEventActiveFilter, events]);
-
   const handleDeleteEvent = async (eventId: string) => {
     try {
       await deleteEventMutation.mutateAsync(eventId);
@@ -988,73 +915,72 @@ const Admin = () => {
       console.error("Error deleting event:", error);
     }
   };
-
   const handleDuplicateEvent = async (event: any) => {
     try {
       // ✅ ITEM 6 FASE 2: Incluir agency_id, created_by e todos os campos importantes
-      const { data: newEvent, error } = await sb
-        .from("events")
-        .insert({
-          title: `${event.title} - Cópia`,
-          description: event.description,
-          event_date: event.event_date,
-          location: event.location,
-          setor: event.setor,
-          numero_de_vagas: event.numero_de_vagas,
-          required_posts: event.required_posts,
-          required_sales: event.required_sales,
-          is_active: false, // Criar inativo por padrão
-          require_instagram_link: event.require_instagram_link,
-          event_image_url: event.event_image_url,
-          agency_id: event.agency_id, // ✅ Copiar agency_id
-          created_by: user?.id || event.created_by, // ✅ Usar usuário atual
-          event_purpose: event.event_purpose,
-          whatsapp_group_url: event.whatsapp_group_url,
-          whatsapp_group_title: event.whatsapp_group_title,
-          accept_posts: event.accept_posts,
-          accept_sales: event.accept_sales,
-          require_profile_screenshot: event.require_profile_screenshot,
-          require_post_screenshot: event.require_post_screenshot,
-          target_gender: event.target_gender,
-          internal_notes: event.internal_notes,
-          total_required_posts: event.total_required_posts,
-          is_approximate_total: event.is_approximate_total,
-        })
-        .select()
-        .single();
-
+      const {
+        data: newEvent,
+        error
+      } = await sb.from("events").insert({
+        title: `${event.title} - Cópia`,
+        description: event.description,
+        event_date: event.event_date,
+        location: event.location,
+        setor: event.setor,
+        numero_de_vagas: event.numero_de_vagas,
+        required_posts: event.required_posts,
+        required_sales: event.required_sales,
+        is_active: false,
+        // Criar inativo por padrão
+        require_instagram_link: event.require_instagram_link,
+        event_image_url: event.event_image_url,
+        agency_id: event.agency_id,
+        // ✅ Copiar agency_id
+        created_by: user?.id || event.created_by,
+        // ✅ Usar usuário atual
+        event_purpose: event.event_purpose,
+        whatsapp_group_url: event.whatsapp_group_url,
+        whatsapp_group_title: event.whatsapp_group_title,
+        accept_posts: event.accept_posts,
+        accept_sales: event.accept_sales,
+        require_profile_screenshot: event.require_profile_screenshot,
+        require_post_screenshot: event.require_post_screenshot,
+        target_gender: event.target_gender,
+        internal_notes: event.internal_notes,
+        total_required_posts: event.total_required_posts,
+        is_approximate_total: event.is_approximate_total
+      }).select().single();
       if (error) throw error;
 
       // ✅ Duplicar requisitos
-      const { data: requirements } = await sb.from("event_requirements").select("*").eq("event_id", event.id);
-
+      const {
+        data: requirements
+      } = await sb.from("event_requirements").select("*").eq("event_id", event.id);
       if (requirements && requirements.length > 0) {
         const newRequirements = requirements.map((req: any) => ({
           event_id: newEvent.id,
           required_posts: req.required_posts,
           required_sales: req.required_sales,
           description: req.description,
-          display_order: req.display_order,
+          display_order: req.display_order
         }));
-
         await sb.from("event_requirements").insert(newRequirements);
       }
 
       // ✅ ITEM 6 FASE 2: Duplicar FAQs também
-      const { data: faqs } = await sb.from("event_faqs").select("*").eq("event_id", event.id);
-
+      const {
+        data: faqs
+      } = await sb.from("event_faqs").select("*").eq("event_id", event.id);
       if (faqs && faqs.length > 0) {
         const newFaqs = faqs.map((faq: any) => ({
           event_id: newEvent.id,
           question: faq.question,
           answer: faq.answer,
           is_visible: faq.is_visible,
-          display_order: faq.display_order,
+          display_order: faq.display_order
         }));
-
         await sb.from("event_faqs").insert(newFaqs);
       }
-
       toast.success("Evento duplicado com sucesso! Requisitos e FAQs foram copiados.");
       refetchEvents();
     } catch (error) {
@@ -1062,26 +988,21 @@ const Admin = () => {
       toast.error("Erro ao duplicar evento");
     }
   };
-
   const handleDeletePost = async () => {
     if (!postToDelete) return;
-
     try {
       // Deletar todas as submissões associadas primeiro
-      const { error: submissionsError } = await sb.from("submissions").delete().eq("post_id", postToDelete.id);
-
+      const {
+        error: submissionsError
+      } = await sb.from("submissions").delete().eq("post_id", postToDelete.id);
       if (submissionsError) throw submissionsError;
 
       // Depois deletar o post
-      const { error: postError } = await sb.from("posts").delete().eq("id", postToDelete.id);
-
+      const {
+        error: postError
+      } = await sb.from("posts").delete().eq("id", postToDelete.id);
       if (postError) throw postError;
-
-      const submissionsText =
-        postToDelete.submissionsCount === 1
-          ? "1 submissão foi deletada"
-          : `${postToDelete.submissionsCount} submissões foram deletadas`;
-
+      const submissionsText = postToDelete.submissionsCount === 1 ? "1 submissão foi deletada" : `${postToDelete.submissionsCount} submissões foram deletadas`;
       toast.success(`Postagem deletada com sucesso${postToDelete.submissionsCount > 0 ? `. ${submissionsText}` : ""}`);
       refetchEvents();
       refetchSubmissions();
@@ -1091,23 +1012,22 @@ const Admin = () => {
       toast.error("Erro ao deletar postagem");
     }
   };
-
   const handleDeletePostClick = async (postId: string) => {
     // Verificar quantas submissões estão associadas
-    const { data: submissions, count } = await sb
-      .from("submissions")
-      .select("id", { count: "exact", head: false })
-      .eq("post_id", postId);
-
+    const {
+      data: submissions,
+      count
+    } = await sb.from("submissions").select("id", {
+      count: "exact",
+      head: false
+    }).eq("post_id", postId);
     setPostToDelete({
       id: postId,
-      submissionsCount: count || 0,
+      submissionsCount: count || 0
     });
   };
-
   const handleDeleteSubmission = async () => {
     if (!submissionToDelete) return;
-
     try {
       await deleteSubmissionMutation.mutateAsync(submissionToDelete);
       refetchSubmissions();
@@ -1122,43 +1042,69 @@ const Admin = () => {
     if (!submissionEventFilter || submissionEventFilter === 'all') {
       return [];
     }
-    
+
     // Filtrar posts do evento selecionado
     const eventPosts = allPosts.filter(p => p.event_id === submissionEventFilter);
-    
     if (!eventPosts || eventPosts.length === 0) {
       console.warn(`⚠️ Nenhum post encontrado para o evento ${submissionEventFilter}`);
       return [];
     }
-    
+
     // Retornar TODOS os post_numbers do evento (ordenados)
-    const postNumbers = eventPosts
-      .map(p => p.post_number)
-      .filter((num): num is number => num !== null && num !== undefined)
-      .sort((a, b) => a - b);
-    
+    const postNumbers = eventPosts.map(p => p.post_number).filter((num): num is number => num !== null && num !== undefined).sort((a, b) => a - b);
     console.log(`📋 Posts disponíveis para evento ${submissionEventFilter}:`, postNumbers);
     return postNumbers;
   };
 
   // ✅ ITEM 1: Definir colunas disponíveis para exportação
-  const availableExportColumns = [
-    { key: "tipo", label: "Tipo" },
-    { key: "evento", label: "Evento" },
-    { key: "numero_postagem", label: "Número da Postagem" },
-    { key: "nome", label: "Nome" },
-    { key: "instagram", label: "Instagram" },
-    { key: "email", label: "Email" },
-    { key: "telefone", label: "Telefone" },
-    { key: "genero", label: "Gênero" },
-    { key: "seguidores", label: "Seguidores" },
-    { key: "status", label: "Status" },
-    { key: "data_envio", label: "Data de Envio" },
-    { key: "total_submissoes_aprovadas", label: "Total de Submissões Aprovadas" },
-    { key: "vendas_aprovadas_evento", label: "Vendas Aprovadas no Evento" }, // ✅ ITEM 1: Nova coluna
-    { key: "email_ticketeira", label: "E-mail da Ticketeira" },
-    { key: "motivo_rejeicao", label: "Motivo Rejeição" },
-  ];
+  const availableExportColumns = [{
+    key: "tipo",
+    label: "Tipo"
+  }, {
+    key: "evento",
+    label: "Evento"
+  }, {
+    key: "numero_postagem",
+    label: "Número da Postagem"
+  }, {
+    key: "nome",
+    label: "Nome"
+  }, {
+    key: "instagram",
+    label: "Instagram"
+  }, {
+    key: "email",
+    label: "Email"
+  }, {
+    key: "telefone",
+    label: "Telefone"
+  }, {
+    key: "genero",
+    label: "Gênero"
+  }, {
+    key: "seguidores",
+    label: "Seguidores"
+  }, {
+    key: "status",
+    label: "Status"
+  }, {
+    key: "data_envio",
+    label: "Data de Envio"
+  }, {
+    key: "total_submissoes_aprovadas",
+    label: "Total de Submissões Aprovadas"
+  }, {
+    key: "vendas_aprovadas_evento",
+    label: "Vendas Aprovadas no Evento"
+  },
+  // ✅ ITEM 1: Nova coluna
+  {
+    key: "email_ticketeira",
+    label: "E-mail da Ticketeira"
+  }, {
+    key: "motivo_rejeicao",
+    label: "Motivo Rejeição"
+  }];
 
   // ✅ ITEM 1: Abrir popup de seleção de colunas
   const handleExportToExcel = useCallback(() => {
@@ -1186,24 +1132,21 @@ const Admin = () => {
 
       // 🔥 CORREÇÃO: Buscar TODAS as submissões do evento, não apenas a página atual
       toast.info("🔄 Buscando todas as submissões do evento...");
-      
-      const { data: allEventSubmissions, error: fetchError } = await sb
-        .from('submissions')
-        .select(`
+      const {
+        data: allEventSubmissions,
+        error: fetchError
+      } = await sb.from('submissions').select(`
           *,
           posts(id, post_number, deadline, event_id, post_type)
-        `)
-        .eq('event_id', submissionEventFilter)
-        .order('created_at', { ascending: false });
-
+        `).eq('event_id', submissionEventFilter).order('created_at', {
+        ascending: false
+      });
       if (fetchError) {
         console.error("❌ Erro ao buscar submissões:", fetchError);
         toast.error("Erro ao buscar submissões para exportação");
         return;
       }
-
       const freshSubmissions = allEventSubmissions || [];
-
       if (!freshSubmissions || freshSubmissions.length === 0) {
         toast.error(`❌ Nenhuma submissão encontrada para o evento selecionado`);
         return;
@@ -1214,9 +1157,7 @@ const Admin = () => {
 
       // Filtro de Post Number
       if (submissionPostFilter && submissionPostFilter !== "all") {
-        filteredSubmissions = filteredSubmissions.filter((s: any) => 
-          s.posts?.post_number?.toString() === submissionPostFilter
-        );
+        filteredSubmissions = filteredSubmissions.filter((s: any) => s.posts?.post_number?.toString() === submissionPostFilter);
       }
 
       // Filtro de Data Início
@@ -1244,19 +1185,17 @@ const Admin = () => {
       }
 
       // Buscar dados completos das submissões filtradas
-      const submissionIds = filteredSubmissions.map((s) => s.id);
-
+      const submissionIds = filteredSubmissions.map(s => s.id);
       if (submissionIds.length === 0) {
         toast.error("Nenhuma submissão disponível para exportar");
         return;
       }
 
       // 🔧 CORREÇÃO 1: Buscar submissions e profiles separadamente
-      const { data: fullSubmissionsData, error: submissionsError } = await sb
-        .from("submissions")
-        .select("*")
-        .in("id", submissionIds);
-
+      const {
+        data: fullSubmissionsData,
+        error: submissionsError
+      } = await sb.from("submissions").select("*").in("id", submissionIds);
       if (submissionsError) {
         console.error("❌ Erro ao buscar submissões:", submissionsError);
         toast.error("Erro ao buscar submissões");
@@ -1264,8 +1203,8 @@ const Admin = () => {
       }
 
       // Buscar perfis dos usuários com batching
-      const userIds = [...new Set(fullSubmissionsData.map((s) => s.user_id))];
-      
+      const userIds = [...new Set(fullSubmissionsData.map(s => s.user_id))];
+
       // 🔴 CORREÇÃO 3: Dividir em chunks de 30 para otimizar requests
       const chunkArray = <T,>(array: T[], size: number): T[][] => {
         const chunks: T[][] = [];
@@ -1274,116 +1213,91 @@ const Admin = () => {
         }
         return chunks;
       };
-      
+
       // 🔴 CORREÇÃO 3: Aumentar batch size para 30 UUIDs
       const userIdChunks = chunkArray(userIds, 30);
-      const profilesResults = await Promise.all(
-        userIdChunks.map(chunk =>
-          sb.from("profiles")
-            .select("id, full_name, instagram, email, phone, gender, followers_range")
-            .in("id", chunk)
-            .then(res => res.data || [])
-        )
-      );
+      const profilesResults = await Promise.all(userIdChunks.map(chunk => sb.from("profiles").select("id, full_name, instagram, email, phone, gender, followers_range").in("id", chunk).then(res => res.data || [])));
       const profilesData = profilesResults.flat();
 
       // Criar map de profiles
       const profilesMap: Record<string, any> = {};
-      (profilesData || []).forEach((profile) => {
+      (profilesData || []).forEach(profile => {
         profilesMap[profile.id] = profile;
       });
 
       // 🆕 Buscar total de submissões aprovadas por usuário no evento específico
-      let approvedQuery = sb
-        .from("submissions")
-        .select("user_id, post_id, posts!inner(event_id)")
-        .in("user_id", userIds)
-        .eq("status", "approved")
-        .eq("submission_type", "divulgacao");
+      let approvedQuery = sb.from("submissions").select("user_id, post_id, posts!inner(event_id)").in("user_id", userIds).eq("status", "approved").eq("submission_type", "divulgacao");
 
       // Filtrar por evento específico se não for "all"
       if (submissionEventFilter !== "all") {
         approvedQuery = approvedQuery.eq("posts.event_id", submissionEventFilter);
       }
-
-      const { data: approvedCountsData } = await approvedQuery;
+      const {
+        data: approvedCountsData
+      } = await approvedQuery;
 
       // Criar map: user_id => total de submissões aprovadas
       const approvedCountsMap: Record<string, number> = {};
-      (approvedCountsData || []).forEach((item) => {
+      (approvedCountsData || []).forEach(item => {
         approvedCountsMap[item.user_id] = (approvedCountsMap[item.user_id] || 0) + 1;
       });
-
       console.log("✅ Contagens de aprovados carregadas:", {
         usuariosComAprovados: Object.keys(approvedCountsMap).length,
         totalUsuarios: userIds.length,
-        eventoFiltrado: submissionEventFilter !== "all" ? submissionEventFilter : "todos",
+        eventoFiltrado: submissionEventFilter !== "all" ? submissionEventFilter : "todos"
       });
 
       // ✅ ITEM 1: Buscar vendas aprovadas por usuário NESTE EVENTO ESPECÍFICO
-      const { data: eventSalesData } = await sb
-        .from("submissions")
-        .select("user_id")
-        .in("user_id", userIds)
-        .eq("event_id", submissionEventFilter)
-        .eq("submission_type", "sale")
-        .eq("status", "approved");
-
+      const {
+        data: eventSalesData
+      } = await sb.from("submissions").select("user_id").in("user_id", userIds).eq("event_id", submissionEventFilter).eq("submission_type", "sale").eq("status", "approved");
       const eventSalesMap: Record<string, number> = {};
       (eventSalesData || []).forEach((item: any) => {
         if (item.user_id) {
           eventSalesMap[item.user_id] = (eventSalesMap[item.user_id] || 0) + 1;
         }
       });
-
       console.log(`✅ Vendas aprovadas no evento carregadas para ${Object.keys(eventSalesMap).length} usuários`);
 
       // Enriquecer submissions com profiles
-      const enrichedSubmissions = fullSubmissionsData.map((sub) => ({
+      const enrichedSubmissions = fullSubmissionsData.map(sub => ({
         ...sub,
         profiles: profilesMap[sub.user_id] || {
           full_name: "Usuário Desconhecido",
           instagram: null,
           email: null,
           gender: null,
-          followers_range: null,
-        },
+          followers_range: null
+        }
       }));
 
       // 🔧 ITEM 7: Buscar informações de posts com query robusta
       let postsMap: Record<string, any> = {};
-
       if (submissionIds.length > 0) {
         console.log("🔍 Buscando posts para", submissionIds.length, "submissões");
 
         // Passo 1: Buscar post_ids das submissões
-        const { data: submissionsWithPosts, error: postsIdsError } = await sb
-          .from("submissions")
-          .select("id, post_id")
-          .in("id", submissionIds)
-          .not("post_id", "is", null);
-
+        const {
+          data: submissionsWithPosts,
+          error: postsIdsError
+        } = await sb.from("submissions").select("id, post_id").in("id", submissionIds).not("post_id", "is", null);
         if (postsIdsError) {
           console.error("Erro ao buscar post_ids:", postsIdsError);
         } else {
           const postIds = (submissionsWithPosts || []).map((s: any) => s.post_id).filter(Boolean);
-
           if (postIds.length > 0) {
             // Passo 2: Buscar dados dos posts
-            const { data: postsData, error: postsError } = await sb
-              .from("posts")
-              .select(
-                `
+            const {
+              data: postsData,
+              error: postsError
+            } = await sb.from("posts").select(`
                 id,
                 post_number,
                 event_id,
                 events (
                   title
                 )
-              `,
-              )
-              .in("id", postIds);
-
+              `).in("id", postIds);
             if (postsError) {
               console.error("Erro ao buscar posts:", postsError);
             } else {
@@ -1393,7 +1307,7 @@ const Admin = () => {
                 if (post?.id) {
                   postsDataMap[post.id] = {
                     post_number: post.post_number || 0,
-                    event_title: post.events?.title || "Evento Desconhecido",
+                    event_title: post.events?.title || "Evento Desconhecido"
                   };
                 }
               });
@@ -1404,32 +1318,27 @@ const Admin = () => {
                   postsMap[item.id] = postsDataMap[item.post_id];
                 }
               });
-
               console.log("✅ Posts carregados:", {
                 submissionsTotal: submissionIds.length,
                 postsEncontrados: Object.keys(postsDataMap).length,
-                submissoesComPosts: Object.keys(postsMap).length,
+                submissoesComPosts: Object.keys(postsMap).length
               });
             }
           }
         }
       }
-
       console.log("📊 Posts mapeados:", Object.keys(postsMap).length, "de", submissionIds.length);
 
       // ✅ ITEM 1: Preparar dados completos (todas as colunas)
       const fullExportData = (enrichedSubmissions || []).map((sub: any) => {
         const eventTitle = postsMap[sub.id]?.event_title || "Evento não identificado";
         const postNumber = postsMap[sub.id]?.post_number || 0;
-
         return {
           tipo: sub.submission_type === "divulgacao" ? "Divulgação" : "Venda",
           evento: eventTitle,
           numero_postagem: postNumber,
           nome: sub.profiles?.full_name || "N/A",
-          instagram: sub.profiles?.instagram
-            ? `https://instagram.com/${sub.profiles.instagram.replace("@", "")}`
-            : "N/A",
+          instagram: sub.profiles?.instagram ? `https://instagram.com/${sub.profiles.instagram.replace("@", "")}` : "N/A",
           email: sub.profiles?.email || "N/A",
           telefone: sub.profiles?.phone || "N/A",
           genero: sub.profiles?.gender || "N/A",
@@ -1437,9 +1346,10 @@ const Admin = () => {
           status: sub.status === "approved" ? "Aprovado" : sub.status === "rejected" ? "Rejeitado" : "Pendente",
           data_envio: new Date(sub.submitted_at).toLocaleString("pt-BR"),
           total_submissoes_aprovadas: approvedCountsMap[sub.user_id] || 0,
-          vendas_aprovadas_evento: eventSalesMap[sub.user_id] || 0, // ✅ ITEM 1: Nova coluna
+          vendas_aprovadas_evento: eventSalesMap[sub.user_id] || 0,
+          // ✅ ITEM 1: Nova coluna
           email_ticketeira: sub.user_ticketer_email || "N/A",
-          motivo_rejeicao: sub.rejection_reason || "N/A",
+          motivo_rejeicao: sub.rejection_reason || "N/A"
         };
       });
 
@@ -1448,10 +1358,9 @@ const Admin = () => {
       availableExportColumns.forEach(col => {
         columnLabelsMap[col.key] = col.label;
       });
-
-      const exportData = fullExportData.map((row) => {
+      const exportData = fullExportData.map(row => {
         const filteredRow: Record<string, any> = {};
-        selectedExportColumns.forEach((colKey) => {
+        selectedExportColumns.forEach(colKey => {
           const label = columnLabelsMap[colKey];
           if (label && row.hasOwnProperty(colKey)) {
             filteredRow[label] = row[colKey];
@@ -1466,9 +1375,8 @@ const Admin = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Submissões");
 
       // Download
-      const eventName = events.find((e) => e.id === submissionEventFilter)?.title || "filtradas";
+      const eventName = events.find(e => e.id === submissionEventFilter)?.title || "filtradas";
       XLSX.writeFile(wb, `submissoes_${eventName}_${new Date().toISOString().split("T")[0]}.xlsx`);
-
       toast.success(`${exportData.length} submissão(ões) exportada(s) com sucesso!`);
       setShowColumnSelectionDialog(false); // ✅ ITEM 1: Fechar dialog após exportar
     } catch (error) {
@@ -1476,24 +1384,18 @@ const Admin = () => {
       toast.error("Erro ao exportar submissões");
     }
   }, [submissionEventFilter, events, selectedExportColumns, availableExportColumns, submissionPostFilter, dateFilterStart, dateFilterEnd, submissionsData]);
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Carregando...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  if (!user || (!isAgencyAdmin && !isMasterAdmin)) {
+  if (!user || !isAgencyAdmin && !isMasterAdmin) {
     return null;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
+  return <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background">
       <Suspense fallback={null}>
         <AdminTutorialGuide />
       </Suspense>
@@ -1501,67 +1403,49 @@ const Admin = () => {
       <div className="bg-gradient-primary text-white py-4 px-6 shadow-lg">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            {profile?.avatar_url ? (
-              <Avatar className="h-12 w-12">
+            {profile?.avatar_url ? <Avatar className="h-12 w-12">
                 <AvatarImage src={profile.avatar_url} alt={`Avatar ${profile.full_name}`} />
                 <AvatarFallback>
                   <User className="h-6 w-6" />
                 </AvatarFallback>
-              </Avatar>
-            ) : currentAgency?.name ? (
-              <div className="h-12 w-12 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+              </Avatar> : currentAgency?.name ? <div className="h-12 w-12 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                 <span className="text-lg font-bold text-white">{currentAgency.name.charAt(0).toUpperCase()}</span>
-              </div>
-            ) : null}
+              </div> : null}
             <div>
               <h2 className="text-xl font-bold">{profile?.full_name || "Admin"}</h2>
               <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
                 <span>{profile?.email}</span>
-                {currentAgency && (
-                  <>
+                {currentAgency && <>
                     <span>•</span>
                     <span className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       {currentAgency.name}
                     </span>
-                  </>
-                )}
+                  </>}
               </div>
             </div>
           </div>
-          {currentAgency && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          {currentAgency && <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <Badge variant="secondary" className="text-base px-4 py-2 w-full sm:w-auto text-center">
                 Plano: {currentAgency.subscription_plan?.toUpperCase() || "BASIC"}
               </Badge>
               {/* 🔴 FASE 3: Botões visíveis em todas as telas (removido hidden md:flex) */}
-              <Button
-                onClick={() => {
-                  window.location.href = "/#precos";
-                }}
-                variant="secondary"
-                size="sm"
-                className="font-semibold w-full sm:w-auto"
-              >
+              <Button onClick={() => {
+            window.location.href = "/#precos";
+          }} variant="secondary" size="sm" className="font-semibold w-full sm:w-auto">
                 <CreditCard className="h-4 w-4 mr-2" />
                 {trialInfo?.inTrial ? "Assinar Agora" : "Gerenciar Assinatura"}
               </Button>
-              <Button
-                onClick={() => setSuggestionDialogOpen(true)}
-                size="sm"
-                className="gap-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 w-full sm:w-auto"
-              >
+              <Button onClick={() => setSuggestionDialogOpen(true)} size="sm" className="gap-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 w-full sm:w-auto">
                 <Lightbulb className="h-5 w-5" />
                 Enviar Sugestão
               </Button>
-            </div>
-          )}
+            </div>}
         </div>
       </div>
 
       {/* Trial Banners */}
-      {trialInfo?.inTrial && (
-        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+      {trialInfo?.inTrial && <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
           <div className="container mx-auto px-4 py-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -1579,19 +1463,14 @@ const Admin = () => {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => (window.location.href = "/#precos")}
-                className="bg-white text-green-600 hover:bg-white/90"
-              >
+              <Button onClick={() => window.location.href = "/#precos"} className="bg-white text-green-600 hover:bg-white/90">
                 Ver Planos
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        </div>}
 
-      {trialInfo?.expired && (
-        <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white">
+      {trialInfo?.expired && <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white">
           <div className="container mx-auto px-4 py-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -1605,42 +1484,28 @@ const Admin = () => {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => (window.location.href = "/#precos")}
-                className="bg-white text-red-600 hover:bg-white/90 font-bold"
-              >
+              <Button onClick={() => window.location.href = "/#precos"} className="bg-white text-red-600 hover:bg-white/90 font-bold">
                 Assinar Agora
               </Button>
             </div>
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Slot Exhaustion Alerts */}
-      {currentAgency && (
-        <div className="container mx-auto px-4 pt-6">
+      {currentAgency && <div className="container mx-auto px-4 pt-6">
           <Suspense fallback={null}>
             <SlotExhaustionAlert />
           </Suspense>
-        </div>
-      )}
+        </div>}
 
       {/* Agency Filter Indicator */}
-      {currentAgency && (
-        <div className="bg-primary/10 border-b border-primary/20">
+      {currentAgency && <div className="bg-primary/10 border-b border-primary/20">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {currentAgency.logo_url && (
-                  <img
-                    src={currentAgency.logo_url}
-                    alt={`Logo ${currentAgency.name}`}
-                    className="h-10 w-10 object-contain rounded-lg bg-card p-1"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                )}
+                {currentAgency.logo_url && <img src={currentAgency.logo_url} alt={`Logo ${currentAgency.name}`} className="h-10 w-10 object-contain rounded-lg bg-card p-1" onError={e => {
+              e.currentTarget.style.display = "none";
+            }} />}
                 <div>
                   <p className="text-sm text-muted-foreground">Visualizando dados de:</p>
                   <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
@@ -1649,21 +1514,15 @@ const Admin = () => {
                   </h3>
                 </div>
               </div>
-              {isMasterAdmin && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    navigate("/master-admin");
-                    setCurrentAgency(null);
-                  }}
-                >
+              {isMasterAdmin && <Button variant="outline" onClick={() => {
+            navigate("/master-admin");
+            setCurrentAgency(null);
+          }}>
                   ← Voltar ao Painel Master
-                </Button>
-              )}
+                </Button>}
             </div>
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -1676,48 +1535,32 @@ const Admin = () => {
                   Dashboard
                 </Button>
               </Link>
-              {isMasterAdmin && !currentAgency && (
-                <Link to="/master-admin">
+              {isMasterAdmin && !currentAgency && <Link to="/master-admin">
                   <Button variant="outline" size="sm">
                     🎯 Painel Master
                   </Button>
-                </Link>
-              )}
+                </Link>}
               <div className="flex flex-col gap-2">
                 <h1 className="text-xl md:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                   Painel Agência
                 </h1>
-                {agencySlug && (
-                  <div className="flex items-center gap-2">
+                {agencySlug && <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Link da sua agência:</span>
                     <Badge variant="outline" className="text-sm">
                       <Building2 className="h-3 w-3 mr-1" />
                       {agencySlug}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={copySlugUrl}
-                      className="h-6 w-6 p-0"
-                      title="Copiar link de cadastro"
-                    >
+                    <Button variant="ghost" size="sm" onClick={copySlugUrl} className="h-6 w-6 p-0" title="Copiar link de cadastro">
                       <Copy className="h-3 w-3" />
                     </Button>
-                  </div>
-                )}
+                  </div>}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <Button
-                onClick={() => {
-                  const message = encodeURIComponent(
-                    `Olá! Preciso de suporte - Agência: ${currentAgency?.name || "Sem nome"}`,
-                  );
-                  window.open(`https://wa.me/5511999136884?text=${message}`, "_blank");
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg transition-all hover:scale-105 flex items-center gap-2 flex-1 sm:flex-initial"
-                size="sm"
-              >
+              <Button onClick={() => {
+              const message = encodeURIComponent(`Olá! Preciso de suporte - Agência: ${currentAgency?.name || "Sem nome"}`);
+              window.open(`https://wa.me/5511999136884?text=${message}`, "_blank");
+            }} className="bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg transition-all hover:scale-105 flex items-center gap-2 flex-1 sm:flex-initial" size="sm">
                 <MessageSquare className="h-5 w-5" />
                 Suporte WhatsApp
               </Button>
@@ -1737,7 +1580,7 @@ const Admin = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div id="stats-cards" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div id="stats-cards" className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
@@ -1802,16 +1645,12 @@ const Admin = () => {
         </div>
 
         {/* Main Content */}
-        <Tabs
-          defaultValue="events"
-          className="space-y-6"
-          onValueChange={(value) => {
-            // ✅ ITEM 3 FASE 1: Limpar filtros de submissões ao sair da aba
-            if (value !== "submissions") {
-              clearFilters();
-            }
-          }}
-        >
+        <Tabs defaultValue="events" className="space-y-6" onValueChange={value => {
+        // ✅ ITEM 3 FASE 1: Limpar filtros de submissões ao sair da aba
+        if (value !== "submissions") {
+          clearFilters();
+        }
+      }}>
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-10 gap-1 h-auto">
             <TabsTrigger value="events" className="text-xs sm:text-sm py-2">
               Eventos
@@ -1876,15 +1715,10 @@ const Admin = () => {
                   </SelectContent>
                 </Select>
                 
-                <Button
-                  id="create-event-button"
-                  className="bg-gradient-primary w-full sm:w-auto"
-                  onClick={() => {
-                    setSelectedEvent(null);
-                    setEventDialogOpen(true);
-                  }}
-                  disabled={isReadOnly}
-                >
+                <Button id="create-event-button" className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
+                setSelectedEvent(null);
+                setEventDialogOpen(true);
+              }} disabled={isReadOnly}>
                   <Plus className="mr-2 h-4 w-4" />
                   Novo Evento
                 </Button>
@@ -1893,170 +1727,101 @@ const Admin = () => {
             </div>
 
             <Card className="p-6">
-              {filteredEvents.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  {eventActiveFilter === "all"
-                    ? "Nenhum evento cadastrado ainda"
-                    : "Nenhum evento encontrado com este filtro"}
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {filteredEvents.map((event) => (
-                    <Card key={event.id} className="p-4">
+              {filteredEvents.length === 0 ? <p className="text-muted-foreground text-center py-8">
+                  {eventActiveFilter === "all" ? "Nenhum evento cadastrado ainda" : "Nenhum evento encontrado com este filtro"}
+                </p> : <div className="space-y-4">
+                  {filteredEvents.map(event => <Card key={event.id} className="p-4">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                         <div className="flex-1 w-full">
                           <h3 className="font-bold text-lg">{event.title}</h3>
-                          {event.event_date && (
-                            <p className="text-sm text-muted-foreground mt-1">
+                          {event.event_date && <p className="text-sm text-muted-foreground mt-1">
                               📅 {new Date(event.event_date).toLocaleString("pt-BR")}
-                            </p>
-                          )}
+                            </p>}
                           {event.location && <p className="text-sm text-muted-foreground">📍 {event.location}</p>}
                           <p className="text-sm text-muted-foreground mt-1">
                             📊 {submissionsByEvent[event.id] || 0} submissões | Requisitos: {event.required_posts}{" "}
                             posts, {event.required_sales} vendas
                           </p>
-                          {event.event_slug ? (
-                            <div className="flex items-center gap-2 mt-2 p-2 bg-muted/50 rounded-md border">
+                          {event.event_slug ? <div className="flex items-center gap-2 mt-2 p-2 bg-muted/50 rounded-md border">
                               <span className="text-xs font-mono text-muted-foreground">🔗 {event.event_slug}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => copyEventUrl(currentAgency?.slug || "", event.event_slug!)}
-                                className="h-6 px-2 text-xs"
-                              >
+                              <Button variant="ghost" size="sm" onClick={() => copyEventUrl(currentAgency?.slug || "", event.event_slug!)} className="h-6 px-2 text-xs">
                                 Copiar URL Pública
                               </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 mt-2 p-2 bg-amber-500/10 rounded-md border border-amber-500/20">
+                            </div> : <div className="flex items-center gap-2 mt-2 p-2 bg-amber-500/10 rounded-md border border-amber-500/20">
                               <span className="text-xs text-amber-600 dark:text-amber-400">⚠️ Slug não definido</span>
-                            </div>
-                          )}
+                            </div>}
                           {event.description && <p className="text-muted-foreground mt-2">{event.description}</p>}
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedEvent(event);
-                              setEventDialogOpen(true);
-                            }}
-                            className="flex-1 sm:flex-initial"
-                            disabled={isReadOnly}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => {
+                      setSelectedEvent(event);
+                      setEventDialogOpen(true);
+                    }} className="flex-1 sm:flex-initial" disabled={isReadOnly}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDuplicateEvent(event)}
-                            className="flex-1 sm:flex-initial"
-                            title="Duplicar evento"
-                            disabled={isReadOnly}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => handleDuplicateEvent(event)} className="flex-1 sm:flex-initial" title="Duplicar evento" disabled={isReadOnly}>
                             <Copy className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEventToDelete(event.id)}
-                            className="text-destructive hover:text-destructive flex-1 sm:flex-initial"
-                            disabled={isReadOnly}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => setEventToDelete(event.id)} className="text-destructive hover:text-destructive flex-1 sm:flex-initial" disabled={isReadOnly}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                    </Card>)}
+                </div>}
             </Card>
 
             {/* Controle de Vagas - Grid Completo */}
-            {filteredEvents.length > 0 && filteredEvents.filter(e => e.is_active && e.numero_de_vagas).length > 0 && (
-              <div className="space-y-4">
+            {filteredEvents.length > 0 && filteredEvents.filter(e => e.is_active && e.numero_de_vagas).length > 0 && <div className="space-y-4">
                 <h3 className="text-xl font-bold">📊 Controle de Vagas - Todos os Eventos</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredEvents
-                    .filter(e => e.is_active && e.numero_de_vagas)
-                    .map((event) => (
-                      <Suspense key={event.id} fallback={<Skeleton className="h-64 w-full" />}>
+                  {filteredEvents.filter(e => e.is_active && e.numero_de_vagas).map(event => <Suspense key={event.id} fallback={<Skeleton className="h-64 w-full" />}>
                         <EventSlotsCounter eventId={event.id} eventTitle={event.title} variant="detailed" />
-                      </Suspense>
-                    ))}
+                      </Suspense>)}
                 </div>
-              </div>
-            )}
+              </div>}
 
             {/* Previsão de Esgotamento (IA) - Seletor Único */}
-            {filteredEvents.length > 0 && filteredEvents.filter(e => e.is_active && e.numero_de_vagas).length > 0 && (
-              <div className="space-y-4">
+            {filteredEvents.length > 0 && filteredEvents.filter(e => e.is_active && e.numero_de_vagas).length > 0 && <div className="space-y-4">
                 <h3 className="text-xl font-bold">🤖 Previsão Detalhada de Esgotamento (IA)</h3>
                 <div className="space-y-4">
-                  <Select
-                    value={selectedEventForPrediction || ""}
-                    onValueChange={setSelectedEventForPrediction}
-                  >
+                  <Select value={selectedEventForPrediction || ""} onValueChange={setSelectedEventForPrediction}>
                     <SelectTrigger className="w-full max-w-md">
                       <SelectValue placeholder="Selecione um evento para ver a previsão" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredEvents
-                        .filter(e => e.is_active && e.numero_de_vagas)
-                        .map((event) => (
-                          <SelectItem key={event.id} value={event.id}>
+                      {filteredEvents.filter(e => e.is_active && e.numero_de_vagas).map(event => <SelectItem key={event.id} value={event.id}>
                             {event.title}
-                          </SelectItem>
-                        ))}
+                          </SelectItem>)}
                     </SelectContent>
                   </Select>
 
-                  {selectedEventForPrediction && (
-                    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                      <SlotExhaustionPrediction 
-                        eventId={selectedEventForPrediction} 
-                        eventTitle={filteredEvents.find(e => e.id === selectedEventForPrediction)?.title || ''} 
-                      />
-                    </Suspense>
-                  )}
+                  {selectedEventForPrediction && <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                      <SlotExhaustionPrediction eventId={selectedEventForPrediction} eventTitle={filteredEvents.find(e => e.id === selectedEventForPrediction)?.title || ''} />
+                    </Suspense>}
                 </div>
-              </div>
-            )}
+              </div>}
 
             {/* Top Promoters Ranking - Seletor Único */}
-            {filteredEvents.length > 0 && filteredEvents.filter(e => e.is_active).length > 0 && (
-              <div className="space-y-4">
+            {filteredEvents.length > 0 && filteredEvents.filter(e => e.is_active).length > 0 && <div className="space-y-4">
                 <h3 className="text-xl font-bold">🏆 Ranking de Divulgadoras</h3>
                 <div className="space-y-4">
-                  <Select
-                    value={selectedEventForRanking || ""}
-                    onValueChange={setSelectedEventForRanking}
-                  >
+                  <Select value={selectedEventForRanking || ""} onValueChange={setSelectedEventForRanking}>
                     <SelectTrigger className="w-full max-w-md">
                       <SelectValue placeholder="Selecione um evento para ver o ranking" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredEvents
-                        .filter(e => e.is_active)
-                        .map((event) => (
-                          <SelectItem key={event.id} value={event.id}>
+                      {filteredEvents.filter(e => e.is_active).map(event => <SelectItem key={event.id} value={event.id}>
                             {event.title}
-                          </SelectItem>
-                        ))}
+                          </SelectItem>)}
                     </SelectContent>
                   </Select>
 
-                  {selectedEventForRanking && (
-                    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+                  {selectedEventForRanking && <Suspense fallback={<Skeleton className="h-64 w-full" />}>
                       <TopPromotersRanking eventId={selectedEventForRanking} limit={10} />
-                    </Suspense>
-                  )}
+                    </Suspense>}
                 </div>
-              </div>
-            )}
+              </div>}
           </TabsContent>
 
           <TabsContent value="posts" className="space-y-6">
@@ -2089,32 +1854,24 @@ const Admin = () => {
                     <SelectContent>
                       <SelectItem value="all">Todos os eventos</SelectItem>
                       {/* ✅ ITEM 4: Filtrar eventos baseado no postEventActiveFilter */}
-                      {events
-                        .filter((event) => {
-                          if (postEventActiveFilter === "all") return true;
-                          if (postEventActiveFilter === "active") return event.is_active === true;
-                          if (postEventActiveFilter === "inactive") return event.is_active === false;
-                          return true;
-                        })
-                        .map((event) => (
-                          <SelectItem key={event.id} value={event.id}>
+                      {events.filter(event => {
+                      if (postEventActiveFilter === "all") return true;
+                      if (postEventActiveFilter === "active") return event.is_active === true;
+                      if (postEventActiveFilter === "inactive") return event.is_active === false;
+                      return true;
+                    }).map(event => <SelectItem key={event.id} value={event.id}>
                             {/* ✅ ITEM 4: Adicionar badge visual de status */}
                             <span className="flex items-center gap-2">
                               <span className={event.is_active ? "text-green-600" : "text-gray-400"}>●</span>
                               {event.title}
                             </span>
-                          </SelectItem>
-                        ))}
+                          </SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button
-                    className="bg-gradient-primary w-full sm:w-auto"
-                    onClick={() => {
-                      setSelectedPost(null);
-                      setPostDialogOpen(true);
-                    }}
-                    disabled={isReadOnly}
-                  >
+                  <Button className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
+                  setSelectedPost(null);
+                  setPostDialogOpen(true);
+                }} disabled={isReadOnly}>
                     <Plus className="mr-2 h-4 w-4" />
                     Nova Postagem
                   </Button>
@@ -2124,28 +1881,21 @@ const Admin = () => {
             </div>
 
             <Card className="p-6">
-              {filteredPosts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  {postEventFilter === "all"
-                    ? "Nenhuma postagem cadastrada ainda"
-                    : "Nenhuma postagem para este evento"}
-                </p>
-              ) : (
-                /* ✅ ITEM 3: Agrupar posts por evento */
-                <div className="space-y-6">
+              {filteredPosts.length === 0 ? <p className="text-muted-foreground text-center py-8">
+                  {postEventFilter === "all" ? "Nenhuma postagem cadastrada ainda" : "Nenhuma postagem para este evento"}
+                </p> : (/* ✅ ITEM 3: Agrupar posts por evento */
+            <div className="space-y-6">
                   {(() => {
-                    // Agrupar posts por evento
-                    const postsByEvent: Record<string, typeof filteredPosts> = {};
-                    filteredPosts.forEach((post) => {
-                      const eventTitle = getEventTitle(post);
-                      if (!postsByEvent[eventTitle]) {
-                        postsByEvent[eventTitle] = [];
-                      }
-                      postsByEvent[eventTitle].push(post);
-                    });
-
-                    return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => (
-                      <div key={eventTitle} className="space-y-3">
+                // Agrupar posts por evento
+                const postsByEvent: Record<string, typeof filteredPosts> = {};
+                filteredPosts.forEach(post => {
+                  const eventTitle = getEventTitle(post);
+                  if (!postsByEvent[eventTitle]) {
+                    postsByEvent[eventTitle] = [];
+                  }
+                  postsByEvent[eventTitle].push(post);
+                });
+                return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => <div key={eventTitle} className="space-y-3">
                         {/* Cabeçalho do grupo de evento */}
                         <div className="flex items-center gap-2 px-2">
                           <Calendar className="h-4 w-4 text-primary" />
@@ -2157,10 +1907,7 @@ const Admin = () => {
 
                         {/* Lista de posts do evento */}
                         <div className="space-y-2 pl-6 border-l-2 border-primary/20">
-                          {eventPosts
-                            .sort((a, b) => a.post_number - b.post_number)
-                            .map((post) => (
-                              <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
+                          {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
                                 <div className="flex justify-between items-start">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2">
@@ -2176,197 +1923,97 @@ const Admin = () => {
                                     </p>
                                   </div>
                                   <div className="flex gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedPost(post);
-                                        setPostDialogOpen(true);
-                                      }}
-                                      disabled={isReadOnly}
-                                    >
+                                    <Button variant="ghost" size="sm" onClick={() => {
+                            setSelectedPost(post);
+                            setPostDialogOpen(true);
+                          }} disabled={isReadOnly}>
                                       <Pencil className="h-4 w-4" />
                                     </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleDeletePostClick(post.id)}
-                                      className="text-destructive hover:text-destructive"
-                                      disabled={isReadOnly}
-                                    >
+                                    <Button variant="ghost" size="sm" onClick={() => handleDeletePostClick(post.id)} className="text-destructive hover:text-destructive" disabled={isReadOnly}>
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </div>
                                 </div>
-                              </Card>
-                            ))}
+                              </Card>)}
                         </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              )}
+                      </div>);
+              })()}
+                </div>)}
             </Card>
           </TabsContent>
 
           <TabsContent value="submissions" className="space-y-6">
             {/* ✅ Sprint 3A: Usar componente AdminFilters refatorado */}
-            <AdminFilters
-              submissionActiveFilter={submissionActiveFilter} // ✅ ITEM 5: Novo filtro
-              submissionEventFilter={submissionEventFilter}
-              submissionPostFilter={submissionPostFilter}
-              submissionStatusFilter={submissionStatusFilter}
-              postTypeFilter={postTypeFilter}
-              searchTerm={searchTerm}
-              dateFilterStart={dateFilterStart}
-              dateFilterEnd={dateFilterEnd}
-              kanbanView={kanbanView}
-              cardsGridView={cardsGridView}
-              events={events}
-              submissions={submissions}
-              allPosts={allPosts}
-              onSubmissionActiveFilterChange={setSubmissionActiveFilter} // ✅ ITEM 5: Handler
-              onSubmissionEventFilterChange={setSubmissionEventFilter}
-              onSubmissionPostFilterChange={setSubmissionPostFilter}
-              onSubmissionStatusFilterChange={setSubmissionStatusFilter}
-              onPostTypeFilterChange={setPostTypeFilter}
-              onSearchTermChange={setSearchTerm}
-              onDateFilterStartChange={setDateFilterStart}
-              onDateFilterEndChange={setDateFilterEnd}
-              onKanbanViewToggle={() => setKanbanView(!kanbanView)}
-              onCardsGridViewToggle={() => setCardsGridView(!cardsGridView)}
-              onExport={handleExportToExcel}
-              filteredCount={getPaginatedSubmissions.length}
-              totalCount={submissionsData?.count || 0}
-              isLoadingSubmissions={loadingSubmissions}
-            />
+            <AdminFilters submissionActiveFilter={submissionActiveFilter} // ✅ ITEM 5: Novo filtro
+          submissionEventFilter={submissionEventFilter} submissionPostFilter={submissionPostFilter} submissionStatusFilter={submissionStatusFilter} postTypeFilter={postTypeFilter} searchTerm={searchTerm} dateFilterStart={dateFilterStart} dateFilterEnd={dateFilterEnd} kanbanView={kanbanView} cardsGridView={cardsGridView} events={events} submissions={submissions} allPosts={allPosts} onSubmissionActiveFilterChange={setSubmissionActiveFilter} // ✅ ITEM 5: Handler
+          onSubmissionEventFilterChange={setSubmissionEventFilter} onSubmissionPostFilterChange={setSubmissionPostFilter} onSubmissionStatusFilterChange={setSubmissionStatusFilter} onPostTypeFilterChange={setPostTypeFilter} onSearchTermChange={setSearchTerm} onDateFilterStartChange={setDateFilterStart} onDateFilterEndChange={setDateFilterEnd} onKanbanViewToggle={() => setKanbanView(!kanbanView)} onCardsGridViewToggle={() => setCardsGridView(!cardsGridView)} onExport={handleExportToExcel} filteredCount={getPaginatedSubmissions.length} totalCount={submissionsData?.count || 0} isLoadingSubmissions={loadingSubmissions} />
 
             {/* ✅ SPRINT 2: Indicador de filtros ativos */}
-            {(submissionStatusFilter !== "all" ||
-              postTypeFilter !== "all" ||
-              debouncedSearch ||
-              submissionEventFilter !== "all" ||
-              submissionActiveFilter !== "all") && ( // ✅ ITEM 5: Incluir novo filtro
-              <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md mb-4">
+            {(submissionStatusFilter !== "all" || postTypeFilter !== "all" || debouncedSearch || submissionEventFilter !== "all" || submissionActiveFilter !== "all") &&
+          // ✅ ITEM 5: Incluir novo filtro
+          <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md mb-4">
                 <span className="text-sm font-medium">🔍 Filtros ativos:</span>
                 <span className="text-sm text-muted-foreground">
                   {submissionsData?.count || 0} resultado(s) encontrado(s)
                 </span>
-              </div>
-            )}
+              </div>}
 
-            {kanbanView ? (
-              <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                <SubmissionKanban
-                  submissions={getPaginatedSubmissions as any}
-                  onUpdate={refetchSubmissions}
-                  userId={user?.id}
-                />
-              </Suspense>
-            ) : cardsGridView ? (
-              <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                <SubmissionCardsGrid
-                  submissions={getFilteredSubmissions as any}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  totalPages={totalPages}
-                  selectedSubmissions={selectedSubmissions}
-                  imageUrls={imageUrls}
-                  isReadOnly={isReadOnly}
-                  onPageChange={setCurrentPage}
-                  onApprove={handleApproveSubmission}
-                  onReject={handleRejectSubmission}
-                  onToggleSelection={toggleSubmissionSelection}
-                  onImageZoom={handleOpenZoom}
-                  SubmissionImageDisplay={SubmissionImageDisplay}
-                />
-              </Suspense>
-            ) : loadingSubmissions ? (
-              <Card className="p-12 text-center">
+            {kanbanView ? <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                <SubmissionKanban submissions={getPaginatedSubmissions as any} onUpdate={refetchSubmissions} userId={user?.id} />
+              </Suspense> : cardsGridView ? <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                <SubmissionCardsGrid submissions={getFilteredSubmissions as any} currentPage={currentPage} itemsPerPage={itemsPerPage} totalPages={totalPages} selectedSubmissions={selectedSubmissions} imageUrls={imageUrls} isReadOnly={isReadOnly} onPageChange={setCurrentPage} onApprove={handleApproveSubmission} onReject={handleRejectSubmission} onToggleSelection={toggleSubmissionSelection} onImageZoom={handleOpenZoom} SubmissionImageDisplay={SubmissionImageDisplay} />
+              </Suspense> : loadingSubmissions ? <Card className="p-12 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Carregando submissões...</p>
-              </Card>
-            ) : (
-              <>
-                {selectedSubmissions.size > 0 && (
-                  <Button onClick={handleBulkApprove} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto mb-4">
+              </Card> : <>
+                {selectedSubmissions.size > 0 && <Button onClick={handleBulkApprove} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto mb-4">
                     <CheckCheck className="mr-2 h-4 w-4" />
                     Aprovar {selectedSubmissions.size}
-                  </Button>
-                )}
+                  </Button>}
 
                 <Card className="p-6">
-                  {getPaginatedSubmissions.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">
+                  {getPaginatedSubmissions.length === 0 ? <p className="text-muted-foreground text-center py-8">
                       Nenhuma submissão encontrada com os filtros selecionados
-                    </p>
-                  ) : (
-                    <>
+                    </p> : <>
                       <div className="space-y-4">
                         <div className="flex items-center gap-2 pb-4 border-b">
-                          <Checkbox
-                            checked={
-                              selectedSubmissions.size === getPaginatedSubmissions.length &&
-                              getPaginatedSubmissions.length > 0
-                            }
-                            onCheckedChange={toggleSelectAll}
-                          />
+                          <Checkbox checked={selectedSubmissions.size === getPaginatedSubmissions.length && getPaginatedSubmissions.length > 0} onCheckedChange={toggleSelectAll} />
                           <span className="text-sm text-muted-foreground">
                             Selecionar todos desta página ({getPaginatedSubmissions.length})
                           </span>
                         </div>
-                        {getPaginatedSubmissions.map((submission: any) => (
-                          <Card key={submission.id} className="p-4 sm:p-6">
+                        {getPaginatedSubmissions.map((submission: any) => <Card key={submission.id} className="p-4 sm:p-6">
                             <div className="space-y-4">
                               {/* Layout Mobile e Desktop */}
                               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                                 {/* Checkbox de seleção */}
                                 <div className="flex items-start pt-2 order-1 sm:order-1">
-                                  <Checkbox
-                                    checked={selectedSubmissions.has(submission.id)}
-                                    onCheckedChange={() => toggleSubmissionSelection(submission.id)}
-                                  />
+                                  <Checkbox checked={selectedSubmissions.has(submission.id)} onCheckedChange={() => toggleSubmissionSelection(submission.id)} />
                                 </div>
 
                                 {/* Screenshots */}
                                 <div className="w-full sm:w-48 flex-shrink-0 order-2 sm:order-2 space-y-2">
                                   {/* Screenshot principal (post/venda) */}
-                                  <div
-                                    className="h-64 sm:h-48 cursor-pointer"
-                                    onClick={() => handleOpenZoom(submission.id)}
-                                  >
+                                  <div className="h-64 sm:h-48 cursor-pointer" onClick={() => handleOpenZoom(submission.id)}>
                                     <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
-                                      <SubmissionImageDisplay
-                                        screenshotPath={submission.screenshot_path}
-                                        screenshotUrl={submission.screenshot_url}
-                                        alt="Screenshot da postagem"
-                                        className="w-full h-full object-cover rounded-lg border hover:opacity-80 transition-opacity"
-                                      />
+                                      <SubmissionImageDisplay screenshotPath={submission.screenshot_path} screenshotUrl={submission.screenshot_url} alt="Screenshot da postagem" className="w-full h-full object-cover rounded-lg border hover:opacity-80 transition-opacity" />
                                     </Suspense>
                                   </div>
 
                                   {/* 🆕 Screenshot do perfil (se existir) */}
-                                  {submission.profile_screenshot_path && (
-                                    <div className="h-40 sm:h-32">
+                                  {submission.profile_screenshot_path && <div className="h-40 sm:h-32">
                                       <Suspense fallback={<Skeleton className="w-full h-full rounded-lg" />}>
-                                        <SubmissionImageDisplay
-                                          screenshotPath={submission.profile_screenshot_path}
-                                          alt="Screenshot do perfil"
-                                          className="w-full h-full object-cover rounded-lg border opacity-80"
-                                        />
+                                        <SubmissionImageDisplay screenshotPath={submission.profile_screenshot_path} alt="Screenshot do perfil" className="w-full h-full object-cover rounded-lg border opacity-80" />
                                       </Suspense>
                                       <p className="text-xs text-muted-foreground text-center mt-1">Print do Perfil</p>
-                                    </div>
-                                  )}
+                                    </div>}
 
                                   {/* 🆕 Faixa de seguidores (se existir) */}
-                                  {submission.followers_range && (
-                                    <div className="bg-primary/10 rounded px-2 py-1 text-center">
+                                  {submission.followers_range && <div className="bg-primary/10 rounded px-2 py-1 text-center">
                                       <p className="text-xs font-medium text-primary">
                                         👥 {submission.followers_range}
                                       </p>
-                                    </div>
-                                  )}
+                                    </div>}
                                 </div>
 
                                 {/* Informações do usuário */}
@@ -2379,18 +2026,9 @@ const Admin = () => {
                                       <p className="text-sm text-muted-foreground">
                                         {submission.profiles?.email || "Email não disponível"}
                                       </p>
-                                      {submission.profiles?.instagram && (
-                                        <a
-                                          href={`https://instagram.com/${submission.profiles.instagram.replace("@", "")}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-sm font-medium text-primary mt-1 hover:underline cursor-pointer inline-block"
-                                        >
-                                          {submission.profiles.instagram.startsWith("@")
-                                            ? submission.profiles.instagram
-                                            : `@${submission.profiles.instagram}`}
-                                        </a>
-                                      )}
+                                      {submission.profiles?.instagram && <a href={`https://instagram.com/${submission.profiles.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary mt-1 hover:underline cursor-pointer inline-block">
+                                          {submission.profiles.instagram.startsWith("@") ? submission.profiles.instagram : `@${submission.profiles.instagram}`}
+                                        </a>}
                                     </div>
                                      <div className="sm:text-right">
                                        <div className="flex flex-col sm:items-end gap-2">
@@ -2399,206 +2037,145 @@ const Admin = () => {
                                            <label className="text-sm text-muted-foreground">
                                              Evento:
                                            </label>
-                                           <Select
-                                             value={submission.event_id || "none"}
-                                             onValueChange={async (newEventId) => {
-                                               if (newEventId === "none") return;
-
-                                               const currentEvent = events.find((e) => e.id === submission.event_id);
-                                               const newEvent = events.find((e) => e.id === newEventId);
-
-                                               const confirma = window.confirm(
-                                                 `Deseja mover esta submissão de:\n"${currentEvent?.title}" → "${newEvent?.title}"?\n\nO post será resetado e deverá ser selecionado novamente.\n\nEsta ação não pode ser desfeita.`,
-                                               );
-
-                                               if (!confirma) return;
-
-                                                try {
-                                                  const { error } = await sb
-                                                    .from("submissions")
-                                                    .update({ 
-                                                      event_id: newEventId,
-                                                      post_id: null,
-                                                      submission_type: "divulgacao"
-                                                    })
-                                                    .eq("id", submission.id);
-
-                                                 if (error) throw error;
-
-                                                 toast.success(`✅ Submissão movida para: ${newEvent?.title}`);
-                                                 refetchSubmissions();
-                                               } catch (err: any) {
-                                                 console.error("Erro ao trocar evento:", err);
-                                                 toast.error(`❌ Erro: ${err.message}`);
-                                               }
-                                             }}
-                                             disabled={isReadOnly}
-                                           >
+                                           <Select value={submission.event_id || "none"} onValueChange={async newEventId => {
+                                    if (newEventId === "none") return;
+                                    const currentEvent = events.find(e => e.id === submission.event_id);
+                                    const newEvent = events.find(e => e.id === newEventId);
+                                    const confirma = window.confirm(`Deseja mover esta submissão de:\n"${currentEvent?.title}" → "${newEvent?.title}"?\n\nO post será resetado e deverá ser selecionado novamente.\n\nEsta ação não pode ser desfeita.`);
+                                    if (!confirma) return;
+                                    try {
+                                      const {
+                                        error
+                                      } = await sb.from("submissions").update({
+                                        event_id: newEventId,
+                                        post_id: null,
+                                        submission_type: "divulgacao"
+                                      }).eq("id", submission.id);
+                                      if (error) throw error;
+                                      toast.success(`✅ Submissão movida para: ${newEvent?.title}`);
+                                      refetchSubmissions();
+                                    } catch (err: any) {
+                                      console.error("Erro ao trocar evento:", err);
+                                      toast.error(`❌ Erro: ${err.message}`);
+                                    }
+                                  }} disabled={isReadOnly}>
                                              <SelectTrigger className="w-48 h-8 text-xs">
                                                <SelectValue>
-                                                 {events.find((e) => e.id === submission.event_id)?.title || "Selecione evento"}
+                                                 {events.find(e => e.id === submission.event_id)?.title || "Selecione evento"}
                                                </SelectValue>
                                              </SelectTrigger>
                                              <SelectContent>
-                                               {events
-                                                 .filter((e) => e.is_active)
-                                                 .map((event) => (
-                                                   <SelectItem key={event.id} value={event.id}>
+                                               {events.filter(e => e.is_active).map(event => <SelectItem key={event.id} value={event.id}>
                                                      📅 {event.title}
-                                                   </SelectItem>
-                                                 ))}
+                                                   </SelectItem>)}
                                              </SelectContent>
                                            </Select>
                                          </div>
 
                                          {/* ✅ ITEM 4: Dropdown editável para trocar post_id */}
                                          <div className="flex items-center gap-2">
-                                           <Select
-                                            value={submission.post_id || "none"}
-                                            onValueChange={async (newPostId) => {
-                                              if (newPostId === "none") return;
+                                           <Select value={submission.post_id || "none"} onValueChange={async newPostId => {
+                                    if (newPostId === "none") return;
 
-                                              // 🆕 FASE 4: Tratar seleção de venda especial
-                                               if (newPostId === "__SALE__") {
-                                                 const confirma = window.confirm(
-                                                   `Deseja alterar para "Vendas"?\n\nEsta ação não pode ser desfeita.`,
-                                                 );
+                                    // 🆕 FASE 4: Tratar seleção de venda especial
+                                    if (newPostId === "__SALE__") {
+                                      const confirma = window.confirm(`Deseja alterar para "Vendas"?\n\nEsta ação não pode ser desfeita.`);
+                                      if (!confirma) return;
+                                      try {
+                                        // ✅ FASE 4: Buscar event_id do post atual para manter rastreabilidade
+                                        const currentPost = posts.find(p => p.id === submission.post_id);
+                                        const eventId = currentPost?.event_id || null;
+                                        const {
+                                          error
+                                        } = await sb.from("submissions").update({
+                                          post_id: null,
+                                          submission_type: "sale",
+                                          event_id: eventId // ✅ Manter event_id mesmo sem post_id
+                                        }).eq("id", submission.id);
+                                        if (error) throw error;
+                                        toast.success(`✅ Post alterado para: Vendas`);
+                                        refetchSubmissions();
+                                      } catch (err: any) {
+                                        console.error("Erro ao atualizar post:", err);
+                                        toast.error(`❌ Erro: ${err.message}`);
+                                      }
+                                      return;
+                                    }
 
-                                                if (!confirma) return;
-
-                                                 try {
-                                                   // ✅ FASE 4: Buscar event_id do post atual para manter rastreabilidade
-                                                   const currentPost = posts.find((p) => p.id === submission.post_id);
-                                                   const eventId = currentPost?.event_id || null;
-
-                                                   const { error } = await sb
-                                                     .from("submissions")
-                                                     .update({ 
-                                                       post_id: null,
-                                                       submission_type: "sale",
-                                                       event_id: eventId // ✅ Manter event_id mesmo sem post_id
-                                                     })
-                                                     .eq("id", submission.id);
-
-                                                    if (error) throw error;
-
-                                                    toast.success(`✅ Post alterado para: Vendas`);
-                                                    refetchSubmissions();
-                                                 } catch (err: any) {
-                                                   console.error("Erro ao atualizar post:", err);
-                                                   toast.error(`❌ Erro: ${err.message}`);
-                                                 }
-                                                 return;
-                                               }
-
-                                              // Para posts normais
-                                              const postAtual = posts.find((p) => p.id === submission.post_id);
-                                              const postNovo = posts.find((p) => p.id === newPostId);
-
-                                               const nomeAtual = postAtual
-                                                 ? formatPostName(postAtual.post_type, postAtual.post_number)
-                                                 : "Vendas";
-                                               const nomeNovo = postNovo
-                                                 ? formatPostName(postNovo.post_type, postNovo.post_number)
-                                                 : "Vendas";
-
-                                              const confirma = window.confirm(
-                                                `Deseja alterar o post de "${nomeAtual}" para "${nomeNovo}"?\n\nEsta ação não pode ser desfeita.`,
-                                              );
-
-                                              if (!confirma) return;
-
-                                              try {
-                                                // Atualizar post_id e submission_type automaticamente
-                                                const updates: any = { 
-                                                  post_id: newPostId,
-                                                  submission_type: "divulgacao"
-                                                };
-
-                                                const { error } = await sb
-                                                  .from("submissions")
-                                                  .update(updates)
-                                                  .eq("id", submission.id);
-
-                                                if (error) throw error;
-
-                                                toast.success(`✅ Post alterado para: ${nomeNovo}`);
-                                                refetchSubmissions();
-                                              } catch (err: any) {
-                                                console.error("Erro ao atualizar post:", err);
-                                                toast.error(`❌ Erro: ${err.message}`);
-                                              }
-                                            }}
-                                            disabled={isReadOnly}
-                                          >
+                                    // Para posts normais
+                                    const postAtual = posts.find(p => p.id === submission.post_id);
+                                    const postNovo = posts.find(p => p.id === newPostId);
+                                    const nomeAtual = postAtual ? formatPostName(postAtual.post_type, postAtual.post_number) : "Vendas";
+                                    const nomeNovo = postNovo ? formatPostName(postNovo.post_type, postNovo.post_number) : "Vendas";
+                                    const confirma = window.confirm(`Deseja alterar o post de "${nomeAtual}" para "${nomeNovo}"?\n\nEsta ação não pode ser desfeita.`);
+                                    if (!confirma) return;
+                                    try {
+                                      // Atualizar post_id e submission_type automaticamente
+                                      const updates: any = {
+                                        post_id: newPostId,
+                                        submission_type: "divulgacao"
+                                      };
+                                      const {
+                                        error
+                                      } = await sb.from("submissions").update(updates).eq("id", submission.id);
+                                      if (error) throw error;
+                                      toast.success(`✅ Post alterado para: ${nomeNovo}`);
+                                      refetchSubmissions();
+                                    } catch (err: any) {
+                                      console.error("Erro ao atualizar post:", err);
+                                      toast.error(`❌ Erro: ${err.message}`);
+                                    }
+                                  }} disabled={isReadOnly}>
                                             <SelectTrigger className="w-48 h-8 text-xs">
                                               <SelectValue>
-                                                {submission.submission_type === "sale"
-                                                  ? "💰 Comprovante de Venda"
-                                                  : `📱 ${formatPostName(submission.posts?.post_type, submission.posts?.post_number || 0)}`}
+                                                {submission.submission_type === "sale" ? "💰 Comprovante de Venda" : `📱 ${formatPostName(submission.posts?.post_type, submission.posts?.post_number || 0)}`}
                                               </SelectValue>
                                             </SelectTrigger>
                                             <SelectContent>
                                               {(() => {
-                                                // Buscar evento da submissão atual
-                                                const currentPost = posts.find((p) => p.id === submission.post_id);
-                                                const eventId = currentPost?.event_id;
-                                                const currentEvent = events.find((e) => e.id === eventId);
-                                                const items = [];
+                                        // Buscar evento da submissão atual
+                                        const currentPost = posts.find(p => p.id === submission.post_id);
+                                        const eventId = currentPost?.event_id;
+                                        const currentEvent = events.find(e => e.id === eventId);
+                                        const items = [];
 
-                                                // 🆕 FASE 4: Se evento aceita vendas, adicionar opção especial
-                                                if (currentEvent?.accept_sales) {
-                                                  items.push(
-                                                    <SelectItem key="sale-option" value="__SALE__">
+                                        // 🆕 FASE 4: Se evento aceita vendas, adicionar opção especial
+                                        if (currentEvent?.accept_sales) {
+                                          items.push(<SelectItem key="sale-option" value="__SALE__">
                                                       💰 Comprovante de Venda
-                                                    </SelectItem>
-                                                  );
-                                                }
+                                                    </SelectItem>);
+                                        }
 
-                                                // Adicionar posts normais (filtrar posts de venda para evitar duplicata)
-                                                const eventPosts = posts
-                                                  .filter((p) => p.event_id === eventId)
-                                                  .filter((post) => post.post_type !== 'sale'); // 🆕 FASE 4: Filtrar posts de venda
+                                        // Adicionar posts normais (filtrar posts de venda para evitar duplicata)
+                                        const eventPosts = posts.filter(p => p.event_id === eventId).filter(post => post.post_type !== 'sale'); // 🆕 FASE 4: Filtrar posts de venda
 
-                                                eventPosts.forEach((post) => {
-                                                  items.push(
-                                                    <SelectItem key={post.id} value={post.id}>
+                                        eventPosts.forEach(post => {
+                                          items.push(<SelectItem key={post.id} value={post.id}>
                                                       📱 {formatPostName(post.post_type, post.post_number)}
-                                                    </SelectItem>
-                                                  );
-                                                });
-
-                                                return items;
-                                              })()}
+                                                    </SelectItem>);
+                                        });
+                                        return items;
+                                      })()}
                                             </SelectContent>
                                           </Select>
                                         </div>
 
                                         <p className="text-xs text-muted-foreground">
                                           {
-                                            // Suporte para events como objeto ou array
-                                            Array.isArray(submission.posts?.events)
-                                              ? submission.posts?.events[0]?.title || "N/A"
-                                              : submission.posts?.events?.title || "N/A"
-                                          }
+                                  // Suporte para events como objeto ou array
+                                  Array.isArray(submission.posts?.events) ? submission.posts?.events[0]?.title || "N/A" : submission.posts?.events?.title || "N/A"}
                                         </p>
                                       </div>
                                       <div className="mt-2">
-                                        {submission.status === "pending" && (
-                                          <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-500">
+                                        {submission.status === "pending" && <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-500">
                                             Aguardando
-                                          </span>
-                                        )}
-                                        {submission.status === "approved" && (
-                                          <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-500">
+                                          </span>}
+                                        {submission.status === "approved" && <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-500">
                                             Aprovado
-                                          </span>
-                                        )}
-                                        {submission.status === "rejected" && (
-                                          <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-500">
+                                          </span>}
+                                        {submission.status === "rejected" && <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-500">
                                             Rejeitado
-                                          </span>
-                                        )}
+                                          </span>}
                                       </div>
                                     </div>
                                   </div>
@@ -2614,9 +2191,7 @@ const Admin = () => {
                                       <div>
                                         <p className="text-muted-foreground">Prazo da Postagem:</p>
                                         <p className="font-medium">
-                                          {submission.posts?.deadline
-                                            ? new Date(submission.posts.deadline).toLocaleString("pt-BR")
-                                            : "N/A"}
+                                          {submission.posts?.deadline ? new Date(submission.posts.deadline).toLocaleString("pt-BR") : "N/A"}
                                         </p>
                                       </div>
                                       <div>
@@ -2634,10 +2209,7 @@ const Admin = () => {
                                       <label className="text-sm text-muted-foreground mb-1 block">
                                         Status da Submissão:
                                       </label>
-                                      <Select
-                                        value={submission.status}
-                                        onValueChange={(newStatus) => handleStatusChange(submission.id, newStatus)}
-                                      >
+                                      <Select value={submission.status} onValueChange={newStatus => handleStatusChange(submission.id, newStatus)}>
                                         <SelectTrigger className="w-full">
                                           <SelectValue />
                                         </SelectTrigger>
@@ -2649,48 +2221,26 @@ const Admin = () => {
                                       </Select>
                                     </div>
                                     <div className="flex items-end">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setAuditLogSubmissionId(submission.id)}
-                                      >
+                                      <Button variant="outline" size="sm" onClick={() => setAuditLogSubmissionId(submission.id)}>
                                         Ver Histórico
                                       </Button>
                                     </div>
                                   </div>
 
-                                  {submission.status === "pending" && (
-                                    <div className="border-t pt-3 flex flex-col sm:flex-row gap-2">
-                                      <Button
-                                        size="sm"
-                                        className="bg-green-500 hover:bg-green-600 w-full sm:w-auto"
-                                        onClick={() => handleApproveSubmission(submission.id)}
-                                        disabled={isReadOnly}
-                                      >
+                                  {submission.status === "pending" && <div className="border-t pt-3 flex flex-col sm:flex-row gap-2">
+                                      <Button size="sm" className="bg-green-500 hover:bg-green-600 w-full sm:w-auto" onClick={() => handleApproveSubmission(submission.id)} disabled={isReadOnly}>
                                         <Check className="mr-2 h-4 w-4" />
                                         Aprovar
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        className="w-full sm:w-auto"
-                                        onClick={() => handleRejectSubmission(submission.id)}
-                                        disabled={isReadOnly}
-                                      >
+                                      <Button size="sm" variant="destructive" className="w-full sm:w-auto" onClick={() => handleRejectSubmission(submission.id)} disabled={isReadOnly}>
                                         <X className="mr-2 h-4 w-4" />
                                         Rejeitar
                                       </Button>
-                                    </div>
-                                  )}
+                                    </div>}
 
                                   {/* Botão de deletar sempre visível */}
                                   <div className="border-t pt-3">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto"
-                                      onClick={() => setSubmissionToDelete(submission.id)}
-                                    >
+                                    <Button size="sm" variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto" onClick={() => setSubmissionToDelete(submission.id)}>
                                       <Trash2 className="mr-2 h-4 w-4" />
                                       Deletar Submissão
                                     </Button>
@@ -2700,96 +2250,64 @@ const Admin = () => {
 
                               {/* Seção de Comentários */}
                               <div className="border-t pt-4">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newExpanded = new Set(expandedComments);
-                                    if (newExpanded.has(submission.id)) {
-                                      newExpanded.delete(submission.id);
-                                    } else {
-                                      newExpanded.add(submission.id);
-                                    }
-                                    setExpandedComments(newExpanded);
-                                  }}
-                                  className="mb-3"
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => {
+                          const newExpanded = new Set(expandedComments);
+                          if (newExpanded.has(submission.id)) {
+                            newExpanded.delete(submission.id);
+                          } else {
+                            newExpanded.add(submission.id);
+                          }
+                          setExpandedComments(newExpanded);
+                        }} className="mb-3">
                                   {expandedComments.has(submission.id) ? "Ocultar" : "Mostrar"} Comentários
                                 </Button>
 
-                                {expandedComments.has(submission.id) && (
-                                  <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-                                    <SubmissionComments
-                                      submissionId={submission.id}
-                                      onCommentAdded={refetchSubmissions}
-                                    />
-                                  </Suspense>
-                                )}
+                                {expandedComments.has(submission.id) && <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+                                    <SubmissionComments submissionId={submission.id} onCommentAdded={refetchSubmissions} />
+                                  </Suspense>}
                               </div>
                             </div>
-                          </Card>
-                        ))}
+                          </Card>)}
                       </div>
 
                       {/* Paginação */}
-                      {totalPages > 1 && (
-                        <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                      {totalPages > 1 && <div className="flex items-center justify-between mt-6 pt-4 border-t">
                           <div className="text-sm text-muted-foreground">
                             Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
                             {Math.min(currentPage * itemsPerPage, submissionsData?.count || 0)} de{" "}
                             {submissionsData?.count || 0} submissões
                           </div>
                           <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                              disabled={currentPage === 1}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
                               Anterior
                             </Button>
                             <div className="flex items-center gap-1">
-                              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                let pageNum;
-                                if (totalPages <= 5) {
-                                  pageNum = i + 1;
-                                } else if (currentPage <= 3) {
-                                  pageNum = i + 1;
-                                } else if (currentPage >= totalPages - 2) {
-                                  pageNum = totalPages - 4 + i;
-                                } else {
-                                  pageNum = currentPage - 2 + i;
-                                }
-
-                                return (
-                                  <Button
-                                    key={pageNum}
-                                    variant={currentPage === pageNum ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className="w-10"
-                                  >
+                              {Array.from({
+                        length: Math.min(5, totalPages)
+                      }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return <Button key={pageNum} variant={currentPage === pageNum ? "default" : "outline"} size="sm" onClick={() => setCurrentPage(pageNum)} className="w-10">
                                     {pageNum}
-                                  </Button>
-                                );
-                              })}
+                                  </Button>;
+                      })}
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                              disabled={currentPage === totalPages}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>
                               Próxima
                             </Button>
                           </div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                        </div>}
+                    </>}
                 </Card>
-              </>
-            )}
+              </>}
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
@@ -2853,43 +2371,31 @@ const Admin = () => {
             </Suspense>
             
             {/* Goal Notification Settings */}
-            {currentAgency && (
-              <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+            {currentAgency && <Suspense fallback={<Skeleton className="h-64 w-full" />}>
                 <GoalNotificationSettings agencyId={currentAgency.id} />
-              </Suspense>
-            )}
+              </Suspense>}
           </TabsContent>
         </Tabs>
       </div>
 
       <Suspense fallback={null}>
-        <EventDialog
-          open={eventDialogOpen}
-          onOpenChange={(open) => {
-            setEventDialogOpen(open);
-            if (!open) setSelectedEvent(null);
-          }}
-          onEventCreated={() => {
-            refetchEvents();
-            if (submissionEventFilter !== "all") refetchSubmissions();
-          }}
-          event={selectedEvent}
-        />
+        <EventDialog open={eventDialogOpen} onOpenChange={open => {
+        setEventDialogOpen(open);
+        if (!open) setSelectedEvent(null);
+      }} onEventCreated={() => {
+        refetchEvents();
+        if (submissionEventFilter !== "all") refetchSubmissions();
+      }} event={selectedEvent} />
       </Suspense>
 
       <Suspense fallback={null}>
-        <PostDialog
-          open={postDialogOpen}
-          onOpenChange={(open) => {
-            setPostDialogOpen(open);
-            if (!open) setSelectedPost(null);
-          }}
-          onPostCreated={() => {
-            refetchEvents();
-            if (submissionEventFilter !== "all") refetchSubmissions();
-          }}
-          post={selectedPost}
-        />
+        <PostDialog open={postDialogOpen} onOpenChange={open => {
+        setPostDialogOpen(open);
+        if (!open) setSelectedPost(null);
+      }} onPostCreated={() => {
+        refetchEvents();
+        if (submissionEventFilter !== "all") refetchSubmissions();
+      }} post={selectedPost} />
       </Suspense>
 
       {/* Rejection Dialog */}
@@ -2903,44 +2409,32 @@ const Admin = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="template">Template de Resposta</Label>
-              <Select
-                value={rejectionTemplate}
-                onValueChange={(value) => {
-                  setRejectionTemplate(value);
-                  if (value === "custom") {
-                    setRejectionReason("");
-                  } else {
-                    const template = rejectionTemplatesFromDB.find((t) => t.id === value);
-                    if (template) {
-                      setRejectionReason(template.message);
-                    }
-                  }
-                }}
-              >
+              <Select value={rejectionTemplate} onValueChange={value => {
+              setRejectionTemplate(value);
+              if (value === "custom") {
+                setRejectionReason("");
+              } else {
+                const template = rejectionTemplatesFromDB.find(t => t.id === value);
+                if (template) {
+                  setRejectionReason(template.message);
+                }
+              }
+            }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um template (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="custom">Template customizado</SelectItem>
-                  {rejectionTemplatesFromDB.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
+                  {rejectionTemplatesFromDB.map(template => <SelectItem key={template.id} value={template.id}>
                       {template.title}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="reason">Motivo da Rejeição</Label>
-              <Textarea
-                id="reason"
-                placeholder="Descreva o motivo da rejeição..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={4}
-                className="min-h-24"
-              />
+              <Textarea id="reason" placeholder="Descreva o motivo da rejeição..." value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} rows={4} className="min-h-24" />
             </div>
           </div>
 
@@ -2956,18 +2450,16 @@ const Admin = () => {
       </Dialog>
 
       {/* Audit Log Dialog */}
-      <Dialog open={!!auditLogSubmissionId} onOpenChange={(open) => !open && setAuditLogSubmissionId(null)}>
+      <Dialog open={!!auditLogSubmissionId} onOpenChange={open => !open && setAuditLogSubmissionId(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Histórico de Alterações</DialogTitle>
             <DialogDescription>Visualize todas as mudanças de status desta submissão</DialogDescription>
           </DialogHeader>
 
-          {auditLogSubmissionId && (
-            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          {auditLogSubmissionId && <Suspense fallback={<Skeleton className="h-64 w-full" />}>
               <SubmissionAuditLog submissionId={auditLogSubmissionId} />
-            </Suspense>
-          )}
+            </Suspense>}
 
           <DialogFooter>
             <Button onClick={() => setAuditLogSubmissionId(null)}>Fechar</Button>
@@ -2975,7 +2467,7 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!eventToDelete} onOpenChange={(open) => !open && setEventToDelete(null)}>
+      <AlertDialog open={!!eventToDelete} onOpenChange={open => !open && setEventToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir evento?</AlertDialogTitle>
@@ -2986,45 +2478,35 @@ const Admin = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => eventToDelete && handleDeleteEvent(eventToDelete)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={() => eventToDelete && handleDeleteEvent(eventToDelete)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
+      <AlertDialog open={!!postToDelete} onOpenChange={open => !open && setPostToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir postagem?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação não pode ser desfeita. A postagem será permanentemente excluída.
-              {postToDelete && postToDelete.submissionsCount > 0 && (
-                <span className="block mt-2 font-semibold text-destructive">
+              {postToDelete && postToDelete.submissionsCount > 0 && <span className="block mt-2 font-semibold text-destructive">
                   ⚠️ Atenção: {postToDelete.submissionsCount} submissão(ões) associada(s) também será(ão) deletada(s).
-                </span>
-              )}
+                </span>}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeletePost}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDeletePost} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir{" "}
-              {postToDelete && postToDelete.submissionsCount > 0
-                ? `tudo (${postToDelete.submissionsCount} submissão${postToDelete.submissionsCount > 1 ? "ões" : ""})`
-                : ""}
+              {postToDelete && postToDelete.submissionsCount > 0 ? `tudo (${postToDelete.submissionsCount} submissão${postToDelete.submissionsCount > 1 ? "ões" : ""})` : ""}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!submissionToDelete} onOpenChange={(open) => !open && setSubmissionToDelete(null)}>
+      <AlertDialog open={!!submissionToDelete} onOpenChange={open => !open && setSubmissionToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir submissão?</AlertDialogTitle>
@@ -3034,10 +2516,7 @@ const Admin = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteSubmission}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDeleteSubmission} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -3051,55 +2530,25 @@ const Admin = () => {
             <DialogTitle>Imagem da Submissão</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center w-full h-full">
-            {selectedImageForZoom && (
-              <img
-                src={selectedImageForZoom}
-                alt="Screenshot ampliado"
-                className="max-w-full max-h-[85vh] object-contain rounded"
-              />
-            )}
+            {selectedImageForZoom && <img src={selectedImageForZoom} alt="Screenshot ampliado" className="max-w-full max-h-[85vh] object-contain rounded" />}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Add Manual Submission Dialog */}
       <Suspense fallback={null}>
-        <AddManualSubmissionDialog
-          open={addSubmissionDialogOpen}
-          onOpenChange={setAddSubmissionDialogOpen}
-          onSuccess={() => {
-            refetchSubmissions();
-            toast.success("Submissão adicionada com sucesso!");
-          }}
-          selectedEventId={submissionEventFilter !== "all" ? submissionEventFilter : undefined}
-        />
+        <AddManualSubmissionDialog open={addSubmissionDialogOpen} onOpenChange={setAddSubmissionDialogOpen} onSuccess={() => {
+        refetchSubmissions();
+        toast.success("Submissão adicionada com sucesso!");
+      }} selectedEventId={submissionEventFilter !== "all" ? submissionEventFilter : undefined} />
       </Suspense>
 
       {/* Zoom Dialog com navegação */}
-      {getPaginatedSubmissions.length > 0 &&
-        zoomSubmissionIndex < getPaginatedSubmissions.length &&
-        getPaginatedSubmissions[zoomSubmissionIndex] && (
-          <SubmissionZoomDialog
-            open={zoomDialogOpen}
-            onOpenChange={setZoomDialogOpen}
-            submission={getPaginatedSubmissions[zoomSubmissionIndex] as any}
-            onApprove={handleApproveSubmission}
-            onReject={handleRejectSubmission}
-            onNext={handleZoomNext}
-            onPrevious={handleZoomPrevious}
-            hasNext={zoomSubmissionIndex < getPaginatedSubmissions.length - 1}
-            hasPrevious={zoomSubmissionIndex > 0}
-          />
-        )}
+      {getPaginatedSubmissions.length > 0 && zoomSubmissionIndex < getPaginatedSubmissions.length && getPaginatedSubmissions[zoomSubmissionIndex] && <SubmissionZoomDialog open={zoomDialogOpen} onOpenChange={setZoomDialogOpen} submission={getPaginatedSubmissions[zoomSubmissionIndex] as any} onApprove={handleApproveSubmission} onReject={handleRejectSubmission} onNext={handleZoomNext} onPrevious={handleZoomPrevious} hasNext={zoomSubmissionIndex < getPaginatedSubmissions.length - 1} hasPrevious={zoomSubmissionIndex > 0} />}
 
       {/* ✅ ITEM 5 FASE 2: Dialog de Sugestões */}
       <Suspense fallback={null}>
-        <SuggestionDialog
-          open={suggestionDialogOpen}
-          onOpenChange={setSuggestionDialogOpen}
-          userId={user?.id || ""}
-          agencyId={currentAgency?.id}
-        />
+        <SuggestionDialog open={suggestionDialogOpen} onOpenChange={setSuggestionDialogOpen} userId={user?.id || ""} agencyId={currentAgency?.id} />
       </Suspense>
 
       {/* ✅ ITEM 1: Dialog de seleção de colunas para exportação */}
@@ -3112,43 +2561,27 @@ const Admin = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
-            {availableExportColumns.map((col) => (
-              <div key={col.key} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id={col.key}
-                  checked={selectedExportColumns.includes(col.key)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedExportColumns([...selectedExportColumns, col.key]);
-                    } else {
-                      setSelectedExportColumns(selectedExportColumns.filter(k => k !== col.key));
-                    }
-                  }}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label
-                  htmlFor={col.key}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
+            {availableExportColumns.map(col => <div key={col.key} className="flex items-center space-x-2">
+                <input type="checkbox" id={col.key} checked={selectedExportColumns.includes(col.key)} onChange={e => {
+              if (e.target.checked) {
+                setSelectedExportColumns([...selectedExportColumns, col.key]);
+              } else {
+                setSelectedExportColumns(selectedExportColumns.filter(k => k !== col.key));
+              }
+            }} className="h-4 w-4 rounded border-gray-300" />
+                <label htmlFor={col.key} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                   {col.label}
                 </label>
-              </div>
-            ))}
+              </div>)}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={executeExport}
-              disabled={selectedExportColumns.length === 0}
-            >
+            <AlertDialogAction onClick={executeExport} disabled={selectedExportColumns.length === 0}>
               Exportar ({selectedExportColumns.length} coluna{selectedExportColumns.length !== 1 ? 's' : ''})
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
+    </div>;
 };
-
 export default Admin;
