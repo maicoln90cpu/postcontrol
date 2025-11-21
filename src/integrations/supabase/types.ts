@@ -742,6 +742,7 @@ export type Database = {
           female_price: number
           id: string
           image_url: string | null
+          important_info: string | null
           is_active: boolean | null
           male_price: number
           max_capacity: number | null
@@ -758,6 +759,7 @@ export type Database = {
           female_price: number
           id?: string
           image_url?: string | null
+          important_info?: string | null
           is_active?: boolean | null
           male_price: number
           max_capacity?: number | null
@@ -774,6 +776,7 @@ export type Database = {
           female_price?: number
           id?: string
           image_url?: string | null
+          important_info?: string | null
           is_active?: boolean | null
           male_price?: number
           max_capacity?: number | null

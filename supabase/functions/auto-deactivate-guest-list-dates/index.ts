@@ -60,10 +60,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Montar datetime completo
-      const [hours, minutes] = date.start_time.split(':');
-      const dateTime = new Date(date.event_date);
-      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // Criar datetime ISO completo com timezone BRT (UTC-3)
+      const dateTimeStr = `${date.event_date}T${date.start_time}-03:00`;
+      const dateTime = new Date(dateTimeStr);
+      
+      console.log(`[AUTO-DEACTIVATE-DATES] Comparando: ${dateTime.toISOString()} vs ${now.toISOString()}`);
 
       // Se o evento já começou, marcar para desativar
       if (dateTime < now) {
