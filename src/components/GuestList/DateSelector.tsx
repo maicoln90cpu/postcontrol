@@ -67,10 +67,10 @@ export const DateSelector = ({
   };
   return <div className="space-y-4">
       <div className="space-y-3">
-        <label className="text-sm font-medium text-foreground">
-          4c5 Selecione as datas do evento
+        <label className="font-medium text-foreground text-base">
+            Selecione as datas do evento
         </label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-base font-medium">
           Você pode selecionar múltiplas datas para se inscrever de uma vez
         </p>
         
@@ -78,16 +78,16 @@ export const DateSelector = ({
           {dates.map(date => {
           const isSelected = selectedDateIds.includes(date.id);
           return <Card key={date.id} className={`cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-md' : 'border-border hover:border-primary/50'}`} onClick={() => handleToggleDate(date.id)}>
-                <CardContent className="p-4">
+                <CardContent className="p-4 px-0 mx-0">
                   <div className="flex items-start gap-3">
                     <Checkbox checked={isSelected} onCheckedChange={() => handleToggleDate(date.id)} className="mt-1" />
                     <div className="flex-1 space-y-2">
                       {date.image_url && <div className="rounded-lg overflow-hidden">
-                          <img src={date.image_url} alt={date.name || "Evento"} className="w-full h-40 md:h-48 object-contain bg-muted/20" />
+                          <img src={date.image_url} alt={date.name || "Evento"} className="w-full h-60 md:h-50 object-contain bg-muted/20" />
                         </div>}
                       
                       <div className="space-y-1">
-                        {date.name && <h4 className="text-lg text-left font-semibold">{date.name}</h4>}
+                        {date.name && <h4 className="text-lg text-left font-semibold my-[20px]">{date.name}</h4>}
                         
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="w-4 h-4 text-primary" />
@@ -102,16 +102,16 @@ export const DateSelector = ({
                             {date.start_time && date.end_time ? <span>{date.start_time.slice(0, 5)} às {date.end_time.slice(0, 5)}</span> : date.start_time ? <span>Início: {date.start_time.slice(0, 5)}</span> : <span>Término: {date.end_time.slice(0, 5)}</span>}
                           </div>}
                         
-                        <div className="pt-1 flex-col flex items-start justify-between">
-                          <span className="text-xs text-muted-foreground font-bold">Valor:</span>
-                          <span className="font-semibold text-base text-left text-slate-900">
+                        <div className="pt-1 flex-col flex items-start justify-between my-[20px]">
+                          <span className="text-xs text-muted-foreground font-bold py-0 mt-0 my-0">Valor:</span>
+                          <span className="font-semibold text-base text-left text-slate-900 px-0 py-0 mt-0 mb-[10px]">
                             {getDatePrice(date)}
                           </span>
                         </div>
                         
-                        {date.important_info && <div className="mt-3 text-sm font-medium text-primary whitespace-pre-wrap flex gap-2">
+                        {date.important_info && <div className="mt-3 text-sm font-medium text-primary whitespace-pre-wrap gap-2 flex items-center justify-start">
                             <Music className="h-4 w-4 mt-0.5" />
-                            <span className="text-slate-950">{date.important_info}</span>
+                            <span className="text-slate-950 mx-0 my-[10px]">{date.important_info}</span>
                           </div>}
                       </div>
                     </div>

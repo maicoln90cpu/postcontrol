@@ -189,7 +189,7 @@ export default function GuestListRegister() {
               <CardTitle className="text-3xl font-bold text-center">
                 {event.name}
               </CardTitle>
-              <CardDescription className="text-center text-base">
+              <CardDescription className="text-center font-bold text-xl">
                 {event.agencies?.name}
               </CardDescription>
             </div>
@@ -197,7 +197,7 @@ export default function GuestListRegister() {
             {/* Localização */}
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <MapPin className="w-4 h-4" />
-              <span>{event.location}</span>
+              <span className="font-bold">{event.location}</span>
             </div>
 
             {/* Info Extra */}
