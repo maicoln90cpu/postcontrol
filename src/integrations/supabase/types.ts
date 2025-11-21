@@ -55,6 +55,7 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           id: string
+          instagram_url: string | null
           logo_url: string | null
           max_events: number | null
           max_influencers: number | null
@@ -66,16 +67,20 @@ export type Database = {
           slug: string
           subscription_plan: string | null
           subscription_status: string | null
+          tickets_group_url: string | null
           trial_end_date: string | null
           trial_extended: boolean | null
           trial_start_date: string | null
           updated_at: string
+          website_url: string | null
+          whatsapp_group_url: string | null
         }
         Insert: {
           admin_email?: string | null
           created_at?: string
           custom_domain?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           max_events?: number | null
           max_influencers?: number | null
@@ -87,16 +92,20 @@ export type Database = {
           slug: string
           subscription_plan?: string | null
           subscription_status?: string | null
+          tickets_group_url?: string | null
           trial_end_date?: string | null
           trial_extended?: boolean | null
           trial_start_date?: string | null
           updated_at?: string
+          website_url?: string | null
+          whatsapp_group_url?: string | null
         }
         Update: {
           admin_email?: string | null
           created_at?: string
           custom_domain?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           max_events?: number | null
           max_influencers?: number | null
@@ -108,10 +117,13 @@ export type Database = {
           slug?: string
           subscription_plan?: string | null
           subscription_status?: string | null
+          tickets_group_url?: string | null
           trial_end_date?: string | null
           trial_extended?: boolean | null
           trial_start_date?: string | null
           updated_at?: string
+          website_url?: string | null
+          whatsapp_group_url?: string | null
         }
         Relationships: []
       }
@@ -668,6 +680,211 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "agency_guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_list_analytics: {
+        Row: {
+          created_at: string | null
+          date_id: string | null
+          event_id: string
+          event_type: string
+          id: string
+          ip_address: unknown
+          user_agent: string | null
+          utm_params: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_id?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          user_agent?: string | null
+          utm_params?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          date_id?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          user_agent?: string | null
+          utm_params?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_list_analytics_date_id_fkey"
+            columns: ["date_id"]
+            isOneToOne: false
+            referencedRelation: "guest_list_dates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_list_analytics_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "guest_list_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_list_dates: {
+        Row: {
+          created_at: string | null
+          event_date: string
+          event_id: string
+          female_price: number
+          id: string
+          is_active: boolean | null
+          male_price: number
+          max_capacity: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_date: string
+          event_id: string
+          female_price: number
+          id?: string
+          is_active?: boolean | null
+          male_price: number
+          max_capacity?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          event_date?: string
+          event_id?: string
+          female_price?: number
+          id?: string
+          is_active?: boolean | null
+          male_price?: number
+          max_capacity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_list_dates_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "guest_list_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_list_events: {
+        Row: {
+          agency_id: string
+          agency_phone: string | null
+          created_at: string | null
+          extra_info: string | null
+          id: string
+          is_active: boolean | null
+          location: string
+          name: string
+          slug: string
+          updated_at: string | null
+          whatsapp_link: string | null
+        }
+        Insert: {
+          agency_id: string
+          agency_phone?: string | null
+          created_at?: string | null
+          extra_info?: string | null
+          id?: string
+          is_active?: boolean | null
+          location: string
+          name: string
+          slug: string
+          updated_at?: string | null
+          whatsapp_link?: string | null
+        }
+        Update: {
+          agency_id?: string
+          agency_phone?: string | null
+          created_at?: string | null
+          extra_info?: string | null
+          id?: string
+          is_active?: boolean | null
+          location?: string
+          name?: string
+          slug?: string
+          updated_at?: string | null
+          whatsapp_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_list_events_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_list_registrations: {
+        Row: {
+          date_id: string
+          email: string
+          event_id: string
+          full_name: string
+          gender: string
+          id: string
+          ip_address: unknown
+          is_bot_suspected: boolean | null
+          registered_at: string | null
+          shared_via_whatsapp: boolean | null
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          date_id: string
+          email: string
+          event_id: string
+          full_name: string
+          gender: string
+          id?: string
+          ip_address?: unknown
+          is_bot_suspected?: boolean | null
+          registered_at?: string | null
+          shared_via_whatsapp?: boolean | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          date_id?: string
+          email?: string
+          event_id?: string
+          full_name?: string
+          gender?: string
+          id?: string
+          ip_address?: unknown
+          is_bot_suspected?: boolean | null
+          registered_at?: string | null
+          shared_via_whatsapp?: boolean | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_list_registrations_date_id_fkey"
+            columns: ["date_id"]
+            isOneToOne: false
+            referencedRelation: "guest_list_dates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_list_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "guest_list_events"
             referencedColumns: ["id"]
           },
         ]
