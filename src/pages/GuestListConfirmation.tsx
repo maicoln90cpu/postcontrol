@@ -38,6 +38,17 @@ interface AgencyData {
   tickets_group_url?: string;
 }
 
+interface DateData {
+  id: string;
+  name: string | null;
+  event_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  female_price: number;
+  male_price: number;
+  image_url: string | null;
+}
+
 export default function GuestListConfirmation() {
   const { slug, id } = useParams<{ slug: string; id: string }>();
   const navigate = useNavigate();
@@ -45,6 +56,7 @@ export default function GuestListConfirmation() {
   const [registration, setRegistration] = useState<RegistrationData | null>(null);
   const [event, setEvent] = useState<EventData | null>(null);
   const [agency, setAgency] = useState<AgencyData | null>(null);
+  const [dateData, setDateData] = useState<DateData | null>(null);
 
   useEffect(() => {
     loadConfirmationData();
@@ -126,6 +138,22 @@ export default function GuestListConfirmation() {
         setAgency(agencyData);
       }
 
+      // Buscar dados da data específica
+      const { data: dateInfo, error: dateError } = await supabase
+        .from("guest_list_dates")
+        .select("id, name, event_date, start_time, end_time, female_price, male_price, image_url")
+        .eq("id", regData.date_id)
+        .maybeSingle();
+
+      if (dateError) {
+        console.error('[CONFIRMATION] Erro ao buscar data:', dateError);
+      }
+
+      if (dateInfo) {
+        console.log('[CONFIRMATION] Data encontrada:', dateInfo);
+        setDateData(dateInfo);
+      }
+
       console.log('[CONFIRMATION] ✅ Dados carregados com sucesso');
       // Track analytics - share_click será trackado quando clicar no botão
     } catch (error) {
@@ -135,6 +163,16 @@ export default function GuestListConfirmation() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const formatTime = (timeString: string | null) => {
+    if (!timeString) return '';
+    return timeString.slice(0, 5); // HH:mm
   };
 
   const handleWhatsAppShare = async () => {
@@ -214,6 +252,17 @@ Garanta sua vaga também: ${shareUrl}`;
           </div>
         )}
 
+        {/* Imagem da Data */}
+        {dateData?.image_url && (
+          <div className="w-full rounded-lg overflow-hidden animate-fade-in" style={{ animationDelay: "0.15s" }}>
+            <img
+              src={dateData.image_url}
+              alt={dateData.name || event.name}
+              className="w-full h-48 object-cover"
+            />
+          </div>
+        )}
+
         {/* Success Icon */}
         <div className="flex justify-center animate-scale-in" style={{ animationDelay: "0.2s" }}>
           <div className="rounded-full bg-primary/10 p-4">
@@ -222,7 +271,7 @@ Garanta sua vaga também: ${shareUrl}`;
         </div>
 
         {/* Confirmation Message */}
-        <div className="text-center space-y-2 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+        <div className="text-center space-y-3 animate-fade-in" style={{ animationDelay: "0.3s" }}>
           <h1 className="text-2xl font-bold text-foreground">
             Inscrição Confirmada! 🎉
           </h1>
@@ -230,13 +279,60 @@ Garanta sua vaga também: ${shareUrl}`;
             Olá <span className="font-semibold text-foreground">{registration.full_name}</span>,
             sua inscrição foi confirmada com sucesso!
           </p>
+          {agency && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Ao chegar no evento, informar que está na lista da{' '}
+              <span className="font-semibold text-foreground">{agency.name}</span>
+            </p>
+          )}
         </div>
 
-        {/* Event Info */}
-        <div className="bg-muted/30 rounded-lg p-4 space-y-1 animate-fade-in" style={{ animationDelay: "0.4s" }}>
-          <p className="text-sm text-muted-foreground">Evento</p>
-          <p className="font-semibold text-foreground">{event.name}</p>
-          <p className="text-sm text-muted-foreground">{event.location}</p>
+        {/* Event Info - Detalhado */}
+        <div className="bg-muted/30 rounded-lg p-4 space-y-3 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Evento</p>
+            <p className="font-bold text-lg text-foreground">{event.name}</p>
+          </div>
+          
+          {dateData?.name && (
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Edição</p>
+              <p className="font-semibold text-foreground">{dateData.name}</p>
+            </div>
+          )}
+          
+          {dateData && (
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Data e Horário</p>
+              <p className="font-semibold text-foreground">
+                {formatDate(dateData.event_date)}
+                {dateData.start_time && dateData.end_time && (
+                  <span className="text-sm text-muted-foreground ml-2">
+                    ({formatTime(dateData.start_time)} - {formatTime(dateData.end_time)})
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+          
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Local</p>
+            <p className="font-semibold text-foreground">{event.location}</p>
+          </div>
+          
+          {dateData && (
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Valor da Lista</p>
+              <p className="font-bold text-lg text-primary">
+                R$ {registration.gender === 'feminino' 
+                  ? dateData.female_price.toFixed(2).replace('.', ',')
+                  : dateData.male_price.toFixed(2).replace('.', ',')}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                ({registration.gender === 'feminino' ? 'Lista Feminina' : 'Lista Masculina'})
+              </p>
+            </div>
+          )}
         </div>
 
         {/* WhatsApp Share Button - VIRAL */}
@@ -254,7 +350,9 @@ Garanta sua vaga também: ${shareUrl}`;
         {agency && (
           <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.6s" }}>
             <p className="text-sm text-center text-muted-foreground">
-              Siga {agency.name}
+              {agency.instagram_url || agency.website_url || agency.whatsapp_group_url || agency.tickets_group_url
+                ? `Siga ${agency.name}`
+                : `Continue conectado com ${agency.name}`}
             </p>
             <div className="flex justify-center gap-4">
               {agency.instagram_url && (
