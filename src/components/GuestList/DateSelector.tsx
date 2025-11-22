@@ -92,7 +92,7 @@ export const DateSelector = ({
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="w-4 h-4 text-primary" />
                           <span className="font-medium">
-                            {format(new Date(date.event_date), "EEEE, dd 'de' MMMM", {
+                            {format(new Date(date.event_date + 'T00:00:00'), "EEEE, dd 'de' MMMM", {
                           locale: ptBR
                         })}
                           </span>

@@ -402,7 +402,7 @@ export default function GuestListManager() {
         Nome: reg.full_name,
         Evento: reg.guest_list_events?.name || "-",
         "Data do Evento": reg.guest_list_dates 
-          ? `${format(new Date(reg.guest_list_dates.event_date), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
+          ? `${format(new Date(reg.guest_list_dates.event_date + 'T00:00:00'), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
           : "-",
         Email: reg.email,
         Sexo: reg.gender,
@@ -448,7 +448,7 @@ export default function GuestListManager() {
         Nome: reg.full_name,
         Evento: reg.guest_list_events?.name || "-",
         "Data do Evento": reg.guest_list_dates 
-          ? `${format(new Date(reg.guest_list_dates.event_date), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
+          ? `${format(new Date(reg.guest_list_dates.event_date + 'T00:00:00'), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
           : "-",
         Email: reg.email,
         Sexo: reg.gender,
@@ -947,7 +947,7 @@ export default function GuestListManager() {
                               {reg.guest_list_dates ? (
                                 <div className="text-sm">
                                   <div className="font-medium">
-                                    {format(new Date(reg.guest_list_dates.event_date), "dd/MM/yyyy")}
+                                    {format(new Date(reg.guest_list_dates.event_date + 'T00:00:00'), "dd/MM/yyyy")}
                                   </div>
                                   {reg.guest_list_dates.name && (
                                     <div className="text-xs text-muted-foreground">
