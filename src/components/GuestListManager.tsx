@@ -44,6 +44,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
+import { parseEventDateBRT } from "@/lib/dateUtils";
 import { GuestListAnalytics } from "./GuestListAnalytics";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EventDialogForm } from "./GuestList/EventDialogForm";
@@ -59,6 +60,9 @@ interface GuestListEvent {
   agency_phone: string | null;
   is_active: boolean;
   created_at: string;
+  agencies?: {
+    slug: string;
+  };
 }
 
 interface GuestListDate {
@@ -126,7 +130,10 @@ export default function GuestListManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("guest_list_events")
-        .select("*")
+        .select(`
+          *,
+          agencies!inner (slug)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -317,8 +324,9 @@ export default function GuestListManager() {
   });
 
   // Copiar slug para clipboard
-  const copySlugToClipboard = (slug: string) => {
-    const url = `${window.location.origin}/lista/${slug}`;
+  const copySlugToClipboard = (event: GuestListEvent) => {
+    const agencySlug = event.agencies?.slug || 'agencia';
+    const url = `${window.location.origin}/${agencySlug}/lista/${event.slug}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado para clipboard!");
   };
@@ -402,7 +410,7 @@ export default function GuestListManager() {
         Nome: reg.full_name,
         Evento: reg.guest_list_events?.name || "-",
         "Data do Evento": reg.guest_list_dates 
-          ? `${format(new Date(reg.guest_list_dates.event_date + 'T00:00:00'), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
+          ? `${format(parseEventDateBRT(reg.guest_list_dates.event_date), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
           : "-",
         Email: reg.email,
         Sexo: reg.gender,
@@ -448,7 +456,7 @@ export default function GuestListManager() {
         Nome: reg.full_name,
         Evento: reg.guest_list_events?.name || "-",
         "Data do Evento": reg.guest_list_dates 
-          ? `${format(new Date(reg.guest_list_dates.event_date + 'T00:00:00'), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
+          ? `${format(parseEventDateBRT(reg.guest_list_dates.event_date), "dd/MM/yyyy")}${reg.guest_list_dates.name ? ` - ${reg.guest_list_dates.name}` : ''}`
           : "-",
         Email: reg.email,
         Sexo: reg.gender,
@@ -555,13 +563,13 @@ export default function GuestListManager() {
                       {/* Slug fora do card */}
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="font-mono text-xs">
-                          /lista/{event.slug}
+                          /{event.agencies?.slug || 'agencia'}/lista/{event.slug}
                         </Badge>
                         <Button
                           size="sm"
                           variant="ghost"
                           className="h-6 px-2"
-                          onClick={() => copySlugToClipboard(event.slug)}
+                          onClick={() => copySlugToClipboard(event)}
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
@@ -947,7 +955,7 @@ export default function GuestListManager() {
                               {reg.guest_list_dates ? (
                                 <div className="text-sm">
                                   <div className="font-medium">
-                                    {format(new Date(reg.guest_list_dates.event_date + 'T00:00:00'), "dd/MM/yyyy")}
+                                    {format(parseEventDateBRT(reg.guest_list_dates.event_date), "dd/MM/yyyy")}
                                   </div>
                                   {reg.guest_list_dates.name && (
                                     <div className="text-xs text-muted-foreground">
