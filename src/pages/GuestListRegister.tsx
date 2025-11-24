@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { DateSelector } from "@/components/GuestList/DateSelector";
 import { GuestListForm } from "@/components/GuestList/GuestListForm";
 import { toast } from "sonner";
+import { parseDateTimeBRT, hasEventPassed } from "@/lib/dateUtils";
 interface GuestListEvent {
   id: string;
   agency_id: string;
@@ -38,9 +39,11 @@ interface GuestListDate {
 }
 export default function GuestListRegister() {
   const {
-    slug
+    agencySlug,
+    eventSlug
   } = useParams<{
-    slug: string;
+    agencySlug: string;
+    eventSlug: string;
   }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -50,9 +53,9 @@ export default function GuestListRegister() {
   const [selectedGender, setSelectedGender] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    if (!slug) return;
+    if (!agencySlug || !eventSlug) return;
     loadEventData();
-  }, [slug]);
+  }, [agencySlug, eventSlug]);
   useEffect(() => {
     // Registrar visualização da página
     if (event) {
@@ -64,17 +67,18 @@ export default function GuestListRegister() {
       setLoading(true);
       setError(null);
 
-      // Buscar evento por slug (público, sem auth)
+      // Buscar evento por slug da agência + slug do evento (público, sem auth)
       const {
         data: eventData,
         error: eventError
       } = await supabase.from('guest_list_events').select(`
           *,
-          agencies (
+          agencies!inner (
             name,
-            logo_url
+            logo_url,
+            slug
           )
-        `).eq('slug', slug).eq('is_active', true).single();
+        `).eq('slug', eventSlug).eq('agencies.slug', agencySlug).eq('is_active', true).single();
       if (eventError || !eventData) {
         setError('Evento não encontrado ou não está mais disponível.');
         return;
@@ -97,14 +101,10 @@ export default function GuestListRegister() {
       // Filtrar datas que devem ser desativadas após início
       const activeDates = datesData.filter(date => {
         if (!date.auto_deactivate_after_start) return true;
-
-        // Só filtrar por horário se start_time estiver definido
         if (!date.start_time) return true;
-
-        // Criar datetime com timezone BRT (UTC-3) para comparação consistente
-        const eventDateTime = new Date(`${date.event_date}T${date.start_time}:00-03:00`);
-        const now = new Date();
-        return eventDateTime > now;
+        
+        // Usar helper para verificar se passou
+        return !hasEventPassed(date.event_date, date.start_time);
       });
       if (activeDates.length === 0) {
         setError('Não há datas disponíveis para este evento.');
@@ -148,7 +148,7 @@ export default function GuestListRegister() {
   const handleSuccess = (registrationIds: string[], formData: any) => {
     // Redirecionar para página de confirmação com primeira inscrição
     const selectedDates = dates.filter(d => selectedDateIds.includes(d.id));
-    navigate(`/lista/${slug}/confirmacao/${registrationIds[0]}`, {
+    navigate(`/${agencySlug}/lista/${eventSlug}/confirmacao/${registrationIds[0]}`, {
       state: {
         eventName: event?.name,
         agencyName: event?.agencies?.name,

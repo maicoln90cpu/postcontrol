@@ -48,10 +48,12 @@ interface DateData {
 }
 export default function GuestListConfirmation() {
   const {
-    slug,
+    agencySlug,
+    eventSlug,
     id
   } = useParams<{
-    slug: string;
+    agencySlug: string;
+    eventSlug: string;
     id: string;
   }>();
   const navigate = useNavigate();
@@ -67,17 +69,18 @@ export default function GuestListConfirmation() {
   const selectedDatesFromState = location.state?.selectedDates as DateData[] | undefined;
   useEffect(() => {
     loadConfirmationData();
-  }, [id, slug]);
+  }, [id, agencySlug, eventSlug]);
   const loadConfirmationData = async () => {
-    if (!id || !slug) {
-      console.log('[CONFIRMATION] Link inválido - ID ou Slug ausente');
+    if (!id || !agencySlug || !eventSlug) {
+      console.log('[CONFIRMATION] Link inválido - ID ou Slugs ausentes');
       toast.error("Link inválido");
       navigate("/");
       return;
     }
     console.log('[CONFIRMATION] Carregando dados de confirmação:', {
       id,
-      slug
+      agencySlug,
+      eventSlug
     });
     try {
       // Buscar dados da inscrição
@@ -100,11 +103,14 @@ export default function GuestListConfirmation() {
       console.log('[CONFIRMATION] Registro encontrado:', regData);
       setRegistration(regData);
 
-      // Buscar dados do evento
+      // Buscar dados do evento com validação de agência
       const {
         data: eventData,
         error: eventError
-      } = await supabase.from("guest_list_events").select("*").eq("slug", slug).eq("id", regData.event_id).maybeSingle();
+      } = await supabase.from("guest_list_events").select(`
+          *,
+          agencies!inner (slug)
+        `).eq("slug", eventSlug).eq("agencies.slug", agencySlug).eq("id", regData.event_id).maybeSingle();
       if (eventError) {
         console.error('[CONFIRMATION] Erro ao buscar evento:', eventError);
         toast.error("Erro ao buscar evento");
@@ -112,7 +118,7 @@ export default function GuestListConfirmation() {
         return;
       }
       if (!eventData) {
-        console.log('[CONFIRMATION] Evento não encontrado para slug:', slug);
+        console.log('[CONFIRMATION] Evento não encontrado para slugs:', agencySlug, eventSlug);
         toast.error("Evento não encontrado");
         navigate("/");
         return;
@@ -196,8 +202,8 @@ export default function GuestListConfirmation() {
       utm_campaign: registration.utm_campaign || event.slug
     });
 
-    // Build share URL
-    const shareUrl = `${window.location.origin}/lista/${event.slug}?${utmParams.toString()}`;
+    // Build share URL with agency slug
+    const shareUrl = `${window.location.origin}/${agencySlug}/lista/${event.slug}?${utmParams.toString()}`;
 
     // Build WhatsApp message
     const message = `🎉 Acabei de me inscrever na lista VIP de ${event.name}! 

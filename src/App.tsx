@@ -51,8 +51,8 @@ const App = () => {
             <Route path="/push-diagnostic" element={<PushDiagnostic />} />
             
             {/* Guest List Public Routes */}
-            <Route path="/lista/:slug" element={<GuestListRegister />} />
-            <Route path="/lista/:slug/confirmacao/:id" element={<GuestListConfirmation />} />
+            <Route path="/:agencySlug/lista/:eventSlug" element={<GuestListRegister />} />
+            <Route path="/:agencySlug/lista/:eventSlug/confirmacao/:id" element={<GuestListConfirmation />} />
             
             {/* Protected Routes - Require Authentication */}
             <Route path="/submit" element={
