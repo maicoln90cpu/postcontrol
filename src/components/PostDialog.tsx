@@ -70,6 +70,43 @@ export const PostDialog = ({ open, onOpenChange, onPostCreated, post }: PostDial
     }
   }, [post, open]);
 
+  // Auto-preencher próximo número de postagem quando evento é selecionado
+  useEffect(() => {
+    const autoFillNextPostNumber = async () => {
+      // Só preencher se:
+      // 1. Evento está selecionado
+      // 2. NÃO é edição (post não existe)
+      // 3. Campo está vazio
+      if (!eventId || post || postNumber) return;
+
+      try {
+        // Buscar maior post_number do evento (excluindo vendas com post_number = 0)
+        const { data, error } = await sb
+          .from('posts')
+          .select('post_number')
+          .eq('event_id', eventId)
+          .gt('post_number', 0)
+          .order('post_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Erro ao buscar maior post_number:', error);
+          return;
+        }
+
+        // Se não há posts ainda, começar do 1
+        const nextNumber = data ? data.post_number + 1 : 1;
+        console.log('✅ Próximo número sugerido:', nextNumber);
+        setPostNumber(nextNumber.toString());
+      } catch (error) {
+        console.error('Erro ao auto-preencher post_number:', error);
+      }
+    };
+
+    autoFillNextPostNumber();
+  }, [eventId, post, postNumber]);
+
   const loadEvents = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
