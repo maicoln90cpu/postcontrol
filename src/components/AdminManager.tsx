@@ -3,20 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription 
-} from "@/components/ui/dialog";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, Building2, Link as LinkIcon, Copy } from "lucide-react";
 import { sb } from "@/lib/supabaseSafe";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,7 +63,7 @@ export const AdminManager = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [admins, setAdmins] = useState<AdminData[]>([]);
   const [agencies, setAgencies] = useState<Agency[]>([]);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'trial' | 'suspended'>('all');
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "trial" | "suspended">("all");
   const [selectedAdmin, setSelectedAdmin] = useState<AdminData | null>(null);
   const [selectedAgency, setSelectedAgency] = useState<Agency | null>(null);
   const [inviteLink, setInviteLink] = useState("");
@@ -85,7 +73,7 @@ export const AdminManager = () => {
     fullName: "",
     agencyName: "",
     agencySlug: "",
-    plan: "basic"
+    plan: "basic",
   });
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
   const [inviteLinkAgency, setInviteLinkAgency] = useState("");
@@ -104,20 +92,20 @@ export const AdminManager = () => {
 
   const loadCustomDomain = async () => {
     const { data } = await sb
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'custom_domain')
+      .from("admin_settings")
+      .select("setting_value")
+      .eq("setting_key", "custom_domain")
       .maybeSingle();
-    
+
     setCustomDomain(data?.setting_value || window.location.origin);
   };
 
   const loadPlans = async () => {
     const { data } = await sb
-      .from('subscription_plans')
-      .select('plan_key, plan_name, monthly_price, max_influencers, max_events')
-      .order('display_order', { ascending: true });
-    
+      .from("subscription_plans")
+      .select("plan_key, plan_name, monthly_price, max_influencers, max_events")
+      .order("display_order", { ascending: true });
+
     if (data) {
       setPlans(data);
     }
@@ -125,10 +113,7 @@ export const AdminManager = () => {
 
   const loadAdmins = async () => {
     // ✅ Query 1: Buscar user_roles de agency_admin
-    const { data: userRoles } = await sb
-      .from('user_roles')
-      .select('user_id, created_at')
-      .eq('role', 'agency_admin');
+    const { data: userRoles } = await sb.from("user_roles").select("user_id, created_at").eq("role", "agency_admin");
 
     if (!userRoles) {
       setAdmins([]);
@@ -136,17 +121,17 @@ export const AdminManager = () => {
     }
 
     // ✅ Query 2: Buscar profiles dos user_ids encontrados
-    const userIds = userRoles.map(r => r.user_id);
-    
+    const userIds = userRoles.map((r) => r.user_id);
+
     if (userIds.length === 0) {
       setAdmins([]);
       return;
     }
 
     const { data: profilesData } = await sb
-      .from('profiles')
-      .select('id, email, full_name, phone, instagram')
-      .in('id', userIds);
+      .from("profiles")
+      .select("id, email, full_name, phone, instagram")
+      .in("id", userIds);
 
     // Criar map de profiles
     const profilesMap: Record<string, any> = {};
@@ -158,17 +143,17 @@ export const AdminManager = () => {
     const adminsWithAgencies = await Promise.all(
       userRoles.map(async (role: any) => {
         const { data: agency } = await sb
-          .from('agencies')
-          .select('id, name, slug')
-          .eq('owner_id', role.user_id)
+          .from("agencies")
+          .select("id, name, slug")
+          .eq("owner_id", role.user_id)
           .maybeSingle();
 
         const profile = profilesMap[role.user_id] || {};
 
         return {
           user_id: role.user_id,
-          email: profile.email || '',
-          full_name: profile.full_name || '',
+          email: profile.email || "",
+          full_name: profile.full_name || "",
           phone: profile.phone,
           instagram: profile.instagram,
           agency_id: agency?.id,
@@ -176,31 +161,30 @@ export const AdminManager = () => {
           agency_slug: agency?.slug,
           created_at: role.created_at,
         };
-      })
+      }),
     );
 
     setAdmins(adminsWithAgencies);
   };
 
   const loadAgencies = async () => {
-    const { data: agenciesData } = await sb
-      .from('agencies')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data: agenciesData } = await sb.from("agencies").select("*").order("created_at", { ascending: false });
 
     if (agenciesData) {
       const enrichedAgencies = await Promise.all(
         agenciesData.map(async (agency: any) => {
           const [adminData, planData, influencersCount, eventsCount, submissionsCount] = await Promise.all([
-            sb.from('profiles').select('*').eq('id', agency.owner_id).maybeSingle(),
-            sb.from('subscription_plans').select('*').eq('plan_key', agency.subscription_plan).maybeSingle(),
-            sb.from('profiles').select('id', { count: 'exact', head: true }).eq('agency_id', agency.id),
-            sb.from('events').select('id', { count: 'exact', head: true }).eq('agency_id', agency.id),
-            sb.from('submissions')
-              .select('id', { count: 'exact', head: true })
-              .in('post_id', 
-                (await sb.from('posts').select('id').eq('agency_id', agency.id)).data?.map(p => p.id) || []
-              )
+            sb.from("profiles").select("*").eq("id", agency.owner_id).maybeSingle(),
+            sb.from("subscription_plans").select("*").eq("plan_key", agency.subscription_plan).maybeSingle(),
+            sb.from("profiles").select("id", { count: "exact", head: true }).eq("agency_id", agency.id),
+            sb.from("events").select("id", { count: "exact", head: true }).eq("agency_id", agency.id),
+            sb
+              .from("submissions")
+              .select("id", { count: "exact", head: true })
+              .in(
+                "post_id",
+                (await sb.from("posts").select("id").eq("agency_id", agency.id)).data?.map((p) => p.id) || [],
+              ),
           ]);
 
           const fullUrl = `${customDomain}/agencia/${agency.slug}`;
@@ -213,12 +197,12 @@ export const AdminManager = () => {
             stats: {
               totalInfluencers: influencersCount.count || 0,
               totalEvents: eventsCount.count || 0,
-              totalSubmissions: submissionsCount.count || 0
+              totalSubmissions: submissionsCount.count || 0,
             },
             fullUrl,
-            alternativeUrl
+            alternativeUrl,
           };
-        })
+        }),
       );
 
       setAgencies(enrichedAgencies);
@@ -231,7 +215,7 @@ export const AdminManager = () => {
 
     try {
       // Validações
-      if (!newAdmin.email.includes('@')) {
+      if (!newAdmin.email.includes("@")) {
         toast({
           title: "Erro",
           description: "Email inválido",
@@ -262,8 +246,8 @@ export const AdminManager = () => {
       }
 
       // Buscar limites do plano selecionado
-      const selectedPlan = plans.find(p => p.plan_key === newAdmin.plan);
-      
+      const selectedPlan = plans.find((p) => p.plan_key === newAdmin.plan);
+
       if (!selectedPlan) {
         toast({
           title: "Erro",
@@ -275,7 +259,7 @@ export const AdminManager = () => {
       }
 
       // Gerar slug único da agência se não fornecido
-      let slug = newAdmin.agencySlug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      let slug = newAdmin.agencySlug.toLowerCase().replace(/[^a-z0-9-]/g, "-");
       if (!slug) {
         slug = newAdmin.agencyName
           .toLowerCase()
@@ -290,13 +274,13 @@ export const AdminManager = () => {
 
       // Criar agência
       const { data: agency, error: agencyError } = await sb
-        .from('agencies')
+        .from("agencies")
         .insert({
           name: newAdmin.agencyName,
           slug: slug,
           admin_email: newAdmin.email,
           subscription_plan: newAdmin.plan,
-          subscription_status: 'trial',
+          subscription_status: "trial",
           trial_start_date: new Date().toISOString(),
           trial_end_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
           max_influencers: selectedPlan.max_influencers,
@@ -306,7 +290,7 @@ export const AdminManager = () => {
         .single();
 
       if (agencyError) {
-        if (agencyError.code === '23505') {
+        if (agencyError.code === "23505") {
           toast({
             title: "Erro",
             description: "Este slug já está em uso. Escolha outro.",
@@ -327,13 +311,13 @@ export const AdminManager = () => {
       console.log("Agência criada:", agency);
 
       // Chamar edge function para criar o admin automaticamente
-      const { data: adminResult, error: adminError } = await supabase.functions.invoke('create-agency-admin', {
+      const { data: adminResult, error: adminError } = await supabase.functions.invoke("create-agency-admin", {
         body: {
           agencyId: agency.id,
           agencyName: agency.name,
           email: newAdmin.email,
-          fullName: newAdmin.fullName
-        }
+          fullName: newAdmin.fullName,
+        },
       });
 
       if (adminError || !adminResult?.success) {
@@ -349,9 +333,9 @@ export const AdminManager = () => {
       }
 
       // Obter URL base para o link de convite
-      const baseUrl = await getFullAgencyUrl('');
+      const baseUrl = await getFullAgencyUrl("");
       const resetLink = adminResult?.resetLink || `${baseUrl}/agency/${agency.signup_token}`;
-      
+
       setInviteLink(resetLink);
       setInviteLinkAgency(agency.name);
 
@@ -359,19 +343,18 @@ export const AdminManager = () => {
         title: "Sucesso!",
         description: `Agência "${agency.name}" e admin criados com sucesso!`,
       });
-      
+
       setDialogOpen(false);
-      setNewAdmin({ 
-        email: "", 
+      setNewAdmin({
+        email: "",
         fullName: "",
-        agencyName: "", 
-        agencySlug: "", 
-        plan: "basic" 
+        agencyName: "",
+        agencySlug: "",
+        plan: "basic",
       });
 
       await loadAdmins();
       await loadAgencies();
-
     } catch (error) {
       console.error("Erro ao criar admin:", error);
       toast({
@@ -385,14 +368,10 @@ export const AdminManager = () => {
   };
 
   const handleDeleteAdmin = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este admin? A agência não será excluída.')) return;
+    if (!confirm("Tem certeza que deseja excluir este admin? A agência não será excluída.")) return;
 
     try {
-      const { error } = await sb
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', 'agency_admin');
+      const { error } = await sb.from("user_roles").delete().eq("user_id", userId).eq("role", "agency_admin");
 
       if (error) throw error;
 
@@ -424,27 +403,27 @@ export const AdminManager = () => {
   const handleDeleteAgency = async (agencyId: string, agencyName: string) => {
     // Check if agency has data
     const { count: eventsCount } = await sb
-      .from('events')
-      .select('*', { count: 'exact', head: true })
-      .eq('agency_id', agencyId);
-    
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("agency_id", agencyId);
+
     const { count: postsCount } = await sb
-      .from('posts')
-      .select('*', { count: 'exact', head: true })
-      .eq('agency_id', agencyId);
-    
+      .from("posts")
+      .select("*", { count: "exact", head: true })
+      .eq("agency_id", agencyId);
+
     const hasData = (eventsCount || 0) > 0 || (postsCount || 0) > 0;
-    
+
     let confirmed = false;
     if (hasData) {
       const userInput = prompt(
-        `⚠️ ATENÇÃO: A agência "${agencyName}" possui ${eventsCount} eventos e ${postsCount} posts.\n\nTODOS OS DADOS SERÃO PERMANENTEMENTE EXCLUÍDOS (incluindo submissões).\n\nDigite "EXCLUIR" para confirmar:`
+        `⚠️ ATENÇÃO: A agência "${agencyName}" possui ${eventsCount} eventos e ${postsCount} posts.\n\nTODOS OS DADOS SERÃO PERMANENTEMENTE EXCLUÍDOS (incluindo submissões).\n\nDigite "EXCLUIR" para confirmar:`,
       );
-      confirmed = userInput === 'EXCLUIR';
+      confirmed = userInput === "EXCLUIR";
     } else {
       confirmed = window.confirm(`Tem certeza que deseja excluir a agência "${agencyName}"?`);
     }
-    
+
     if (!confirmed) {
       toast({
         title: "Exclusão cancelada",
@@ -452,20 +431,17 @@ export const AdminManager = () => {
       });
       return;
     }
-    
+
     try {
-      const { error } = await sb
-        .from('agencies')
-        .delete()
-        .eq('id', agencyId);
-      
+      const { error } = await sb.from("agencies").delete().eq("id", agencyId);
+
       if (error) throw error;
-      
+
       toast({
         title: "Agência excluída",
         description: "A agência e todos os seus dados foram removidos com sucesso.",
       });
-      
+
       await loadAdmins();
       await loadAgencies();
     } catch (error: any) {
@@ -479,11 +455,11 @@ export const AdminManager = () => {
 
   const getFullAgencyUrl = async (token: string) => {
     const { data } = await sb
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'custom_domain')
+      .from("admin_settings")
+      .select("setting_value")
+      .eq("setting_key", "custom_domain")
       .maybeSingle();
-    
+
     const baseDomain = data?.setting_value || window.location.origin;
     return `${baseDomain}/agency/${token}`;
   };
@@ -497,13 +473,13 @@ export const AdminManager = () => {
     });
   };
 
-  const filteredAgencies = agencies.filter(agency => {
-    if (statusFilter === 'all') return true;
+  const filteredAgencies = agencies.filter((agency) => {
+    if (statusFilter === "all") return true;
     return agency.subscription_status === statusFilter;
   });
 
   const getAgencyForAdmin = (userId: string) => {
-    const admin = admins.find(a => a.user_id === userId);
+    const admin = admins.find((a) => a.user_id === userId);
     return admin?.agency_id;
   };
 
@@ -517,9 +493,7 @@ export const AdminManager = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold">Agências e Administradores</h2>
-          <p className="text-muted-foreground mt-1">
-            Gerencie todas as agências cadastradas
-          </p>
+          <p className="text-muted-foreground mt-1">Gerencie todas as agências cadastradas</p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="bg-gradient-primary">
           <UserPlus className="mr-2 h-4 w-4" />
@@ -529,33 +503,33 @@ export const AdminManager = () => {
 
       {/* Filtros de Status */}
       <div className="flex gap-2 mb-4">
-        <Button 
-          variant={statusFilter === 'all' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('all')}
+        <Button
+          variant={statusFilter === "all" ? "default" : "outline"}
+          onClick={() => setStatusFilter("all")}
           size="sm"
         >
           Todas ({agencies.length})
         </Button>
-        <Button 
-          variant={statusFilter === 'active' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('active')}
+        <Button
+          variant={statusFilter === "active" ? "default" : "outline"}
+          onClick={() => setStatusFilter("active")}
           size="sm"
         >
-          Ativas ({agencies.filter(a => a.subscription_status === 'active').length})
+          Ativas ({agencies.filter((a) => a.subscription_status === "active").length})
         </Button>
-        <Button 
-          variant={statusFilter === 'trial' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('trial')}
+        <Button
+          variant={statusFilter === "trial" ? "default" : "outline"}
+          onClick={() => setStatusFilter("trial")}
           size="sm"
         >
-          Trial ({agencies.filter(a => a.subscription_status === 'trial').length})
+          Trial ({agencies.filter((a) => a.subscription_status === "trial").length})
         </Button>
-        <Button 
-          variant={statusFilter === 'suspended' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('suspended')}
+        <Button
+          variant={statusFilter === "suspended" ? "default" : "outline"}
+          onClick={() => setStatusFilter("suspended")}
           size="sm"
         >
-          Suspensas ({agencies.filter(a => a.subscription_status === 'suspended').length})
+          Suspensas ({agencies.filter((a) => a.subscription_status === "suspended").length})
         </Button>
       </div>
 
@@ -563,15 +537,11 @@ export const AdminManager = () => {
         <Card className="p-4 bg-primary/5 border-primary/20 mb-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium mb-1">
-                ✅ Link de Acesso Criado - {inviteLinkAgency}
-              </p>
+              <p className="text-sm font-medium mb-1">✅ Link de Acesso Criado - {inviteLinkAgency}</p>
               <p className="text-xs text-muted-foreground mb-2">
                 O admin receberá um email para criar sua senha. Link de redefinição:
               </p>
-              <code className="text-xs bg-background p-2 rounded block overflow-x-auto">
-                {inviteLink}
-              </code>
+              <code className="text-xs bg-background p-2 rounded block overflow-x-auto">{inviteLink}</code>
             </div>
             <Button onClick={handleCopyInviteLink} variant="outline" size="sm">
               <Copy className="w-4 h-4 mr-2" />
@@ -587,10 +557,14 @@ export const AdminManager = () => {
           <div className="text-center py-8">
             <Building2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {statusFilter === 'all' ? 'Nenhuma agência cadastrada' : `Nenhuma agência ${statusFilter === 'active' ? 'ativa' : statusFilter === 'trial' ? 'em trial' : 'suspensa'}`}
+              {statusFilter === "all"
+                ? "Nenhuma agência cadastrada"
+                : `Nenhuma agência ${statusFilter === "active" ? "ativa" : statusFilter === "trial" ? "em trial" : "suspensa"}`}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {statusFilter === 'all' ? 'Crie uma nova agência e convide o primeiro administrador' : 'Ajuste os filtros para ver outras agências'}
+              {statusFilter === "all"
+                ? "Crie uma nova agência e convide o primeiro administrador"
+                : "Ajuste os filtros para ver outras agências"}
             </p>
           </div>
         </Card>
@@ -603,11 +577,11 @@ export const AdminManager = () => {
               admin={agency.admin || null}
               planDetails={agency.plan || null}
               stats={agency.stats}
-              fullUrl={agency.fullUrl || ''}
+              fullUrl={agency.fullUrl || ""}
               alternativeUrl={agency.alternativeUrl}
               onEdit={() => handleEditAgency(agency)}
               onDelete={() => handleDeleteAgency(agency.id, agency.name)}
-              onViewDashboard={() => window.open(`/admin?agencyId=${agency.id}`, '_blank')}
+              onViewDashboard={() => window.open(`/admin?agencyId=${agency.id}`, "_blank")}
               onCopyLink={() => handleCopyAgencyLink(agency.signup_token)}
             />
           ))}
@@ -618,9 +592,7 @@ export const AdminManager = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Criar Novo Admin de Agência</DialogTitle>
-            <DialogDescription>
-              Crie uma nova agência e convide o administrador responsável
-            </DialogDescription>
+            <DialogDescription>Crie uma nova agência e convide o administrador responsável</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateAdmin} className="space-y-4">
             <div className="space-y-2">
@@ -668,7 +640,9 @@ export const AdminManager = () => {
               />
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <LinkIcon className="w-3 h-3" />
-                <span>URL de acesso: <strong>seuapp.com/{newAdmin.agencySlug || 'slug'}</strong></span>
+                <span>
+                  URL de acesso: <strong>seuapp.com/{newAdmin.agencySlug || "slug"}</strong>
+                </span>
               </div>
             </div>
 
@@ -688,14 +662,16 @@ export const AdminManager = () => {
               </Select>
               {newAdmin.plan && (
                 <div className="bg-muted p-3 rounded-lg text-sm">
-                  <p className="font-semibold mb-1">✅ 7 dias de teste gratuito incluídos</p>
+                  <p className="font-semibold mb-1">✅ 10 dias de teste gratuito incluídos</p>
                   <p className="font-semibold mb-1">Limites do plano:</p>
-                  {plans.filter(p => p.plan_key === newAdmin.plan).map((plan) => (
-                    <ul key={plan.plan_key} className="list-disc list-inside text-muted-foreground">
-                      <li>Até {plan.max_influencers === 99999 ? 'ilimitados' : plan.max_influencers} divulgadores</li>
-                      <li>Até {plan.max_events === 99999 ? 'ilimitados' : plan.max_events} eventos</li>
-                    </ul>
-                  ))}
+                  {plans
+                    .filter((p) => p.plan_key === newAdmin.plan)
+                    .map((plan) => (
+                      <ul key={plan.plan_key} className="list-disc list-inside text-muted-foreground">
+                        <li>Até {plan.max_influencers === 99999 ? "ilimitados" : plan.max_influencers} divulgadores</li>
+                        <li>Até {plan.max_events === 99999 ? "ilimitados" : plan.max_events} eventos</li>
+                      </ul>
+                    ))}
                 </div>
               )}
             </div>
