@@ -686,7 +686,19 @@ const Dashboard = () => {
         </motion.div>
 
         {/* Dialog de Seleção de Evento */}
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <Dialog open={inviteDialogOpen} onOpenChange={(open) => {
+          setInviteDialogOpen(open);
+          if (open) {
+            const activeEvents = filteredEvents?.filter(e => e.is_active) || [];
+            console.log('🔍 [Convite] Debug:', {
+              selectedAgencyId,
+              totalEvents: events?.length || 0,
+              filteredEvents: filteredEvents?.length || 0,
+              activeEvents: activeEvents.length,
+              events: activeEvents.map(e => ({ id: e.id, title: e.title, agency_id: e.agency_id }))
+            });
+          }
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Convidar Amiga para Divulgação</DialogTitle>
@@ -702,11 +714,17 @@ const Dashboard = () => {
                     <SelectValue placeholder="Selecione um evento ativo..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredEvents.filter(e => e.is_active).map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.title}
-                      </SelectItem>
-                    ))}
+                    {filteredEvents?.filter(e => e.is_active).length > 0 ? (
+                      filteredEvents.filter(e => e.is_active).map((event) => (
+                        <SelectItem key={event.id} value={event.id}>
+                          {event.title}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                        Nenhum evento ativo disponível no momento
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
