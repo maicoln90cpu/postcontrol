@@ -131,6 +131,11 @@ const TopPromotersRanking = lazy(() =>
     default: m.TopPromotersRanking,
   })),
 );
+const DetailedGoalsReport = lazy(() =>
+  import("@/components/DetailedGoalsReport").then((m) => ({
+    default: m.DetailedGoalsReport,
+  })),
+);
 const GoalNotificationSettings = lazy(() =>
   import("@/components/GoalNotificationSettings").then((m) => ({
     default: m.GoalNotificationSettings,
@@ -2110,6 +2115,13 @@ const Admin = () => {
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Relatório Detalhado de Metas por Tipo */}
+            {profile?.agency_id && (
+              <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                <DetailedGoalsReport agencyId={profile.agency_id} />
+              </Suspense>
             )}
           </TabsContent>
 
