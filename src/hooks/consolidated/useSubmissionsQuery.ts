@@ -103,7 +103,7 @@ export const useSubmissionsQuery = ({
           Promise.all(
             userIdChunks.map(chunk =>
               sb.from('profiles')
-                .select('id, full_name, email, instagram, phone, avatar_url')
+                .select('id, full_name, email, instagram, phone, avatar_url, followers_range')
                 .in('id', chunk)
                 .then(res => res.data || [])
             )
