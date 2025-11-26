@@ -43,77 +43,95 @@ interface DashboardStatsProps {
   /** Array of event completion statistics */
   eventStats: EventStats[];
 }
-
 const DashboardStatsComponent = ({
   approvedCount,
   totalSubmissions,
   activeEventsCount,
   lastSubmissionDate,
-  eventStats,
+  eventStats
 }: DashboardStatsProps) => {
-  return (
-    <>
+  return <>
       {/* Stats Cards */}
       <div className="grid md:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        duration: 0.5,
+        delay: 0.1
+      }}>
           <Card className="p-6 hover:shadow-lg transition-all duration-300 border-primary/20">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Postagens Aprovadas</p>
                 <h3 className="text-3xl font-bold mt-2">{approvedCount}</h3>
               </div>
-              <div className="p-4 bg-green-500/10 rounded-full">
+              <div className="p-4 bg-green-500/10 rounded-full px-[5px] py-[5px]">
                 <TrendingUp className="h-8 w-8 text-green-500" />
               </div>
             </div>
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        duration: 0.5,
+        delay: 0.15
+      }}>
           <Card className="p-6 hover:shadow-lg transition-all duration-300 border-primary/20">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total de Submissões</p>
                 <h3 className="text-3xl font-bold mt-2">{totalSubmissions}</h3>
               </div>
-              <div className="p-4 bg-orange-500/10 rounded-full">
+              <div className="p-4 bg-orange-500/10 rounded-full px-[5px] py-[5px]">
                 <Send className="h-8 w-8 text-orange-500" />
               </div>
             </div>
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        duration: 0.5,
+        delay: 0.2
+      }}>
           <Card className="p-6 hover:shadow-lg transition-all duration-300 border-primary/20">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Eventos Ativos</p>
                 <h3 className="text-3xl font-bold mt-2">{activeEventsCount}</h3>
               </div>
-              <div className="p-4 bg-blue-500/10 rounded-full">
+              <div className="p-4 bg-blue-500/10 rounded-full py-[5px] px-[5px]">
                 <Calendar className="h-8 w-8 text-blue-500" />
               </div>
             </div>
           </Card>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        duration: 0.5,
+        delay: 0.3
+      }}>
           <Card className="p-6 hover:shadow-lg transition-all duration-300 border-primary/20">
             <div className="flex items-center justify-between">
               <div>
@@ -122,7 +140,7 @@ const DashboardStatsComponent = ({
                   {lastSubmissionDate ? new Date(lastSubmissionDate).toLocaleDateString('pt-BR') : 'Nenhuma'}
                 </h3>
               </div>
-              <div className="p-4 bg-purple-500/10 rounded-full">
+              <div className="p-4 bg-purple-500/10 rounded-full py-[5px] px-[5px]">
                 <Award className="h-8 w-8 text-purple-500" />
               </div>
             </div>
@@ -134,9 +152,7 @@ const DashboardStatsComponent = ({
       <Card className="p-6">
         <h2 className="text-2xl font-bold mb-6">Progresso dos Eventos</h2>
         <div className="space-y-6">
-          {eventStats.length > 0 ? (
-            eventStats.map((stat) => (
-              <div key={stat.eventId} className="space-y-3 p-4 rounded-lg bg-muted/30">
+          {eventStats.length > 0 ? eventStats.map(stat => <div key={stat.eventId} className="space-y-3 p-4 rounded-lg bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <h3 className="font-semibold text-lg">{stat.eventTitle}</h3>
@@ -150,15 +166,9 @@ const DashboardStatsComponent = ({
                   </Badge>
                 </div>
                 <Progress value={stat.percentage} className="h-3" />
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-muted-foreground py-8">Nenhum evento ativo no momento</p>
-          )}
+              </div>) : <p className="text-center text-muted-foreground py-8">Nenhum evento ativo no momento</p>}
         </div>
       </Card>
-    </>
-  );
+    </>;
 };
-
 export const DashboardStats = memo(DashboardStatsComponent);
