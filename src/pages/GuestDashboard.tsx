@@ -299,7 +299,7 @@ export const GuestDashboard = () => {
           <div className="items-center justify-between flex flex-col">
             <div>
               <h1 className="font-bold text-2xl">Dashboard de Convidado</h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground my-[10px]">
                 Acesso válido até {new Date(guestData.access_end_date).toLocaleDateString('pt-BR')}
               </p>
             </div>
