@@ -65,7 +65,12 @@ export function DateDialogForm({ date, onSubmit, onCancel }: DateDialogFormProps
     start_time: date?.start_time?.slice(0, 5) || "",
     end_time: date?.end_time?.slice(0, 5) || "",
     auto_deactivate_after_start: date?.auto_deactivate_after_start ?? false,
-    price_types: date?.price_types || date?.price_type ? [date.price_type] : ["entry_only"],
+    price_types:
+      date?.price_types && date.price_types.length > 0
+        ? date.price_types
+        : date?.price_type
+          ? [date.price_type]
+          : ["entry_only"],
     price_details: initializePriceDetails(),
     important_info: date?.important_info || "",
     alternative_link_female: date?.alternative_link_female || "",
