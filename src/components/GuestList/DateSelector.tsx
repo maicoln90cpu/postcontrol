@@ -136,6 +136,17 @@ export const DateSelector = ({
             const isPast = date.start_time && hasEventPassed(date.event_date, date.start_time);
             const hasAlternative = date.show_alternative_after_start && isPast &&
                                   (date.alternative_link_female || date.alternative_link_male);
+
+            // Computar preços uma vez por data para evitar recalcular e facilitar debug
+            const datePrices = getDatePrices(date);
+            console.log('[GuestList] Date prices debug', {
+              id: date.id,
+              name: date.name,
+              event_date: date.event_date,
+              price_types: date.price_types,
+              price_details: date.price_details,
+              computedPrices: datePrices,
+            });
             
             if (hasAlternative) {
               return (
@@ -209,10 +220,10 @@ export const DateSelector = ({
                         
                         <div className="pt-1 flex-col flex items-start justify-between my-[20px]">
                           <span className="text-xs text-muted-foreground font-bold py-0 mt-0 my-0">
-                            {getDatePrices(date).length > 1 ? 'Valores:' : 'Valor:'}
+                            {datePrices.length > 1 ? 'Valores:' : 'Valor:'}
                           </span>
                           <div className="space-y-1 w-full">
-                            {getDatePrices(date).map((priceInfo, idx) => (
+                            {datePrices.map((priceInfo, idx) => (
                               <div key={idx} className="flex flex-col items-start">
                                 <span className="text-xs text-muted-foreground">
                                   {priceInfo.label}
