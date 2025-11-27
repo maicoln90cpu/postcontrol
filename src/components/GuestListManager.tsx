@@ -278,7 +278,7 @@ export default function GuestListManager() {
   // Mutation: Criar/Editar data
   const createOrUpdateDateMutation = useMutation({
     mutationFn: async (dateData: any) => {
-      if (editingDate) {
+      if (editingDate?.id) {
         const { data, error } = await supabase
           .from("guest_list_dates")
           .update(dateData)
@@ -529,12 +529,12 @@ export default function GuestListManager() {
 
   // Função para duplicar data
   const handleDuplicateDate = (originalDate: GuestListDate) => {
+    const { id, created_at, ...dataWithoutId } = originalDate;
     const duplicatedData = {
-      ...originalDate,
-      id: '',
+      ...dataWithoutId,
       event_date: format(new Date(), "yyyy-MM-dd"),
       is_active: true,
-    } as GuestListDate;
+    } as any;
     setEditingDate(duplicatedData);
     setDateDialogOpen(true);
   };
