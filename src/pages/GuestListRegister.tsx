@@ -45,6 +45,7 @@ interface GuestListDate {
   start_time?: string;
   end_time?: string;
   auto_deactivate_after_start?: boolean;
+  price_types?: string[];
   important_info?: string | null;
   alternative_link_female?: string | null;
   alternative_link_male?: string | null;

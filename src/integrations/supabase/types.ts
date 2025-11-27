@@ -759,6 +759,7 @@ export type Database = {
           max_capacity: number | null
           name: string | null
           price_type: string | null
+          price_types: string[] | null
           show_alternative_after_start: boolean | null
           start_time: string | null
         }
@@ -779,6 +780,7 @@ export type Database = {
           max_capacity?: number | null
           name?: string | null
           price_type?: string | null
+          price_types?: string[] | null
           show_alternative_after_start?: boolean | null
           start_time?: string | null
         }
@@ -799,6 +801,7 @@ export type Database = {
           max_capacity?: number | null
           name?: string | null
           price_type?: string | null
+          price_types?: string[] | null
           show_alternative_after_start?: boolean | null
           start_time?: string | null
         }
