@@ -206,7 +206,7 @@ export const GuestDashboard = () => {
     if (selectedStatus !== 'all' && s.status !== selectedStatus) return false;
 
     // Filtro por faixa de seguidores
-    if (selectedFollowerRange !== 'all' && s.profiles?.followers_range !== selectedFollowerRange) return false;
+    if (selectedFollowerRange !== 'all' && s.followers_range !== selectedFollowerRange) return false;
 
     // Filtro por período de data
     if (startDate && new Date(s.submitted_at) < new Date(startDate)) return false;
@@ -281,7 +281,7 @@ export const GuestDashboard = () => {
   };
 
   // ✅ FASE 3: Extrair faixas de seguidores únicas para o filtro
-  const uniqueFollowerRanges = Array.from(new Set(submissions.map((s: any) => s.profiles?.followers_range).filter(Boolean))).sort();
+  const uniqueFollowerRanges = Array.from(new Set(submissions.map((s: any) => s.followers_range).filter(Boolean))).sort();
 
   // ✅ FASE 3: Função para limpar todos os filtros
   const clearAllFilters = () => {
@@ -505,7 +505,7 @@ export const GuestDashboard = () => {
                                   </a>}
                               </div>
                             </TableCell>
-                            <TableCell>{submission.profiles?.followers_range || 'N/A'}</TableCell>
+                            <TableCell>{submission.followers_range || 'N/A'}</TableCell>
                             <TableCell className="text-center font-semibold">
                               {getUserApprovedCount(submission.user_id)}
                             </TableCell>
