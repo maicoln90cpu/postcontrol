@@ -5,13 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Clock, FileText, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -32,6 +26,7 @@ interface GuestListDate {
   end_time?: string | null;
   auto_deactivate_after_start?: boolean;
   price_type?: string;
+  price_types?: string[];
   important_info?: string | null;
   alternative_link_female?: string | null;
   alternative_link_male?: string | null;
@@ -57,7 +52,7 @@ export function DateDialogForm({ date, onSubmit, onCancel }: DateDialogFormProps
     start_time: date?.start_time?.slice(0, 5) || "",
     end_time: date?.end_time?.slice(0, 5) || "",
     auto_deactivate_after_start: date?.auto_deactivate_after_start ?? false,
-    price_type: date?.price_type || "entry_only",
+    price_types: date?.price_types || date?.price_type ? [date.price_type] : ["entry_only"],
     important_info: date?.important_info || "",
     alternative_link_female: date?.alternative_link_female || "",
     alternative_link_male: date?.alternative_link_male || "",
@@ -136,7 +131,7 @@ export function DateDialogForm({ date, onSubmit, onCancel }: DateDialogFormProps
       start_time: formData.start_time ? `${formData.start_time}:00` : null,
       end_time: formData.end_time ? `${formData.end_time}:00` : null,
       auto_deactivate_after_start: formData.auto_deactivate_after_start,
-      price_type: formData.price_type,
+      price_types: formData.price_types,
       important_info: formData.important_info || null,
       alternative_link_female: formData.alternative_link_female || null,
       alternative_link_male: formData.alternative_link_male || null,
@@ -268,24 +263,83 @@ export function DateDialogForm({ date, onSubmit, onCancel }: DateDialogFormProps
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="price_type">Tipo de Valor *</Label>
-        <Select
-          value={formData.price_type}
-          onValueChange={(value) => setFormData({ ...formData, price_type: value })}
-        >
-          <SelectTrigger id="price_type">
-            <SelectValue placeholder="Selecione o tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="entry_only">Valor Seco (Apenas Entrada)</SelectItem>
-            <SelectItem value="consumable_only">Consumível (Entrada Grátis)</SelectItem>
-            <SelectItem value="entry_plus_half">Entrada + Consome Metade</SelectItem>
-            <SelectItem value="entry_plus_full">Entrada + Consome Valor Integral</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="space-y-3">
+        <Label>Tipo(s) de Valor *</Label>
+        <div className="space-y-3 pl-1">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="entry_only"
+              checked={formData.price_types.includes("entry_only")}
+              onCheckedChange={(checked) => {
+                setFormData({
+                  ...formData,
+                  price_types: checked
+                    ? [...formData.price_types, "entry_only"]
+                    : formData.price_types.filter((t) => t !== "entry_only"),
+                });
+              }}
+            />
+            <Label htmlFor="entry_only" className="font-normal cursor-pointer">
+              Valor Seco (Apenas Entrada)
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="consumable_only"
+              checked={formData.price_types.includes("consumable_only")}
+              onCheckedChange={(checked) => {
+                setFormData({
+                  ...formData,
+                  price_types: checked
+                    ? [...formData.price_types, "consumable_only"]
+                    : formData.price_types.filter((t) => t !== "consumable_only"),
+                });
+              }}
+            />
+            <Label htmlFor="consumable_only" className="font-normal cursor-pointer">
+              Consumível (Entrada Grátis)
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="entry_plus_half"
+              checked={formData.price_types.includes("entry_plus_half")}
+              onCheckedChange={(checked) => {
+                setFormData({
+                  ...formData,
+                  price_types: checked
+                    ? [...formData.price_types, "entry_plus_half"]
+                    : formData.price_types.filter((t) => t !== "entry_plus_half"),
+                });
+              }}
+            />
+            <Label htmlFor="entry_plus_half" className="font-normal cursor-pointer">
+              Entrada + Consome Metade
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="entry_plus_full"
+              checked={formData.price_types.includes("entry_plus_full")}
+              onCheckedChange={(checked) => {
+                setFormData({
+                  ...formData,
+                  price_types: checked
+                    ? [...formData.price_types, "entry_plus_full"]
+                    : formData.price_types.filter((t) => t !== "entry_plus_full"),
+                });
+              }}
+            />
+            <Label htmlFor="entry_plus_full" className="font-normal cursor-pointer">
+              Entrada + Consome Valor Integral
+            </Label>
+          </div>
+        </div>
         <p className="text-xs text-muted-foreground">
-          Como o valor será cobrado/utilizado no evento
+          Selecione uma ou mais opções de como o valor será cobrado/utilizado no evento
         </p>
       </div>
 

@@ -40,6 +40,8 @@ import {
   BarChart3,
   Copy,
   FileText,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -81,6 +83,7 @@ interface GuestListDate {
   end_time?: string | null;
   auto_deactivate_after_start?: boolean;
   price_type?: string;
+  price_types?: string[];
   important_info?: string | null;
   created_at?: string;
 }
@@ -127,6 +130,12 @@ export default function GuestListManager() {
   
   // Seleção múltipla de inscritos
   const [selectedRegistrations, setSelectedRegistrations] = useState<string[]>([]);
+  
+  // Ordenação de datas
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof GuestListDate;
+    direction: "asc" | "desc";
+  }>({ key: "event_date", direction: "desc" });
   
   const queryClient = useQueryClient();
 
@@ -337,7 +346,7 @@ export default function GuestListManager() {
     toast.success("Link copiado para clipboard!");
   };
 
-  // Filtrar datas por período (aba Datas e Valores)
+  // Filtrar e ordenar datas
   const filteredDates = dates?.filter((date) => {
     if (filterDatePeriod === "all") return true;
     const today = new Date();
@@ -347,6 +356,58 @@ export default function GuestListManager() {
     if (filterDatePeriod === "past") return eventDate < today;
     return true;
   }) || [];
+
+  const sortedDates = [...filteredDates].sort((a, b) => {
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
+    
+    if (aValue == null || bValue == null) return 0;
+    
+    if (sortConfig.key === "event_date") {
+      const dateA = new Date(aValue as string).getTime();
+      const dateB = new Date(bValue as string).getTime();
+      return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+    }
+    
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+    }
+    
+    const strA = String(aValue).toLowerCase();
+    const strB = String(bValue).toLowerCase();
+    return sortConfig.direction === "asc" 
+      ? strA.localeCompare(strB) 
+      : strB.localeCompare(strA);
+  });
+
+  const handleSort = (key: keyof GuestListDate) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const SortableHeader = ({ 
+    columnKey, 
+    children 
+  }: { 
+    columnKey: keyof GuestListDate; 
+    children: React.ReactNode 
+  }) => (
+    <TableHead 
+      className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
+      onClick={() => handleSort(columnKey)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortConfig.key === columnKey && (
+          sortConfig.direction === "asc" 
+            ? <ChevronUp className="h-4 w-4" />
+            : <ChevronDown className="h-4 w-4" />
+        )}
+      </div>
+    </TableHead>
+  );
 
   // Aplicar filtros em cascata (incluindo filtro de período)
   const filteredRegistrations = registrations?.filter((reg) => {
@@ -738,24 +799,25 @@ export default function GuestListManager() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Nome</TableHead>
+                        <SortableHeader columnKey="event_date">Data</SortableHeader>
+                        <SortableHeader columnKey="name">Nome</SortableHeader>
                         <TableHead>Horários</TableHead>
-                        <TableHead>Valor F</TableHead>
-                        <TableHead>Valor M</TableHead>
-                        <TableHead>Status</TableHead>
+                        <SortableHeader columnKey="female_price">Valor F</SortableHeader>
+                        <SortableHeader columnKey="male_price">Valor M</SortableHeader>
+                        <TableHead>Tipo(s)</TableHead>
+                        <SortableHeader columnKey="is_active">Status</SortableHeader>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {datesLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center">
+                          <TableCell colSpan={8} className="text-center">
                             Carregando...
                           </TableCell>
                         </TableRow>
-                      ) : filteredDates && filteredDates.length > 0 ? (
-                        filteredDates.map((date) => (
+                      ) : sortedDates && sortedDates.length > 0 ? (
+                        sortedDates.map((date) => (
                           <TableRow key={date.id}>
                             <TableCell>
                               {(() => {
@@ -778,6 +840,18 @@ export default function GuestListManager() {
                             </TableCell>
                             <TableCell>R$ {date.female_price.toFixed(2)}</TableCell>
                             <TableCell>R$ {date.male_price.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {(date.price_types || (date.price_type ? [date.price_type] : ["entry_only"])).map((type) => (
+                                  <Badge key={type} variant="outline" className="text-xs">
+                                    {type === "entry_only" && "Seco"}
+                                    {type === "consumable_only" && "Consumível"}
+                                    {type === "entry_plus_half" && "½ Consome"}
+                                    {type === "entry_plus_full" && "Consome Total"}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               <Badge variant={date.is_active ? "default" : "secondary"}>
                                 {date.is_active ? "Ativo" : "Inativo"}
@@ -820,7 +894,7 @@ export default function GuestListManager() {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center text-muted-foreground">
                             Nenhuma data cadastrada
                           </TableCell>
                         </TableRow>
