@@ -219,6 +219,30 @@ export default function GuestListManager() {
     },
   });
 
+  // Query: Buscar contagem de inscritos por data
+  const { data: registrationCounts } = useQuery({
+    queryKey: ["guest-list-registration-counts", selectedEvent],
+    queryFn: async () => {
+      if (!selectedEvent) return {};
+      
+      const { data, error } = await supabase
+        .from("guest_list_registrations")
+        .select("date_id")
+        .eq("event_id", selectedEvent);
+      
+      if (error) throw error;
+      
+      // Contar manualmente no frontend
+      const counts: Record<string, number> = {};
+      data.forEach((reg) => {
+        counts[reg.date_id] = (counts[reg.date_id] || 0) + 1;
+      });
+      
+      return counts;
+    },
+    enabled: !!selectedEvent,
+  });
+
   // Mutation: Criar/Editar evento
   const createOrUpdateEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
@@ -805,6 +829,7 @@ export default function GuestListManager() {
                         <TableHead>Horários</TableHead>
                         <TableHead>Valores por Tipo</TableHead>
                         <SortableHeader columnKey="is_active">Status</SortableHeader>
+                        <TableHead>Inscritos</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -861,6 +886,14 @@ export default function GuestListManager() {
                               <Badge variant={date.is_active ? "default" : "secondary"}>
                                 {date.is_active ? "Ativo" : "Inativo"}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">
+                                  {registrationCounts?.[date.id] || 0}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell className="text-right space-x-2">
                               <Button
