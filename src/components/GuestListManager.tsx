@@ -916,7 +916,7 @@ export default function GuestListManager() {
 
             {/* TAB: Inscritos */}
             <TabsContent value="registrations" className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="justify-between items-center flex flex-col">
                 <h3 className="text-lg font-semibold">
                   {selectedEventData ? `Inscritos - ${selectedEventData.name}` : 'Todos os Inscritos'}
                 </h3>
@@ -1178,8 +1178,8 @@ export default function GuestListManager() {
                               <p className="text-muted-foreground">Data inscrição</p>
                               <p className="font-medium">
                                 {format(new Date(reg.registered_at), "dd/MM/yyyy HH:mm", {
-                              locale: ptBR
-                            })}
+                            locale: ptBR
+                          })}
                               </p>
                             </div>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteRegistration(reg.id, reg.full_name)} disabled={deleteRegistrationMutation.isPending}>
