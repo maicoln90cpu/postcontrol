@@ -1200,7 +1200,7 @@ export default function GuestListManager() {
                   </div>
 
                   {/* Paginação */}
-                  {filteredRegistrations.length > 0 && <div className="flex items-center justify-between mt-4">
+                  {filteredRegistrations.length > 0 && <div className="items-center justify-between mt-4 flex flex-col">
                       <p className="text-sm text-muted-foreground">
                         Mostrando {paginatedRegistrations.length} de {filteredRegistrations.length} inscritos
                       </p>
