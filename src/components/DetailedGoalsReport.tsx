@@ -149,27 +149,27 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
               </p>
             </div>
 
-            <div className="rounded-md border overflow-x-auto">
-              <Table className="min-w-[800px]">
+            <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
+              <Table className="min-w-[700px] text-xs sm:text-sm">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-background z-10">Promotor</TableHead>
-                    <TableHead className="text-center">Divulgação</TableHead>
-                    <TableHead className="text-center">Seleção Perfil</TableHead>
-                    <TableHead className="text-center">Vendas</TableHead>
-                    <TableHead className="text-center">Total Posts</TableHead>
-                    <TableHead className="text-center">Meta</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="sticky left-0 bg-background z-10 min-w-[140px] sm:min-w-[180px]">Promotor</TableHead>
+                    <TableHead className="text-center px-2 sm:px-4">Divulg.</TableHead>
+                    <TableHead className="text-center px-2 sm:px-4">Seleção</TableHead>
+                    <TableHead className="text-center px-2 sm:px-4">Vendas</TableHead>
+                    <TableHead className="text-center px-2 sm:px-4">Total</TableHead>
+                    <TableHead className="text-center px-2 sm:px-4">Meta</TableHead>
+                    <TableHead className="text-center px-2 sm:px-4">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedStats?.map((promoter) => (
                       <TableRow key={promoter.userId}>
-                        <TableCell className="sticky left-0 bg-background z-10">
-                          <div className="flex items-center gap-3 min-w-[200px]">
-                            <Avatar className="h-8 w-8 shrink-0">
+                        <TableCell className="sticky left-0 bg-background z-10 px-2 sm:px-4">
+                          <div className="flex items-center gap-2 min-w-[140px] sm:min-w-[180px]">
+                            <Avatar className="h-6 w-6 sm:h-8 sm:w-8 shrink-0">
                               <AvatarImage src={promoter.avatarUrl || undefined} />
-                              <AvatarFallback>
+                              <AvatarFallback className="text-[10px] sm:text-xs">
                                 {promoter.fullName
                                   .split(' ')
                                   .map((n) => n[0])
@@ -178,26 +178,26 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
                                   .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium truncate">{promoter.fullName}</span>
+                            <span className="font-medium truncate text-xs sm:text-sm">{promoter.fullName}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                        <TableCell className="text-center px-2 sm:px-4">
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[10px] sm:text-xs px-1.5 py-0.5">
                             {promoter.divulgacaoCount}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                        <TableCell className="text-center px-2 sm:px-4">
+                          <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[10px] sm:text-xs px-1.5 py-0.5">
                             {promoter.selecaoPerfilCount}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-300">
+                        <TableCell className="text-center px-2 sm:px-4">
+                          <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-300 text-[10px] sm:text-xs px-1.5 py-0.5">
                             {promoter.salesCount}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <div className="font-semibold">
+                        <TableCell className="text-center px-2 sm:px-4">
+                          <div className="font-semibold text-xs sm:text-sm">
                             {promoter.totalPosts}
                             {promoter.requiredPosts > 0 && (
                               <span className="text-muted-foreground ml-1">
@@ -206,37 +206,37 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-center text-sm text-muted-foreground">
+                        <TableCell className="text-center text-[10px] sm:text-xs text-muted-foreground px-2 sm:px-4">
                           {promoter.requiredPosts > 0 || promoter.requiredSales > 0 ? (
                             <>
-                              {promoter.requiredPosts > 0 && `${promoter.requiredPosts} posts`}
+                              {promoter.requiredPosts > 0 && `${promoter.requiredPosts}P`}
                               {promoter.requiredPosts > 0 && promoter.requiredSales > 0 && ' + '}
-                              {promoter.requiredSales > 0 && `${promoter.requiredSales} vendas`}
+                              {promoter.requiredSales > 0 && `${promoter.requiredSales}V`}
                             </>
                           ) : (
                             'Sem meta'
                           )}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center px-2 sm:px-4">
                           {promoter.goalAchieved ? (
-                            <Badge className="bg-green-500 hover:bg-green-600">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                            <Badge className="bg-green-500 hover:bg-green-600 text-[10px] sm:text-xs px-1.5 py-0.5">
+                              <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
                               Atingiu
                             </Badge>
                           ) : (
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0.5">
                               {promoter.requiredPosts > 0 && promoter.totalPosts < promoter.requiredPosts ? (
                                 <>
-                                  <TrendingDown className="h-3 w-3 mr-1" />
-                                  Faltam {promoter.requiredPosts - promoter.totalPosts} posts
+                                  <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
+                                  -{promoter.requiredPosts - promoter.totalPosts}P
                                 </>
                               ) : promoter.requiredSales > 0 && promoter.salesCount < promoter.requiredSales ? (
                                 <>
-                                  <TrendingDown className="h-3 w-3 mr-1" />
-                                  Faltam {promoter.requiredSales - promoter.salesCount} vendas
+                                  <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
+                                  -{promoter.requiredSales - promoter.salesCount}V
                                 </>
                               ) : (
-                                'Em progresso'
+                                'Progresso'
                               )}
                             </Badge>
                           )}
