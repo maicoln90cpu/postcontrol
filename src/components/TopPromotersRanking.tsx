@@ -102,34 +102,36 @@ export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRanking
           {ranking.map((promoter) => (
             <div
               key={promoter.user_id}
-              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+              className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg transition-colors ${
                 promoter.goal_achieved 
                   ? 'bg-green-500/10 border border-green-500/20' 
                   : 'hover:bg-muted/50'
               }`}
             >
-              <div className="flex items-center gap-2 w-12">
-                {getRankIcon(promoter.rank)}
-                <span className="font-bold text-muted-foreground">
-                  {promoter.rank}º
-                </span>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="flex items-center gap-2 w-12 shrink-0">
+                  {getRankIcon(promoter.rank)}
+                  <span className="font-bold text-muted-foreground">
+                    {promoter.rank}º
+                  </span>
+                </div>
+
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarImage src={promoter.avatar_url} />
+                  <AvatarFallback>
+                    {promoter.full_name?.slice(0, 2).toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{promoter.full_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {promoter.current_posts}P + {promoter.current_sales}V
+                  </p>
+                </div>
               </div>
 
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={promoter.avatar_url} />
-                <AvatarFallback>
-                  {promoter.full_name?.slice(0, 2).toUpperCase() || '?'}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{promoter.full_name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {promoter.current_posts}P + {promoter.current_sales}V
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:ml-auto">
                 {promoter.goal_achieved ? (
                   <HoverCard>
                     <HoverCardTrigger asChild>
