@@ -149,11 +149,11 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
               </p>
             </div>
 
-            <div className="rounded-md border">
-              <Table>
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Promotor</TableHead>
+                    <TableHead className="sticky left-0 bg-background z-10">Promotor</TableHead>
                     <TableHead className="text-center">Divulgação</TableHead>
                     <TableHead className="text-center">Seleção Perfil</TableHead>
                     <TableHead className="text-center">Vendas</TableHead>
@@ -165,9 +165,9 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
                 <TableBody>
                   {paginatedStats?.map((promoter) => (
                       <TableRow key={promoter.userId}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
+                        <TableCell className="sticky left-0 bg-background z-10">
+                          <div className="flex items-center gap-3 min-w-[200px]">
+                            <Avatar className="h-8 w-8 shrink-0">
                               <AvatarImage src={promoter.avatarUrl || undefined} />
                               <AvatarFallback>
                                 {promoter.fullName
@@ -178,7 +178,7 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
                                   .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">{promoter.fullName}</span>
+                            <span className="font-medium truncate">{promoter.fullName}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
