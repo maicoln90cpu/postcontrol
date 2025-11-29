@@ -2056,7 +2056,7 @@ const Admin = () => {
             {filteredEvents.length > 0 && filteredEvents.filter((e) => e.is_active && e.numero_de_vagas).length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold">📊 Controle de Vagas - Todos os Eventos</h3>
-                <div className="grid grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredEvents
                     .filter((e) => e.is_active && e.numero_de_vagas)
                     .map((event) => (

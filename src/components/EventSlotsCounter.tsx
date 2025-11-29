@@ -66,24 +66,24 @@ export const EventSlotsCounter = ({ eventId, eventTitle, variant = 'compact' }: 
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-3 sm:p-4">
       <div className="space-y-3">
         {eventTitle && (
           <div className="pb-2 border-b">
-            <h3 className="font-bold text-lg">{eventTitle}</h3>
+            <h3 className="font-bold text-base sm:text-lg break-words">{eventTitle}</h3>
           </div>
         )}
         
         {/* 🆕 Participantes Totais */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20 gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
+            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
             <div>
-              <p className="font-semibold text-lg">{slots.total_participants}</p>
+              <p className="font-semibold text-base sm:text-lg">{slots.total_participants}</p>
               <p className="text-xs text-muted-foreground">Participantes totais</p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <p className="font-semibold text-green-600 dark:text-green-400">
               {slots.occupied_slots} ✅
             </p>
@@ -91,10 +91,10 @@ export const EventSlotsCounter = ({ eventId, eventTitle, variant = 'compact' }: 
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <h4 className="font-semibold">Vagas Disponíveis</h4>
+            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+            <h4 className="font-semibold text-sm sm:text-base">Vagas Disponíveis</h4>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
