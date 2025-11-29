@@ -44,8 +44,7 @@ export const GuestAuditLog = ({ agencyId }: GuestAuditLogProps) => {
           ),
           event:events(title),
           submission:submissions(
-            user_id,
-            profiles:user_id(full_name, email)
+            user_id
           )
         `, { count: 'exact' })
         .eq('guest.agency_id', agencyId)

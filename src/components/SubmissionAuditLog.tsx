@@ -32,10 +32,7 @@ export const SubmissionAuditLog = ({ submissionId }: SubmissionAuditLogProps) =>
   const loadLogs = async () => {
     const { data: logsData, error } = await sb
       .from('submission_logs')
-      .select(`
-        *,
-        profiles:changed_by(full_name)
-      `)
+      .select('*')
       .eq('submission_id', submissionId)
       .order('changed_at', { ascending: false });
 
@@ -111,10 +108,10 @@ export const SubmissionAuditLog = ({ submissionId }: SubmissionAuditLogProps) =>
                     <span>{new Date(log.changed_at).toLocaleString('pt-BR')}</span>
                   </div>
                   
-                  {log.profiles?.full_name && (
+                  {log.changed_by && (
                     <div className="flex items-center gap-2">
                       <User className="h-3 w-3" />
-                      <span>Por: {log.profiles.full_name}</span>
+                      <span>Alterado por: {log.changed_by}</span>
                     </div>
                   )}
                   
