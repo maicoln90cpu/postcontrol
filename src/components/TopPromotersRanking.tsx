@@ -102,21 +102,21 @@ export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRanking
           {ranking.map((promoter) => (
             <div
               key={promoter.user_id}
-              className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg transition-colors ${
+              className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-3 rounded-lg transition-colors ${
                 promoter.goal_achieved 
                   ? 'bg-green-500/10 border border-green-500/20' 
                   : 'hover:bg-muted/50'
               }`}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="flex items-center gap-2 w-12 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   {getRankIcon(promoter.rank)}
-                  <span className="font-bold text-muted-foreground">
+                  <span className="text-lg sm:text-base font-bold text-muted-foreground">
                     {promoter.rank}º
                   </span>
                 </div>
 
-                <Avatar className="h-10 w-10 shrink-0">
+                <Avatar className="h-12 w-12 sm:h-10 sm:w-10 shrink-0">
                   <AvatarImage src={promoter.avatar_url} />
                   <AvatarFallback>
                     {promoter.full_name?.slice(0, 2).toUpperCase() || '?'}
@@ -124,19 +124,19 @@ export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRanking
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{promoter.full_name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-medium text-base sm:text-sm truncate">{promoter.full_name}</p>
+                  <p className="text-sm sm:text-xs text-muted-foreground mt-0.5">
                     {promoter.current_posts}P + {promoter.current_sales}V
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 sm:ml-auto">
+              <div className="flex items-center gap-2 sm:ml-auto pl-14 sm:pl-0">
                 {promoter.goal_achieved ? (
                   <HoverCard>
                     <HoverCardTrigger asChild>
-                      <Badge className="bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20 cursor-help">
-                        <CheckCircle className="w-3 h-3 mr-1" />
+                      <Badge className="bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20 cursor-help text-sm sm:text-xs">
+                        <CheckCircle className="w-4 h-4 sm:w-3 sm:h-3 mr-1" />
                         Meta
                       </Badge>
                     </HoverCardTrigger>
@@ -155,7 +155,7 @@ export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRanking
                     </HoverCardContent>
                   </HoverCard>
                 ) : (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-sm sm:text-xs">
                     {promoter.completion_percentage}%
                   </Badge>
                 )}
