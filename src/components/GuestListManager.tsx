@@ -821,53 +821,177 @@ export default function GuestListManager() {
                     </div>
                   </div>
 
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <SortableHeader columnKey="event_date">Data</SortableHeader>
-                        <SortableHeader columnKey="name">Nome</SortableHeader>
-                        <TableHead>Horários</TableHead>
-                        <TableHead>Valores por Tipo</TableHead>
-                        <SortableHeader columnKey="is_active">Status</SortableHeader>
-                        <TableHead>Inscritos</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {datesLoading ? (
+                  {/* Tabela Desktop */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center">
-                            Carregando...
-                          </TableCell>
+                          <SortableHeader columnKey="event_date">Data</SortableHeader>
+                          <SortableHeader columnKey="name">Nome</SortableHeader>
+                          <TableHead>Horários</TableHead>
+                          <TableHead>Valores por Tipo</TableHead>
+                          <SortableHeader columnKey="is_active">Status</SortableHeader>
+                          <TableHead>Inscritos</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                      ) : sortedDates && sortedDates.length > 0 ? (
-                        sortedDates.map((date) => (
-                          <TableRow key={date.id}>
-                            <TableCell>
-                              {(() => {
-                                const [year, month, day] = date.event_date.split('-');
-                                return `${day}/${month}/${year}`;
-                              })()}
+                      </TableHeader>
+                      <TableBody>
+                        {datesLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center">
+                              Carregando...
                             </TableCell>
-                            <TableCell>
-                              {date.name || "-"}
+                          </TableRow>
+                        ) : sortedDates && sortedDates.length > 0 ? (
+                          sortedDates.map((date) => (
+                            <TableRow key={date.id}>
+                              <TableCell>
+                                {(() => {
+                                  const [year, month, day] = date.event_date.split('-');
+                                  return `${day}/${month}/${year}`;
+                                })()}
+                              </TableCell>
+                              <TableCell>
+                                {date.name || "-"}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {date.start_time || date.end_time ? (
+                                  <>
+                                    {date.start_time && <div>{date.start_time}</div>}
+                                    {date.end_time && <div>até {date.end_time}</div>}
+                                  </>
+                                ) : (
+                                  "-"
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-xs space-y-2">
+                                  {(date.price_types || (date.price_type ? [date.price_type] : ["entry_only"])).map((type) => {
+                                    const prices = date.price_details?.[type] || { female: date.female_price, male: date.male_price };
+                                    return (
+                                      <div key={type} className="flex flex-col gap-0.5 border-l-2 border-primary/30 pl-2">
+                                        <div className="font-medium text-foreground">
+                                          {type === "entry_only" && "Valor Seco"}
+                                          {type === "consumable_only" && "Consumível"}
+                                          {type === "entry_plus_half" && "Entrada + ½ Consome"}
+                                          {type === "entry_plus_full" && "Entrada + Consome Total"}
+                                        </div>
+                                        <div className="text-muted-foreground">
+                                          F: R$ {prices.female.toFixed(2)} • M: R$ {prices.male.toFixed(2)}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={date.is_active ? "default" : "secondary"}>
+                                  {date.is_active ? "Ativo" : "Inativo"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium">
+                                    {registrationCounts?.[date.id] || 0}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Duplicar"
+                                  onClick={() => handleDuplicateDate(date)}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingDate(date);
+                                    setDateDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    if (
+                                      confirm("Tem certeza que deseja deletar esta data?")
+                                    ) {
+                                      deleteDateMutation.mutate(date.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">
+                              Nenhuma data cadastrada
                             </TableCell>
-                            <TableCell className="text-xs">
-                              {date.start_time || date.end_time ? (
-                                <>
-                                  {date.start_time && <div>{date.start_time}</div>}
-                                  {date.end_time && <div>até {date.end_time}</div>}
-                                </>
-                              ) : (
-                                "-"
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-xs space-y-2">
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Cards Mobile */}
+                  <div className="md:hidden space-y-3">
+                    {datesLoading ? (
+                      <Card className="p-4">
+                        <p className="text-center text-muted-foreground">Carregando...</p>
+                      </Card>
+                    ) : sortedDates && sortedDates.length > 0 ? (
+                      sortedDates.map((date) => (
+                        <Card key={date.id} className="p-3">
+                          <div className="space-y-3">
+                            {/* Cabeçalho: Data e Status */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-bold text-base">
+                                  {(() => {
+                                    const [year, month, day] = date.event_date.split('-');
+                                    return `${day}/${month}/${year}`;
+                                  })()}
+                                </div>
+                                {date.name && (
+                                  <div className="text-sm text-muted-foreground mt-0.5">
+                                    {date.name}
+                                  </div>
+                                )}
+                              </div>
+                              <Badge variant={date.is_active ? "default" : "secondary"} className="shrink-0">
+                                {date.is_active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </div>
+
+                            {/* Horários */}
+                            {(date.start_time || date.end_time) && (
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Horário: </span>
+                                {date.start_time && <span>{date.start_time}</span>}
+                                {date.end_time && <span> até {date.end_time}</span>}
+                              </div>
+                            )}
+
+                            {/* Valores */}
+                            <div>
+                              <div className="text-xs font-medium text-muted-foreground mb-1.5">
+                                Valores por Tipo
+                              </div>
+                              <div className="space-y-2">
                                 {(date.price_types || (date.price_type ? [date.price_type] : ["entry_only"])).map((type) => {
                                   const prices = date.price_details?.[type] || { female: date.female_price, male: date.male_price };
                                   return (
-                                    <div key={type} className="flex flex-col gap-0.5 border-l-2 border-primary/30 pl-2">
+                                    <div key={type} className="flex flex-col gap-0.5 border-l-2 border-primary/30 pl-2 text-xs">
                                       <div className="font-medium text-foreground">
                                         {type === "entry_only" && "Valor Seco"}
                                         {type === "consumable_only" && "Consumível"}
@@ -881,64 +1005,63 @@ export default function GuestListManager() {
                                   );
                                 })}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={date.is_active ? "default" : "secondary"}>
-                                {date.is_active ? "Ativo" : "Inativo"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {registrationCounts?.[date.id] || 0}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right space-x-2">
+                            </div>
+
+                            {/* Inscritos */}
+                            <div className="flex items-center gap-2 text-sm">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Inscritos:</span>
+                              <span className="font-medium">
+                                {registrationCounts?.[date.id] || 0}
+                              </span>
+                            </div>
+
+                            {/* Ações */}
+                            <div className="flex gap-2 pt-2 border-t">
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                title="Duplicar"
+                                variant="outline"
+                                className="flex-1"
                                 onClick={() => handleDuplicateDate(date)}
                               >
-                                <Copy className="h-4 w-4" />
+                                <Copy className="h-3 w-3 mr-1" />
+                                Duplicar
                               </Button>
                               <Button
                                 size="sm"
-                                variant="ghost"
+                                variant="outline"
+                                className="flex-1"
                                 onClick={() => {
                                   setEditingDate(date);
                                   setDateDialogOpen(true);
                                 }}
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-3 w-3 mr-1" />
+                                Editar
                               </Button>
                               <Button
                                 size="sm"
-                                variant="ghost"
+                                variant="outline"
                                 onClick={() => {
-                                  if (
-                                    confirm("Tem certeza que deseja deletar esta data?")
-                                  ) {
+                                  if (confirm("Tem certeza que deseja deletar esta data?")) {
                                     deleteDateMutation.mutate(date.id);
                                   }
                                 }}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
-                            Nenhuma data cadastrada
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                            </div>
+                          </div>
+                        </Card>
+                      ))
+                    ) : (
+                      <Card className="p-8">
+                        <p className="text-center text-muted-foreground">
+                          Nenhuma data cadastrada
+                        </p>
+                      </Card>
+                    )}
+                  </div>
                 </>
               )}
             </TabsContent>
