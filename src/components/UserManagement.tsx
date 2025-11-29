@@ -393,13 +393,15 @@ export const UserManagement = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <h3 className="font-bold text-lg">{user.full_name || "Nome não definido"}</h3>
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <h3 className="font-bold text-base sm:text-lg break-words">
+                        {user.full_name || "Nome não definido"}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm">
                         <div>
                           <span className="text-muted-foreground">Email:</span>{" "}
-                          <span className="font-medium">{user.email || "Não definido"}</span>
+                          <span className="font-medium break-words">{user.email || "Não definido"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Instagram:</span>{" "}
@@ -407,14 +409,14 @@ export const UserManagement = () => {
                             href={`https://instagram.com/${user.instagram?.replace("@", "") || ""}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-medium text-primary hover:underline"
+                            className="font-medium text-primary hover:underline break-all"
                           >
                             @{user.instagram?.replace("@", "") || "Não definido"}
                           </a>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Telefone:</span>{" "}
-                          <span className="font-medium">{user.phone || "Não definido"}</span>
+                          <span className="font-medium break-words">{user.phone || "Não definido"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Sexo:</span>{" "}
@@ -429,7 +431,7 @@ export const UserManagement = () => {
                           <span className="font-medium">{new Date(user.created_at).toLocaleDateString("pt-BR")}</span>
                         </div>
                         {userEvents[user.id] && userEvents[user.id].length > 0 && (
-                          <div className="col-span-2">
+                          <div className="col-span-1 sm:col-span-2">
                             <span className="text-muted-foreground">Eventos participando:</span>{" "}
                             <div className="flex flex-wrap gap-1 mt-1">
                               {userEvents[user.id].map((event, idx) => (
@@ -451,9 +453,11 @@ export const UserManagement = () => {
                         )}
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => startEdit(user)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="self-end sm:self-start mt-2 sm:mt-0">
+                      <Button variant="ghost" size="sm" onClick={() => startEdit(user)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </Card>
