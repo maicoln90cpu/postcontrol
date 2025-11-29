@@ -127,18 +127,18 @@ export const GuestManager = ({ agencyId }: GuestManagerProps) => {
       ) : (
         <div className="grid gap-4">
           {invites.map((guest: any) => (
-            <Card key={guest.id} className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2">
+            <Card key={guest.id} className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{guest.guest_email}</span>
-                    <Badge variant={getStatusColor(guest.status)}>
+                    <span className="font-medium break-all">{guest.guest_email}</span>
+                    <Badge variant={getStatusColor(guest.status)} className="text-xs">
                       {STATUS_LABELS[guest.status as keyof typeof STATUS_LABELS]}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span>
@@ -154,7 +154,7 @@ export const GuestManager = ({ agencyId }: GuestManagerProps) => {
                   </div>
 
                   {guest.guest_event_permissions && guest.guest_event_permissions.length > 0 && (
-                    <div className="flex gap-1 flex-wrap mt-2">
+                    <div className="flex gap-1 flex-wrap mt-1">
                       {guest.guest_event_permissions.map((perm: any) => (
                         <Badge key={perm.id} variant="outline" className="text-xs">
                           {PERMISSION_LABELS[perm.permission_level as keyof typeof PERMISSION_LABELS]}
@@ -164,52 +164,35 @@ export const GuestManager = ({ agencyId }: GuestManagerProps) => {
                   )}
                 </div>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEditPermissions(guest)}>
-                      Editar Permissões
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        const inviteUrl = `${window.location.origin}/accept-invite?token=${guest.invite_token}`;
-                        navigator.clipboard.writeText(inviteUrl);
-                        toast.success('Link de convite copiado!');
-                      }}
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copiar Link de Convite
-                    </DropdownMenuItem>
-                    {guest.status === 'pending' && (
-                      <DropdownMenuItem onClick={() => resendInvite(guest.id)}>
-                        Reenviar Convite
+                <div className="self-end sm:self-start">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditPermissions(guest)}>
+                        Editar Permissões
                       </DropdownMenuItem>
-                    )}
-                    {guest.status !== 'revoked' && (
-                      <DropdownMenuItem
-                        onClick={() => handleRevokeClick(guest)}
-                        className="text-destructive"
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          const inviteUrl = `${window.location.origin}/accept-invite?token=${guest.invite_token}`;
+                          navigator.clipboard.writeText(inviteUrl);
+                          toast.success('Link de convite copiado!');
+                        }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Revogar Acesso
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copiar Link de Convite
                       </DropdownMenuItem>
-                    )}
-                    {/* 🆕 FASE 5: Opção de deletar para convites não aceitos */}
-                    {(guest.status === 'pending' || guest.status === 'expired' || guest.status === 'revoked') && (
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteClick(guest)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Deletar Convite
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      {guest.status === 'pending' && (
+                        <DropdownMenuItem onClick={() => resendInvite(guest.id)}>
+                          Reenviar Convite
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </Card>
           ))}
