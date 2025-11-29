@@ -684,7 +684,7 @@ export default function GuestListManager() {
             {/* TAB: Datas e Valores */}
             <TabsContent value="dates" className="space-y-4">
               {selectedEventData && <>
-                  <div className="flex justify-between items-center flex-wrap gap-4">
+                  <div className="flex-wrap gap-4 items-center justify-between flex flex-col">
                     <h3 className="text-lg font-semibold">
                       Datas e Valores - {selectedEventData.name}
                     </h3>
