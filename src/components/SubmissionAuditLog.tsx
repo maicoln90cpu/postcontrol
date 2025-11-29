@@ -34,7 +34,7 @@ export const SubmissionAuditLog = ({ submissionId }: SubmissionAuditLogProps) =>
       .from('submission_logs')
       .select(`
         *,
-        profiles:changed_by (full_name)
+        profiles:changed_by(full_name)
       `)
       .eq('submission_id', submissionId)
       .order('changed_at', { ascending: false });
