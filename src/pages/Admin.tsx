@@ -1873,31 +1873,31 @@ const Admin = () => {
                         </div>
 
                         {/* Lista de posts do evento */}
-                        <div className="space-y-2 pl-6 border-l-2 border-primary/20">
-                          {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => <Card key={post.id} className="p-4 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="font-bold">{formatPostName(post.post_type, post.post_number)}</h4>
+                        <div className="space-y-2 pl-3 sm:pl-6 border-l-2 border-primary/20">
+                          {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => <Card key={post.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <h4 className="font-bold text-sm sm:text-base break-words">{formatPostName(post.post_type, post.post_number)}</h4>
                                       {/* ✅ ITEM 2: Badge com contador de submissões */}
-                                      <Badge variant="secondary" className="text-xs">
+                                      <Badge variant="secondary" className="text-xs shrink-0">
                                         {submissionsByPost[post.id] || 0} submiss
                                         {(submissionsByPost[post.id] || 0) === 1 ? "ão" : "ões"}
                                       </Badge>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-1">
+                                    <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                                       Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
                                     </p>
                                   </div>
-                                  <div className="flex gap-2">
+                                  <div className="flex gap-2 shrink-0">
                                     <Button variant="ghost" size="sm" onClick={() => {
                             setSelectedPost(post);
                             setPostDialogOpen(true);
                           }} disabled={isReadOnly}>
-                                      <Pencil className="h-4 w-4" />
+                                      <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
                                     </Button>
                                     <Button variant="ghost" size="sm" onClick={() => handleDeletePostClick(post.id)} className="text-destructive hover:text-destructive" disabled={isReadOnly}>
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                     </Button>
                                   </div>
                                 </div>
