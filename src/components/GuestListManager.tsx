@@ -1023,7 +1023,7 @@ export default function GuestListManager() {
                     </div>
                   </Card>
 
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <Card>
                       <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
@@ -1065,73 +1065,139 @@ export default function GuestListManager() {
                     </Card>
                   </div>
 
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]">
-                          <Checkbox checked={selectedRegistrations.length === filteredRegistrations.length && filteredRegistrations.length > 0} onCheckedChange={toggleAllRegistrations} />
-                        </TableHead>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Evento</TableHead>
-                        <TableHead>Data do Evento</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Sexo</TableHead>
-                        <TableHead>Data Inscrição</TableHead>
-                        <TableHead>UTM</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {registrationsLoading ? <TableRow>
-                          <TableCell colSpan={9} className="text-center">
-                            Carregando...
-                          </TableCell>
-                        </TableRow> : paginatedRegistrations.length > 0 ? paginatedRegistrations.map(reg => <TableRow key={reg.id}>
-                            <TableCell>
+                  {/* Tabela Desktop */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">
+                            <Checkbox checked={selectedRegistrations.length === filteredRegistrations.length && filteredRegistrations.length > 0} onCheckedChange={toggleAllRegistrations} />
+                          </TableHead>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Evento</TableHead>
+                          <TableHead>Data do Evento</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Sexo</TableHead>
+                          <TableHead>Data Inscrição</TableHead>
+                          <TableHead>UTM</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {registrationsLoading ? <TableRow>
+                            <TableCell colSpan={9} className="text-center">
+                              Carregando...
+                            </TableCell>
+                          </TableRow> : paginatedRegistrations.length > 0 ? paginatedRegistrations.map(reg => <TableRow key={reg.id}>
+                              <TableCell>
+                                <Checkbox checked={selectedRegistrations.includes(reg.id)} onCheckedChange={() => toggleRegistration(reg.id)} />
+                              </TableCell>
+                              <TableCell className="font-medium">{reg.full_name}</TableCell>
+                              <TableCell>{reg.guest_list_events?.name || "-"}</TableCell>
+                              <TableCell>
+                                {reg.guest_list_dates ? <div className="text-sm">
+                                    <div className="font-medium">
+                                      {format(parseEventDateBRT(reg.guest_list_dates.event_date), "dd/MM/yyyy")}
+                                    </div>
+                                    {reg.guest_list_dates.name && <div className="text-xs text-muted-foreground">
+                                        {reg.guest_list_dates.name}
+                                      </div>}
+                                  </div> : "-"}
+                              </TableCell>
+                              <TableCell>{reg.email}</TableCell>
+                              <TableCell>
+                                <Badge variant={reg.gender === "feminino" ? "default" : "secondary"}>
+                                  {reg.gender}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {format(new Date(reg.registered_at), "dd/MM/yyyy HH:mm", {
+                            locale: ptBR
+                          })}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {reg.utm_source || reg.utm_medium || reg.utm_campaign ? <div>
+                                    {reg.utm_source && <div>Source: {reg.utm_source}</div>}
+                                    {reg.utm_medium && <div>Medium: {reg.utm_medium}</div>}
+                                    {reg.utm_campaign && <div>Campaign: {reg.utm_campaign}</div>}
+                                  </div> : "-"}
+                              </TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteRegistration(reg.id, reg.full_name)} disabled={deleteRegistrationMutation.isPending}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>) : <TableRow>
+                            <TableCell colSpan={9} className="text-center text-muted-foreground">
+                              Nenhum inscrito encontrado com os filtros aplicados
+                            </TableCell>
+                          </TableRow>}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Cards Mobile */}
+                  <div className="md:hidden space-y-3">
+                    {registrationsLoading ? <Card className="p-4">
+                        <p className="text-center text-muted-foreground">Carregando...</p>
+                      </Card> : paginatedRegistrations.length > 0 ? paginatedRegistrations.map(reg => <Card key={reg.id} className="p-3 space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-base leading-snug break-words">
+                                {reg.full_name}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {reg.guest_list_events?.name || "-"}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
                               <Checkbox checked={selectedRegistrations.includes(reg.id)} onCheckedChange={() => toggleRegistration(reg.id)} />
-                            </TableCell>
-                            <TableCell className="font-medium">{reg.full_name}</TableCell>
-                            <TableCell>{reg.guest_list_events?.name || "-"}</TableCell>
-                            <TableCell>
-                              {reg.guest_list_dates ? <div className="text-sm">
-                                  <div className="font-medium">
-                                    {format(parseEventDateBRT(reg.guest_list_dates.event_date), "dd/MM/yyyy")}
-                                  </div>
-                                  {reg.guest_list_dates.name && <div className="text-xs text-muted-foreground">
-                                      {reg.guest_list_dates.name}
-                                    </div>}
-                                </div> : "-"}
-                            </TableCell>
-                            <TableCell>{reg.email}</TableCell>
-                            <TableCell>
-                              <Badge variant={reg.gender === "feminino" ? "default" : "secondary"}>
+                              <Badge variant={reg.gender === "feminino" ? "default" : "secondary"} className="text-[11px]">
                                 {reg.gender}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(reg.registered_at), "dd/MM/yyyy HH:mm", {
-                          locale: ptBR
-                        })}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {reg.utm_source || reg.utm_medium || reg.utm_campaign ? <div>
-                                  {reg.utm_source && <div>Source: {reg.utm_source}</div>}
-                                  {reg.utm_medium && <div>Medium: {reg.utm_medium}</div>}
-                                  {reg.utm_campaign && <div>Campaign: {reg.utm_campaign}</div>}
-                                </div> : "-"}
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm" onClick={() => handleDeleteRegistration(reg.id, reg.full_name)} disabled={deleteRegistrationMutation.isPending}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>) : <TableRow>
-                          <TableCell colSpan={9} className="text-center text-muted-foreground">
-                            Nenhum inscrito encontrado com os filtros aplicados
-                          </TableCell>
-                        </TableRow>}
-                    </TableBody>
-                  </Table>
+                            </div>
+                          </div>
+
+                          {reg.guest_list_dates && <div className="text-xs">
+                              <span className="text-muted-foreground">Data do evento: </span>
+                              <span className="font-medium">
+                                {format(parseEventDateBRT(reg.guest_list_dates.event_date), "dd/MM/yyyy")}
+                              </span>
+                              {reg.guest_list_dates.name && <div className="text-[11px] text-muted-foreground">
+                                  {reg.guest_list_dates.name}
+                                </div>}
+                            </div>}
+
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Email: </span>
+                            <span className="break-words">{reg.email}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs">
+                            <div>
+                              <p className="text-muted-foreground">Data inscrição</p>
+                              <p className="font-medium">
+                                {format(new Date(reg.registered_at), "dd/MM/yyyy HH:mm", {
+                              locale: ptBR
+                            })}
+                              </p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRegistration(reg.id, reg.full_name)} disabled={deleteRegistrationMutation.isPending}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+
+                          {(reg.utm_source || reg.utm_medium || reg.utm_campaign) && <div className="text-[11px] text-muted-foreground space-y-0.5 pt-2 border-t">
+                              {reg.utm_source && <div>Source: {reg.utm_source}</div>}
+                              {reg.utm_medium && <div>Medium: {reg.utm_medium}</div>}
+                              {reg.utm_campaign && <div>Campaign: {reg.utm_campaign}</div>}
+                            </div>}
+                        </Card>) : <Card className="p-6">
+                        <p className="text-center text-muted-foreground">
+                          Nenhum inscrito encontrado com os filtros aplicados
+                        </p>
+                      </Card>}
+                  </div>
 
                   {/* Paginação */}
                   {filteredRegistrations.length > 0 && <div className="flex items-center justify-between mt-4">
