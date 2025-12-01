@@ -17,7 +17,11 @@ import {
   type UserStats
 } from "@/hooks/useUserPerformance";
 
-export const UserPerformance = () => {
+interface UserPerformanceProps {
+  eventId?: string;
+}
+
+export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [searchName, setSearchName] = useState("");
@@ -60,6 +64,14 @@ export const UserPerformance = () => {
   useEffect(() => {
     checkAgencyAndLoadEvents();
   }, []);
+
+  // Se eventId foi passado como prop, usar ele
+  useEffect(() => {
+    if (eventId && eventId !== selectedEventId) {
+      setSelectedEventId(eventId);
+      setHasSearched(true);
+    }
+  }, [eventId]);
 
   // Debounce search name
   useEffect(() => {

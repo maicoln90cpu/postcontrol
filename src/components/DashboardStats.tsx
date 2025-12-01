@@ -61,7 +61,11 @@ interface GenderDistribution {
   count: number;
 }
 
-export const DashboardStats = () => {
+interface DashboardStatsProps {
+  eventId?: string;
+}
+
+export const DashboardStats = ({ eventId }: DashboardStatsProps = {}) => {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -92,6 +96,14 @@ export const DashboardStats = () => {
   useEffect(() => {
     checkAgencyAndLoadEvents();
   }, []);
+
+  // Se eventId foi passado como prop, usar ele
+  useEffect(() => {
+    if (eventId && eventId !== selectedEventId) {
+      setSelectedEventId(eventId);
+      setHasSearched(true);
+    }
+  }, [eventId]);
 
   const checkAgencyAndLoadEvents = async () => {
     const { data: { user } } = await sb.auth.getUser();
