@@ -2131,6 +2131,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_participation_status: {
+        Args: {
+          p_event_id: string
+          p_reason?: string
+          p_status: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       user_can_view_agency: { Args: { _agency_id: string }; Returns: boolean }
     }
     Enums: {
