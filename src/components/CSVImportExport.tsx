@@ -61,11 +61,17 @@ export const CSVImportExport = ({
       .eq('submission_type', 'sale')
       .eq('status', 'approved');
 
-    const userStats: Record<string, { submissionCount: number; eventIds: Set<string>; approvedSales: number }> = {};
+    // Buscar status de participação
+    const { data: participationData } = await supabase
+      .from('user_event_goals')
+      .select('user_id, participation_status, withdrawn_reason, withdrawn_at')
+      .in('user_id', userIds);
+
+    const userStats: Record<string, { submissionCount: number; eventIds: Set<string>; approvedSales: number; participationStatus: string; withdrawnReason: string | null; withdrawnAt: string | null }> = {};
     
     (submissionData || []).forEach((sub: any) => {
       if (!userStats[sub.user_id]) {
-        userStats[sub.user_id] = { submissionCount: 0, eventIds: new Set(), approvedSales: 0 };
+        userStats[sub.user_id] = { submissionCount: 0, eventIds: new Set(), approvedSales: 0, participationStatus: 'active', withdrawnReason: null, withdrawnAt: null };
       }
       userStats[sub.user_id].submissionCount += 1;
       if (sub.posts?.event_id) {
@@ -73,12 +79,20 @@ export const CSVImportExport = ({
       }
     });
 
-    // ✅ ITEM 6: Contar vendas aprovadas
     (approvedSalesData || []).forEach((sale: any) => {
       if (!userStats[sale.user_id]) {
-        userStats[sale.user_id] = { submissionCount: 0, eventIds: new Set(), approvedSales: 0 };
+        userStats[sale.user_id] = { submissionCount: 0, eventIds: new Set(), approvedSales: 0, participationStatus: 'active', withdrawnReason: null, withdrawnAt: null };
       }
       userStats[sale.user_id].approvedSales += 1;
+    });
+
+    (participationData || []).forEach((part: any) => {
+      if (!userStats[part.user_id]) {
+        userStats[part.user_id] = { submissionCount: 0, eventIds: new Set(), approvedSales: 0, participationStatus: 'active', withdrawnReason: null, withdrawnAt: null };
+      }
+      userStats[part.user_id].participationStatus = part.participation_status || 'active';
+      userStats[part.user_id].withdrawnReason = part.withdrawn_reason;
+      userStats[part.user_id].withdrawnAt = part.withdrawn_at;
     });
 
     const formattedProfiles = profilesToExport.map((profile) => ({
@@ -91,7 +105,10 @@ export const CSVImportExport = ({
       faixa_seguidores: profile.followers_range || "Não informado",
       total_submissoes: userStats[profile.id]?.submissionCount || 0,
       total_eventos_participados: userStats[profile.id]?.eventIds.size || 0,
-      total_vendas_aprovadas: userStats[profile.id]?.approvedSales || 0, // ✅ ITEM 6: Nova coluna
+      total_vendas_aprovadas: userStats[profile.id]?.approvedSales || 0,
+      status_participacao: userStats[profile.id]?.participationStatus === 'withdrawn' ? 'Removida' : 'Participando',
+      motivo_remocao: userStats[profile.id]?.withdrawnReason || '',
+      data_remocao: userStats[profile.id]?.withdrawnAt ? new Date(userStats[profile.id].withdrawnAt!).toLocaleString('pt-BR') : '',
       created_at: profile.created_at,
     }));
 
