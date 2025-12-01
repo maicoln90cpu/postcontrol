@@ -25,9 +25,10 @@ interface ReferralData {
 
 interface ReferralAnalyticsProps {
   agencyId: string;
+  eventId?: string;
 }
 
-export const ReferralAnalytics = ({ agencyId }: ReferralAnalyticsProps) => {
+export const ReferralAnalytics = ({ agencyId, eventId }: ReferralAnalyticsProps) => {
   const [loading, setLoading] = useState(true);
   const [referrals, setReferrals] = useState<ReferralData[]>([]);
   const [filteredReferrals, setFilteredReferrals] = useState<ReferralData[]>([]);
@@ -38,6 +39,13 @@ export const ReferralAnalytics = ({ agencyId }: ReferralAnalyticsProps) => {
   useEffect(() => {
     loadReferrals();
   }, [agencyId]);
+
+  // Se eventId foi passado como prop, usar ele
+  useEffect(() => {
+    if (eventId && eventId !== selectedEvent) {
+      setSelectedEvent(eventId);
+    }
+  }, [eventId]);
 
   useEffect(() => {
     if (selectedEvent === "all") {

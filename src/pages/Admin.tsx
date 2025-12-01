@@ -93,6 +93,9 @@ const SlotExhaustionPrediction = lazy(() => import("@/components/SlotExhaustionP
 const SlotExhaustionAlert = lazy(() => import("@/components/SlotExhaustionAlert").then(m => ({
   default: m.SlotExhaustionAlert
 })));
+const ParticipantStatusManager = lazy(() => import("@/components/ParticipantStatusManager").then(m => ({
+  default: m.ParticipantStatusManager
+})));
 
 // FASE 2: Componentes memoizados para performance
 const MemoizedDashboardStats = lazy(() => import("@/components/memoized/MemoizedDashboardStats").then(m => ({
@@ -141,6 +144,15 @@ const Admin = () => {
   const [selectedEventForRanking, setSelectedEventForRanking] = useState<string | null>(null);
   const [reportEventFilter, setReportEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const [selectedReportEventId, setSelectedReportEventId] = useState<string>('');
+  
+  // Estados para filtros das abas de Estatísticas
+  const [statsEventFilter, setStatsEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
+  const [selectedStatsEventId, setSelectedStatsEventId] = useState<string>('');
+  const [perfEventFilter, setPerfEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
+  const [selectedPerfEventId, setSelectedPerfEventId] = useState<string>('');
+  const [analyticsEventFilter, setAnalyticsEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
+  const [selectedAnalyticsEventId, setSelectedAnalyticsEventId] = useState<string>('');
+  
   const [suggestionDialogOpen, setSuggestionDialogOpen] = useState(false); // ✅ ITEM 5 FASE 2
   const [addSubmissionDialogOpen, setAddSubmissionDialogOpen] = useState(false);
   const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
@@ -2316,15 +2328,97 @@ const Admin = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="events-stats">
+              <TabsContent value="events-stats" className="space-y-4">
+                {/* Filtros de Evento */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Filtros</CardTitle>
+                    <CardDescription>Selecione um evento para visualizar as estatísticas</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex gap-4 flex-wrap">
+                    <Select value={statsEventFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => {
+                      setStatsEventFilter(value);
+                      setSelectedStatsEventId('');
+                    }}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Status do evento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Eventos Ativos</SelectItem>
+                        <SelectItem value="inactive">Eventos Inativos</SelectItem>
+                        <SelectItem value="all">Todos os Eventos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={selectedStatsEventId} onValueChange={setSelectedStatsEventId}>
+                      <SelectTrigger className="w-80">
+                        <SelectValue placeholder="Selecione um evento (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os Eventos</SelectItem>
+                        {filteredEvents.filter(e => {
+                          if (statsEventFilter === 'active') return e.is_active;
+                          if (statsEventFilter === 'inactive') return !e.is_active;
+                          return true;
+                        }).map(event => (
+                          <SelectItem key={event.id} value={event.id}>
+                            {event.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <MemoizedDashboardStats />
+                  <MemoizedDashboardStats eventId={selectedStatsEventId || undefined} />
                 </Suspense>
               </TabsContent>
 
-              <TabsContent value="user-performance">
+              <TabsContent value="user-performance" className="space-y-4">
+                {/* Filtros de Evento */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Filtros</CardTitle>
+                    <CardDescription>Selecione um evento para visualizar o desempenho</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex gap-4 flex-wrap">
+                    <Select value={perfEventFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => {
+                      setPerfEventFilter(value);
+                      setSelectedPerfEventId('');
+                    }}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Status do evento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Eventos Ativos</SelectItem>
+                        <SelectItem value="inactive">Eventos Inativos</SelectItem>
+                        <SelectItem value="all">Todos os Eventos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={selectedPerfEventId} onValueChange={setSelectedPerfEventId}>
+                      <SelectTrigger className="w-80">
+                        <SelectValue placeholder="Selecione um evento (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os Eventos</SelectItem>
+                        {filteredEvents.filter(e => {
+                          if (perfEventFilter === 'active') return e.is_active;
+                          if (perfEventFilter === 'inactive') return !e.is_active;
+                          return true;
+                        }).map(event => (
+                          <SelectItem key={event.id} value={event.id}>
+                            {event.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <MemoizedUserPerformance />
+                  <MemoizedUserPerformance eventId={selectedPerfEventId || undefined} />
                 </Suspense>
               </TabsContent>
 
@@ -2412,21 +2506,85 @@ const Admin = () => {
                     {profile?.agency_id && <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                         <GoalAchievedReport agencyId={profile.agency_id} eventId={selectedReportEventId} />
                       </Suspense>}
+
+                    {/* Gerenciador de Status de Participantes */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          👥 Gerenciar Participantes
+                        </CardTitle>
+                        <CardDescription>
+                          Marcar divulgadoras como removidas/ativas do evento
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                          <ParticipantStatusManager 
+                            eventId={selectedReportEventId} 
+                            eventTitle={filteredEvents.find(e => e.id === selectedReportEventId)?.title || ""} 
+                          />
+                        </Suspense>
+                      </CardContent>
+                    </Card>
                   </div>}
 
               </TabsContent>
 
               {/* Nova aba Analytics */}
               <TabsContent value="analytics" className="space-y-6">
-                {profile?.agency_id && <div className="space-y-4">
+                {profile?.agency_id && (
+                  <div className="space-y-4">
                     <h3 className="text-xl font-bold flex items-center gap-2">
                       <MessageSquare className="h-5 w-5" />
                       📊 Analytics de Indicações
                     </h3>
+
+                    {/* Filtros de Evento */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Filtros</CardTitle>
+                        <CardDescription>Selecione um evento para filtrar as indicações</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex gap-4 flex-wrap">
+                        <Select value={analyticsEventFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => {
+                          setAnalyticsEventFilter(value);
+                          setSelectedAnalyticsEventId('');
+                        }}>
+                          <SelectTrigger className="w-48">
+                            <SelectValue placeholder="Status do evento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Eventos Ativos</SelectItem>
+                            <SelectItem value="inactive">Eventos Inativos</SelectItem>
+                            <SelectItem value="all">Todos os Eventos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={selectedAnalyticsEventId} onValueChange={setSelectedAnalyticsEventId}>
+                          <SelectTrigger className="w-80">
+                            <SelectValue placeholder="Selecione um evento (opcional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos os Eventos</SelectItem>
+                            {filteredEvents.filter(e => {
+                              if (analyticsEventFilter === 'active') return e.is_active;
+                              if (analyticsEventFilter === 'inactive') return !e.is_active;
+                              return true;
+                            }).map(event => (
+                              <SelectItem key={event.id} value={event.id}>
+                                {event.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </CardContent>
+                    </Card>
+
                     <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                      <ReferralAnalytics agencyId={profile.agency_id} />
+                      <ReferralAnalytics agencyId={profile.agency_id} eventId={selectedAnalyticsEventId || undefined} />
                     </Suspense>
-                  </div>}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </TabsContent>
