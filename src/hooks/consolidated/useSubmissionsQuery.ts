@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getSubmissions } from '@/services/submissionService';
 import { sb } from '@/lib/supabaseSafe';
+import { logger } from '@/lib/logger';
 
 export interface UseSubmissionsQueryParams {
   eventId?: string;
@@ -56,8 +57,8 @@ export const useSubmissionsQuery = ({
   return useQuery({
     queryKey: ['submissions', eventId, status, postType, searchTerm, isActive, postNumber, userId, agencyId, page, itemsPerPage],
     queryFn: async () => {
-      // 🔴 ITEM 2: Log de performance
-      console.time(`⏱️ [Performance] Fetch Submissions (page ${page})`);
+      // ✅ Fase 1: Performance logging only in dev
+      logger.time(`[Performance] Fetch Submissions (page ${page})`);
       
       // ✅ SPRINT 2: Passa todos os filtros para o backend
       const { data: submissions, count, error } = await getSubmissions({
@@ -73,12 +74,12 @@ export const useSubmissionsQuery = ({
         itemsPerPage
       });
 
-      console.timeEnd(`⏱️ [Performance] Fetch Submissions (page ${page})`);
+      logger.timeEnd(`[Performance] Fetch Submissions (page ${page})`);
       if (error) throw error;
 
       // Se enrichProfiles = true, buscar perfis e contagens
       if (enrichProfiles && submissions && submissions.length > 0) {
-        console.time('⏱️ [Performance] Enrich Profiles');
+        logger.time('[Performance] Enrich Profiles');
         
         const userIds = Array.from(new Set(submissions.map(s => s.user_id)));
 
@@ -92,8 +93,8 @@ export const useSubmissionsQuery = ({
         };
 
         // 🔴 FASE 2: Otimização de contagem com agregação SQL + Batching
-        console.time('⏱️ [Performance] Query Profiles');
-        console.time('⏱️ [Performance] Query Counts');
+        logger.time('[Performance] Query Profiles');
+        logger.time('[Performance] Query Counts');
         
         // Dividir userIds em chunks de 15 para evitar URLs muito longas (400 Bad Request)
         const userIdChunks = chunkArray(userIds, 15);
@@ -108,7 +109,7 @@ export const useSubmissionsQuery = ({
                 .then(res => res.data || [])
             )
           ).then(results => {
-            console.timeEnd('⏱️ [Performance] Query Profiles');
+            logger.timeEnd('[Performance] Query Profiles');
             return results.flat();
           }),
           
@@ -121,7 +122,7 @@ export const useSubmissionsQuery = ({
                 .then(res => res.data || [])
             )
           ).then(results => {
-            console.timeEnd('⏱️ [Performance] Query Counts');
+            logger.timeEnd('[Performance] Query Counts');
             const allSubmissions = results.flat();
             
             // Agregar contagens no client-side
@@ -130,12 +131,12 @@ export const useSubmissionsQuery = ({
               counts[item.user_id] = (counts[item.user_id] || 0) + 1;
             });
             
-            console.log('📊 [Counts] Total por usuário:', counts);
+            logger.info('[Counts] Total por usuário:', counts);
             return counts;
           })
         ]);
         
-        console.timeEnd('⏱️ [Performance] Enrich Profiles');
+        logger.timeEnd('[Performance] Enrich Profiles');
 
         // Criar mapa de perfis por ID
         const profilesById: Record<string, any> = {};

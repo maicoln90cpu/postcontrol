@@ -115,7 +115,8 @@ if (now > endDate) {
     const inviteEmail = invite.guest_email?.toLowerCase().trim();
     
     if (userEmail !== inviteEmail) {
-      toast.error('Este convite foi enviado para ' + invite.guest_email);
+      // ✅ Fase 1: Security fix - generic error message
+      toast.error('Este convite não corresponde ao seu email de login');
       return;
     }
 
