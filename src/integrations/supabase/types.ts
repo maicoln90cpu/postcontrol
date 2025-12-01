@@ -1823,10 +1823,14 @@ export type Database = {
           id: string
           notified: boolean | null
           notified_at: string | null
+          participation_status: string | null
           required_posts: number | null
           required_sales: number | null
           updated_at: string | null
           user_id: string
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+          withdrawn_reason: string | null
         }
         Insert: {
           achieved_requirement_id?: string | null
@@ -1840,10 +1844,14 @@ export type Database = {
           id?: string
           notified?: boolean | null
           notified_at?: string | null
+          participation_status?: string | null
           required_posts?: number | null
           required_sales?: number | null
           updated_at?: string | null
           user_id: string
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+          withdrawn_reason?: string | null
         }
         Update: {
           achieved_requirement_id?: string | null
@@ -1857,10 +1865,14 @@ export type Database = {
           id?: string
           notified?: boolean | null
           notified_at?: string | null
+          participation_status?: string | null
           required_posts?: number | null
           required_sales?: number | null
           updated_at?: string | null
           user_id?: string
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+          withdrawn_reason?: string | null
         }
         Relationships: [
           {
