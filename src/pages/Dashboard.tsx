@@ -43,6 +43,7 @@ import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { GoalProgressBadge } from "@/components/GoalProgressBadge";
 import { DashboardWhatsappButton } from "./Dashboard_WhatsappButton";
 import { shareViaWhatsApp } from "@/lib/phoneUtils";
+import { logger } from "@/lib/logger";
 
 // Lazy loading para componentes pesados
 const TutorialGuide = lazy(() => import("@/components/TutorialGuide"));
@@ -181,9 +182,9 @@ const Dashboard = () => {
   // Variável para última submissão
   const lastSubmission = filteredSubmissions && filteredSubmissions.length > 0 ? filteredSubmissions[0] : null;
 
-  // ✅ Logs de debug do estado do Dashboard
+  // ✅ Fase 1: Debug logs only in dev
   useEffect(() => {
-    console.log("📊 [Dashboard] Estado atual:", {
+    logger.info("[Dashboard] Estado atual:", {
       user: user?.id,
       loading,
       hasData: !!dashboardData,
@@ -263,7 +264,7 @@ const Dashboard = () => {
       const firstAgencyId = dashboardData.userAgencyIds[0];
       sb.from("user_agencies").update({
         last_accessed_at: new Date().toISOString()
-      }).eq("user_id", user.id).eq("agency_id", firstAgencyId).then(() => console.log("✅ last_accessed_at atualizado em background"));
+      }).eq("user_id", user.id).eq("agency_id", firstAgencyId).then(() => logger.info("last_accessed_at atualizado em background"));
     }
   }, [user, dashboardData?.userAgencyIds]);
 
@@ -297,7 +298,7 @@ const Dashboard = () => {
 
       // ✅ ITEM 4: Invalidar cache de avatares para forçar recarga
       if (newData.avatar_url) {
-        console.log('🔄 [Dashboard] Invalidando cache de avatar...');
+        logger.info('[Dashboard] Invalidando cache de avatar...');
 
         // Invalidar query do dashboard para recarregar avatar
         await queryClient.invalidateQueries({
@@ -312,7 +313,7 @@ const Dashboard = () => {
             logo_url: newData.avatar_url
           }).eq('id', profile.agency_id);
           if (!agencyError) {
-            console.log('✅ Logo da agência sincronizado automaticamente com avatar');
+            logger.info('Logo da agência sincronizado automaticamente com avatar');
             // Invalidar cache de agências também
             await queryClient.invalidateQueries({
               queryKey: ['userAgencies', user?.id]
@@ -372,7 +373,7 @@ const Dashboard = () => {
           fileType: "image/jpeg"
         };
         const compressedFile = await imageCompression(file, options);
-        console.log(`📦 Avatar comprimido: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`);
+        logger.info(`Avatar comprimido: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`);
         setAvatarFile(compressedFile);
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -394,7 +395,7 @@ const Dashboard = () => {
     setUploading(true);
     setUploadProgress(0);
     try {
-      console.log("📸 Iniciando upload de avatar...");
+      logger.info("Iniciando upload de avatar...");
       const fileExt = avatarFile.name.split(".").pop();
       const fileName = `avatars/${user.id}_${Date.now()}.${fileExt}`;
 

@@ -76,7 +76,7 @@ export const GuestDashboard = () => {
     eventId: selectedEventId || undefined,
     enrichProfiles: true,
     enabled: !!selectedEventId,
-    itemsPerPage: 999999 // Guest vê todas as submissões dos eventos autorizados
+    itemsPerPage: 50 // ✅ Fase 1: Performance fix - real pagination
   });
 
   // Extrair array de submissions do objeto paginado

@@ -27,6 +27,7 @@ import { sb } from "@/lib/supabaseSafe";
 import { z } from "zod";
 import { EventSlotsCounter } from "@/components/EventSlotsCounter";
 import { EventRequirementsDisplay } from "@/components/EventRequirementsDisplay";
+import { logger } from "@/lib/logger";
 
 interface Post {
   id: string;
@@ -144,15 +145,15 @@ const Submit = () => {
       if (eventContextStr) {
         try {
           const eventContext = JSON.parse(eventContextStr);
-          console.log("🎯 [ITEM 1] Pré-selecionando evento do contexto:", eventContext);
+          logger.info("[ITEM 1] Pré-selecionando evento do contexto:", eventContext);
 
           // Verificar se o evento existe na lista carregada
           const eventExists = events.find((e) => e.id === eventContext.eventId);
           if (eventExists) {
             setSelectedEvent(eventContext.eventId); // ✅ ITEM 1 FASE 1: Auto-seleciona evento (já logado ou não)
-            console.log("✅ [ITEM 1] Evento pré-selecionado:", eventExists.title);
+            logger.info("[ITEM 1] Evento pré-selecionado:", eventExists.title);
           } else {
-            console.warn("⚠️ [ITEM 1] Evento do contexto não encontrado na lista");
+            logger.warn("[ITEM 1] Evento do contexto não encontrado na lista");
           }
 
           // Limpar contexto após usar
@@ -192,7 +193,7 @@ const Submit = () => {
       setSalesCount(0);
       setPostsCount(0); // ✅ ITEM 3: Resetar contador
     }
-    console.log("🔄 submissionType mudou:", submissionType);
+    logger.info("submissionType mudou:", submissionType);
   }, [selectedEvent, submissionType]);
 
   const loadEvents = async () => {

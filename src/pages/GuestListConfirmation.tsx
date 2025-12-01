@@ -7,6 +7,7 @@ import { Instagram, Globe, MessageCircle, Ticket, Share2, CheckCircle, Calendar 
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { shareViaWhatsApp } from "@/lib/phoneUtils";
+import { logger } from "@/lib/logger";
 interface RegistrationData {
   id: string;
   full_name: string;
@@ -73,12 +74,12 @@ export default function GuestListConfirmation() {
   }, [id, agencySlug, eventSlug]);
   const loadConfirmationData = async () => {
     if (!id || !agencySlug || !eventSlug) {
-      console.log('[CONFIRMATION] Link inválido - ID ou Slugs ausentes');
+      logger.warn('[CONFIRMATION] Link inválido - ID ou Slugs ausentes');
       toast.error("Link inválido");
       navigate("/");
       return;
     }
-    console.log('[CONFIRMATION] Carregando dados de confirmação:', {
+    logger.info('[CONFIRMATION] Carregando dados de confirmação:', {
       id,
       agencySlug,
       eventSlug
@@ -90,18 +91,18 @@ export default function GuestListConfirmation() {
         error: regError
       } = await supabase.from("guest_list_registrations").select("*").eq("id", id).maybeSingle();
       if (regError) {
-        console.error('[CONFIRMATION] Erro ao buscar registro:', regError);
+        logger.error('[CONFIRMATION] Erro ao buscar registro:', regError);
         toast.error("Erro ao buscar inscrição");
         navigate("/");
         return;
       }
       if (!regData) {
-        console.log('[CONFIRMATION] Inscrição não encontrada para ID:', id);
+        logger.warn('[CONFIRMATION] Inscrição não encontrada para ID:', id);
         toast.error("Inscrição não encontrada");
         navigate("/");
         return;
       }
-      console.log('[CONFIRMATION] Registro encontrado:', regData);
+      logger.info('[CONFIRMATION] Registro encontrado:', regData);
       setRegistration(regData);
 
       // Buscar dados do evento com validação de agência
@@ -113,18 +114,18 @@ export default function GuestListConfirmation() {
           agencies!inner (slug)
         `).eq("slug", eventSlug).eq("agencies.slug", agencySlug).eq("id", regData.event_id).maybeSingle();
       if (eventError) {
-        console.error('[CONFIRMATION] Erro ao buscar evento:', eventError);
+        logger.error('[CONFIRMATION] Erro ao buscar evento:', eventError);
         toast.error("Erro ao buscar evento");
         navigate("/");
         return;
       }
       if (!eventData) {
-        console.log('[CONFIRMATION] Evento não encontrado para slugs:', agencySlug, eventSlug);
+        logger.warn('[CONFIRMATION] Evento não encontrado para slugs:', agencySlug, eventSlug);
         toast.error("Evento não encontrado");
         navigate("/");
         return;
       }
-      console.log('[CONFIRMATION] Evento encontrado:', eventData);
+      logger.info('[CONFIRMATION] Evento encontrado:', eventData);
       setEvent(eventData);
 
       // Buscar dados da agência
@@ -133,10 +134,10 @@ export default function GuestListConfirmation() {
         error: agencyError
       } = await supabase.from("agencies").select("id, name, logo_url, instagram_url, website_url, whatsapp_group_url, tickets_group_url").eq("id", eventData.agency_id).maybeSingle();
       if (agencyError) {
-        console.error('[CONFIRMATION] Erro ao buscar agência:', agencyError);
+        logger.error('[CONFIRMATION] Erro ao buscar agência:', agencyError);
       }
       if (agencyData) {
-        console.log('[CONFIRMATION] Agência encontrada:', agencyData);
+        logger.info('[CONFIRMATION] Agência encontrada:', agencyData);
         setAgency(agencyData);
       }
 
@@ -146,25 +147,25 @@ export default function GuestListConfirmation() {
         error: dateError
       } = await supabase.from("guest_list_dates").select("id, name, event_date, start_time, end_time, female_price, male_price, image_url, price_type").eq("id", regData.date_id).maybeSingle();
       if (dateError) {
-        console.error('[CONFIRMATION] Erro ao buscar data:', dateError);
+        logger.error('[CONFIRMATION] Erro ao buscar data:', dateError);
       }
       if (dateInfo) {
-        console.log('[CONFIRMATION] Data encontrada:', dateInfo);
+        logger.info('[CONFIRMATION] Data encontrada:', dateInfo);
         setDateData(dateInfo);
       }
 
       // Se temos múltiplas datas do state, usar elas
       if (selectedDatesFromState && selectedDatesFromState.length > 0) {
-        console.log('[CONFIRMATION] Usando datas do state:', selectedDatesFromState);
+        logger.info('[CONFIRMATION] Usando datas do state:', selectedDatesFromState);
         setAllDates(selectedDatesFromState);
       } else if (dateInfo) {
         // Caso contrário, usar apenas a data única
         setAllDates([dateInfo]);
       }
-      console.log('[CONFIRMATION] ✅ Dados carregados com sucesso');
+      logger.info('[CONFIRMATION] ✅ Dados carregados com sucesso');
       // Track analytics - share_click será trackado quando clicar no botão
     } catch (error) {
-      console.error("[CONFIRMATION] ❌ Erro ao carregar confirmação:", error);
+      logger.error("[CONFIRMATION] ❌ Erro ao carregar confirmação:", error);
       toast.error("Erro ao carregar confirmação");
       navigate("/");
     } finally {
