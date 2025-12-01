@@ -25,7 +25,7 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 100%;
 
     --muted: 250 40% 96%;
-    --muted-foreground: 280 20% 50%;
+    --muted-foreground: 280 20% 38%;
 
     --accent: 320 90% 65%;
     --accent-foreground: 0 0% 100%;
@@ -33,18 +33,36 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
     --border: 280 30% 88%;
     --input: 280 30% 92%;
     --ring: 280 85% 60%;
+    --focus-ring: 210 100% 50%;
 
     --radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
 
     --gradient-primary: linear-gradient(135deg, hsl(280 85% 60%) 0%, hsl(320 90% 65%) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(200 95% 50%) 0%, hsl(280 85% 60%) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(280 85% 60%) 0%, hsl(290 90% 70%) 50%, hsl(320 90% 65%) 100%);
     
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08);
+    --shadow-xl: 0 8px 16px rgba(0,0,0,0.06), 0 16px 48px rgba(0,0,0,0.12);
     --shadow-glow: 0 0 40px hsl(280 85% 60% / 0.3);
-    --shadow-card: 0 4px 20px hsl(280 85% 60% / 0.1);
+    --shadow-card: 0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 280 90% 10%;
@@ -74,7 +92,7 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 100%;
 
     --muted: 280 40% 16%;
-    --muted-foreground: 280 20% 65%;
+    --muted-foreground: 280 20% 70%;
 
     --accent: 320 90% 65%;
     --accent-foreground: 0 0% 100%;
@@ -82,16 +100,30 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
     --border: 280 40% 20%;
     --input: 280 40% 18%;
     --ring: 280 85% 60%;
+    --focus-ring: 210 100% 50%;
 
     --gradient-primary: linear-gradient(135deg, hsl(280 85% 60%) 0%, hsl(320 90% 65%) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(200 95% 50%) 0%, hsl(280 85% 60%) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(280 85% 60%) 0%, hsl(290 90% 70%) 50%, hsl(320 90% 65%) 100%);
 
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 2px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 4px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.1);
+    --shadow-xl: 0 8px 16px rgba(0,0,0,0.08), 0 16px 48px rgba(0,0,0,0.14);
     --shadow-glow: 0 0 40px hsl(280 85% 60% / 0.4);
-    --shadow-card: 0 4px 20px hsl(280 85% 60% / 0.15);
+    --shadow-card: 0 2px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
 
     --sidebar-background: 280 40% 12%;
     --sidebar-foreground: 0 0% 98%;
@@ -111,7 +143,10 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   @keyframes gradient-shift {
