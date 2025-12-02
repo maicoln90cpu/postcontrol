@@ -150,7 +150,7 @@ const Admin = () => {
   
   // ✅ FASE 1: Estados globais únicos para filtros de Estatísticas
   const [globalStatsEventFilter, setGlobalStatsEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
-  const [globalSelectedEventId, setGlobalSelectedEventId] = useState<string>('');
+  const [globalSelectedEventId, setGlobalSelectedEventId] = useState<string>('all');
   
   const [suggestionDialogOpen, setSuggestionDialogOpen] = useState(false); // ✅ ITEM 5 FASE 2
   const [addSubmissionDialogOpen, setAddSubmissionDialogOpen] = useState(false);
@@ -2320,7 +2320,7 @@ const Admin = () => {
               <CardContent className="flex gap-4 flex-wrap">
                 <Select value={globalStatsEventFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => {
                   setGlobalStatsEventFilter(value);
-                  setGlobalSelectedEventId(''); // Reset event selection when filter changes
+                  setGlobalSelectedEventId('all'); // Reset event selection when filter changes
                 }}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Status do evento" />
@@ -2337,7 +2337,7 @@ const Admin = () => {
                     <SelectValue placeholder="Selecione um evento (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os Eventos</SelectItem>
+                    <SelectItem value="all">Todos os Eventos</SelectItem>
                     {filteredEvents.filter(e => {
                       if (globalStatsEventFilter === 'active') return e.is_active;
                       if (globalStatsEventFilter === 'inactive') return !e.is_active;
@@ -2373,13 +2373,13 @@ const Admin = () => {
 
               <TabsContent value="events-stats" className="space-y-4">
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <MemoizedDashboardStats eventId={globalSelectedEventId || undefined} />
+                  <MemoizedDashboardStats eventId={globalSelectedEventId === 'all' ? undefined : globalSelectedEventId} />
                 </Suspense>
               </TabsContent>
 
               <TabsContent value="user-performance" className="space-y-4">
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <MemoizedUserPerformance eventId={globalSelectedEventId || undefined} />
+                  <MemoizedUserPerformance eventId={globalSelectedEventId === 'all' ? undefined : globalSelectedEventId} />
                 </Suspense>
               </TabsContent>
 
@@ -2501,7 +2501,7 @@ const Admin = () => {
                     </h3>
 
                     <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                      <ReferralAnalytics agencyId={currentAgency.id} eventId={globalSelectedEventId || undefined} />
+                      <ReferralAnalytics agencyId={currentAgency.id} eventId={globalSelectedEventId === 'all' ? undefined : globalSelectedEventId} />
                     </Suspense>
                   </div>
                 )}
