@@ -24,11 +24,14 @@ import {
 import { toast } from "sonner";
 import { UserX, UserCheck, Filter } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePagination } from "@/hooks/usePagination";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 interface Participant {
   user_id: string;
   full_name: string;
   avatar_url: string | null;
+  phone: string | null;
   current_posts: number;
   current_sales: number;
   required_posts: number;
@@ -93,7 +96,7 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
     const userIds = goalsData.map(g => g.user_id);
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, full_name, avatar_url, instagram")
+      .select("id, full_name, avatar_url, phone, instagram")
       .in("id", userIds);
 
     if (profilesError) {
@@ -111,6 +114,7 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
         user_id: g.user_id,
         full_name: profile?.full_name || "Sem nome",
         avatar_url: profile?.avatar_url || null,
+        phone: profile?.phone || null,
         current_posts: g.current_posts,
         current_sales: g.current_sales,
         required_posts: g.required_posts,
@@ -145,7 +149,7 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
       filtered = filtered.filter(p => !p.goal_achieved);
     }
 
-    // Aplicar busca por nome
+    // Aplicar busca por nome em TODOS os dados (antes da paginação)
     if (searchTerm) {
       filtered = filtered.filter(p =>
         p.full_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -154,6 +158,21 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
 
     setFilteredParticipants(filtered);
   }, [filter, searchTerm, participants]);
+
+  // Paginação aplicada aos dados já filtrados
+  const {
+    paginatedItems: paginatedParticipants,
+    currentPage,
+    totalPages,
+    goToPage,
+    nextPage,
+    previousPage,
+    hasNextPage,
+    hasPreviousPage,
+  } = usePagination({
+    items: filteredParticipants,
+    itemsPerPage: 30,
+  });
 
   const handleStatusChange = async (newStatus: "active" | "withdrawn") => {
     if (!selectedParticipant) return;
@@ -231,65 +250,87 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
         ) : filteredParticipants.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum participante encontrado</p>
         ) : (
-          <div className="space-y-2">
-            {filteredParticipants.map((participant) => (
-              <div
-                key={participant.user_id}
-                className={`flex items-center justify-between p-4 border rounded-lg ${
-                  participant.participation_status === "withdrawn"
-                    ? "opacity-60 bg-muted/50"
-                    : ""
-                }`}
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <Avatar>
-                    <AvatarImage src={participant.avatar_url || undefined} />
-                    <AvatarFallback>
-                      {participant.full_name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="font-medium">{participant.full_name}</p>
-                    <div className="flex gap-3 text-xs text-muted-foreground">
-                      <span>Posts: {participant.current_posts}/{participant.required_posts}</span>
-                      <span>Vendas: {participant.current_sales}/{participant.required_sales}</span>
+          <>
+            <div className="space-y-2">
+              {paginatedParticipants.map((participant) => (
+                <div
+                  key={participant.user_id}
+                  className={`flex items-center justify-between p-4 border rounded-lg ${
+                    participant.participation_status === "withdrawn"
+                      ? "opacity-60 bg-muted/50"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <Avatar>
+                      <AvatarImage src={participant.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {participant.full_name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-medium">{participant.full_name}</p>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex gap-3 text-xs text-muted-foreground">
+                          <span>Posts: {participant.current_posts}/{participant.required_posts}</span>
+                          <span>Vendas: {participant.current_sales}/{participant.required_sales}</span>
+                        </div>
+                        {participant.phone && (
+                          <p className="text-xs text-muted-foreground">
+                            📱 {participant.phone}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {participant.goal_achieved && (
+                        <Badge variant="default" className="bg-green-600">Meta Batida</Badge>
+                      )}
+                      {participant.participation_status === "withdrawn" ? (
+                        <Badge variant="destructive">Removida</Badge>
+                      ) : (
+                        <Badge variant="secondary">Participando</Badge>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {participant.goal_achieved && (
-                      <Badge variant="default" className="bg-green-600">Meta Batida</Badge>
-                    )}
-                    {participant.participation_status === "withdrawn" ? (
-                      <Badge variant="destructive">Removida</Badge>
+                  <div className="ml-4">
+                    {participant.participation_status === "active" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDialog(participant, "withdrawn")}
+                      >
+                        <UserX className="h-4 w-4 mr-2" />
+                        Remover
+                      </Button>
                     ) : (
-                      <Badge variant="secondary">Participando</Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDialog(participant, "active")}
+                      >
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Reativar
+                      </Button>
                     )}
                   </div>
                 </div>
-                <div className="ml-4">
-                  {participant.participation_status === "active" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDialog(participant, "withdrawn")}
-                    >
-                      <UserX className="h-4 w-4 mr-2" />
-                      Remover
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDialog(participant, "active")}
-                    >
-                      <UserCheck className="h-4 w-4 mr-2" />
-                      Reativar
-                    </Button>
-                  )}
-                </div>
+              ))}
+            </div>
+
+            {/* Controles de Paginação */}
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                  hasNextPage={hasNextPage}
+                  hasPreviousPage={hasPreviousPage}
+                />
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
