@@ -195,7 +195,7 @@ export const DateSelector = ({
                         
                         {date.important_info && <div className="mt-3 text-sm font-medium text-primary whitespace-pre-wrap gap-2 flex items-center justify-start">
                             <Music className="h-4 w-4 mt-0.5" />
-                            <span className="mx-0 my-[10px] text-primary-foreground">
+                            <span className="mx-0 my-[10px] text-popover-foreground bg-white">
                               {date.important_info}
                             </span>
                           </div>}
