@@ -145,8 +145,6 @@ const Admin = () => {
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [selectedEventForPrediction, setSelectedEventForPrediction] = useState<string | null>(null);
   const [selectedEventForRanking, setSelectedEventForRanking] = useState<string | null>(null);
-  const [reportEventFilter, setReportEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
-  const [selectedReportEventId, setSelectedReportEventId] = useState<string>('');
   
   // ✅ FASE 1: Estados globais únicos para filtros de Estatísticas
   const [globalStatsEventFilter, setGlobalStatsEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
@@ -2384,48 +2382,10 @@ const Admin = () => {
               </TabsContent>
 
               <TabsContent value="reports" className="space-y-6">
-                {/* Filtros Globais de Relatórios */}
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle>Filtros</CardTitle>
-                    <CardDescription>Selecione um evento para visualizar todos os relatórios</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex gap-4 flex-wrap">
-                    <Select value={reportEventFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => {
-                    setReportEventFilter(value);
-                    setSelectedReportEventId('');
-                  }}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Status do evento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Eventos Ativos</SelectItem>
-                        <SelectItem value="inactive">Eventos Inativos</SelectItem>
-                        <SelectItem value="all">Todos os Eventos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
-                    <Select value={selectedReportEventId} onValueChange={setSelectedReportEventId}>
-                      <SelectTrigger className="w-80">
-                        <SelectValue placeholder="Selecione um evento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredEvents.filter(e => {
-                        if (reportEventFilter === 'active') return e.is_active;
-                        if (reportEventFilter === 'inactive') return !e.is_active;
-                        return true;
-                      }).map(event => <SelectItem key={event.id} value={event.id}>
-                              {event.title}
-                            </SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </CardContent>
-                </Card>
-
                 {/* Renderizar relatórios apenas quando evento estiver selecionado */}
-                {selectedReportEventId && <div className="space-y-6">
+                {globalSelectedEventId !== 'all' && <div className="space-y-6">
                     {/* Slot Exhaustion Prediction */}
-                    {filteredEvents.find(e => e.id === selectedReportEventId)?.numero_de_vagas && <Card>
+                    {filteredEvents.find(e => e.id === globalSelectedEventId)?.numero_de_vagas && <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
                             🤖 Previsão Detalhada de Esgotamento (IA)
@@ -2436,7 +2396,7 @@ const Admin = () => {
                         </CardHeader>
                         <CardContent>
                           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                            <SlotExhaustionPrediction eventId={selectedReportEventId} eventTitle={filteredEvents.find(e => e.id === selectedReportEventId)?.title || ""} />
+                            <SlotExhaustionPrediction eventId={globalSelectedEventId} eventTitle={filteredEvents.find(e => e.id === globalSelectedEventId)?.title || ""} />
                           </Suspense>
                         </CardContent>
                       </Card>}
@@ -2453,19 +2413,19 @@ const Admin = () => {
                       </CardHeader>
                       <CardContent>
                         <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-                          <TopPromotersRanking eventId={selectedReportEventId} limit={10} />
+                          <TopPromotersRanking eventId={globalSelectedEventId} limit={10} />
                         </Suspense>
                       </CardContent>
                     </Card>
 
                     {/* Relatório Detalhado de Metas por Tipo */}
                     {profile?.agency_id && <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                        <DetailedGoalsReport agencyId={profile.agency_id} eventId={selectedReportEventId} />
+                        <DetailedGoalsReport agencyId={profile.agency_id} eventId={globalSelectedEventId} />
                       </Suspense>}
 
                     {/* Divulgadoras que bateram meta */}
                     {profile?.agency_id && <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                        <GoalAchievedReport agencyId={profile.agency_id} eventId={selectedReportEventId} />
+                        <GoalAchievedReport agencyId={profile.agency_id} eventId={globalSelectedEventId} />
                       </Suspense>}
 
                     {/* Gerenciador de Status de Participantes */}
@@ -2481,8 +2441,8 @@ const Admin = () => {
                       <CardContent>
                         <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                           <ParticipantStatusManager 
-                            eventId={selectedReportEventId} 
-                            eventTitle={filteredEvents.find(e => e.id === selectedReportEventId)?.title || ""} 
+                            eventId={globalSelectedEventId} 
+                            eventTitle={filteredEvents.find(e => e.id === globalSelectedEventId)?.title || ""} 
                           />
                         </Suspense>
                       </CardContent>
