@@ -186,7 +186,7 @@ export const DateSelector = ({
                                 <span className="text-xs text-destructive-foreground">
                                   {priceInfo.label}
                                 </span>
-                                <span className="font-semibold text-base text-left px-0 py-0 text-[#d9d4d4]">
+                                <span className="font-semibold text-base text-left px-0 py-0 text-popover-foreground">
                                   {priceInfo.price}
                                 </span>
                               </div>)}
