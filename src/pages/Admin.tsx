@@ -22,7 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 // 🆕 SPRINT 2 + CACHE: Importar hook de contadores com cache
 import { useSubmissionCountsByEvent, useSubmissionCountsByPost, useApprovedSalesCount } from "@/hooks/useSubmissionCounters";
-import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard // ✅ ITEM 1
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
@@ -77,6 +77,9 @@ const DetailedGoalsReport = lazy(() => import("@/components/DetailedGoalsReport"
 })));
 const ReferralAnalytics = lazy(() => import("@/components/ReferralAnalytics").then(m => ({
   default: m.ReferralAnalytics
+})));
+const UTMLinkGenerator = lazy(() => import("@/components/UTMLinkGenerator").then(m => ({
+  default: m.UTMLinkGenerator
 })));
 const GoalAchievedReport = lazy(() => import("@/components/GoalAchievedReport").then(m => ({
   default: m.GoalAchievedReport
@@ -2350,7 +2353,7 @@ const Admin = () => {
             </Card>
 
             <Tabs defaultValue="events-stats" className="space-y-6">
-              <TabsList className="grid w-full max-w-3xl grid-cols-1 sm:grid-cols-4 gap-1 h-auto">
+              <TabsList className="grid w-full max-w-4xl grid-cols-1 sm:grid-cols-5 gap-1 h-auto">
                 <TabsTrigger value="events-stats" className="text-xs sm:text-sm whitespace-normal py-2">
                   Estatísticas por Evento
                 </TabsTrigger>
@@ -2362,6 +2365,9 @@ const Admin = () => {
                 </TabsTrigger>
                 <TabsTrigger value="analytics" className="text-xs sm:text-sm whitespace-normal py-2">
                   Analytics
+                </TabsTrigger>
+                <TabsTrigger value="utm-generator" className="text-xs sm:text-sm whitespace-normal py-2">
+                  Gerador UTM
                 </TabsTrigger>
               </TabsList>
 
@@ -2499,6 +2505,13 @@ const Admin = () => {
                     </Suspense>
                   </div>
                 )}
+              </TabsContent>
+
+              {/* Nova aba Gerador UTM */}
+              <TabsContent value="utm-generator" className="space-y-6">
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <UTMLinkGenerator />
+                </Suspense>
               </TabsContent>
             </Tabs>
           </TabsContent>
