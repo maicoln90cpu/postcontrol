@@ -56,7 +56,9 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
 
   const fetchParticipants = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    // Step 1: Buscar user_event_goals
+    const { data: goalsData, error: goalsError } = await supabase
       .from("user_event_goals")
       .select(`
         user_id,
@@ -67,36 +69,61 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
         goal_achieved,
         participation_status,
         withdrawn_reason,
-        withdrawn_at,
-        profiles:user_id (
-          full_name,
-          avatar_url
-        )
+        withdrawn_at
       `)
       .eq("event_id", eventId)
       .order("goal_achieved", { ascending: false })
       .order("current_posts", { ascending: false });
 
-    if (error) {
+    if (goalsError) {
       toast.error("Erro ao carregar participantes");
-      console.error(error);
-    } else {
-      const formatted = (data || []).map((p: any) => ({
-        user_id: p.user_id,
-        full_name: p.profiles?.full_name || "Sem nome",
-        avatar_url: p.profiles?.avatar_url || null,
-        current_posts: p.current_posts,
-        current_sales: p.current_sales,
-        required_posts: p.required_posts,
-        required_sales: p.required_sales,
-        goal_achieved: p.goal_achieved,
-        participation_status: p.participation_status || "active",
-        withdrawn_reason: p.withdrawn_reason,
-        withdrawn_at: p.withdrawn_at,
-      }));
-      setParticipants(formatted);
-      setFilteredParticipants(formatted);
+      console.error(goalsError);
+      setLoading(false);
+      return;
     }
+
+    if (!goalsData || goalsData.length === 0) {
+      setParticipants([]);
+      setFilteredParticipants([]);
+      setLoading(false);
+      return;
+    }
+
+    // Step 2: Buscar profiles correspondentes
+    const userIds = goalsData.map(g => g.user_id);
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url, instagram")
+      .in("id", userIds);
+
+    if (profilesError) {
+      console.error("Erro ao carregar perfis:", profilesError);
+    }
+
+    // Step 3: Combinar dados manualmente
+    const profilesMap = new Map(
+      (profilesData || []).map(p => [p.id, p])
+    );
+
+    const formatted = goalsData.map((g) => {
+      const profile = profilesMap.get(g.user_id);
+      return {
+        user_id: g.user_id,
+        full_name: profile?.full_name || "Sem nome",
+        avatar_url: profile?.avatar_url || null,
+        current_posts: g.current_posts,
+        current_sales: g.current_sales,
+        required_posts: g.required_posts,
+        required_sales: g.required_sales,
+        goal_achieved: g.goal_achieved,
+        participation_status: g.participation_status || "active",
+        withdrawn_reason: g.withdrawn_reason,
+        withdrawn_at: g.withdrawn_at,
+      };
+    });
+
+    setParticipants(formatted);
+    setFilteredParticipants(formatted);
     setLoading(false);
   };
 
