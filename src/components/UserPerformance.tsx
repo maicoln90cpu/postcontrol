@@ -22,12 +22,9 @@ interface UserPerformanceProps {
 }
 
 export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
-  const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [searchName, setSearchName] = useState("");
   const [searchPhone, setSearchPhone] = useState("");
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
   const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(false);
   const [debouncedSearchName, setDebouncedSearchName] = useState("");
   const [debouncedSearchPhone, setDebouncedSearchPhone] = useState("");
@@ -35,22 +32,22 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
   // Buscar eventos com cache
   const { data: events = [], isLoading: eventsLoading } = usePerformanceEvents(isMasterAdmin, currentAgencyId);
 
-  // Buscar estatísticas com cache (só quando usuário clicar em buscar)
-  const { data: allStatsData = [], isLoading: allStatsLoading, refetch: refetchAllStats } = useAllUserStats(
+  // Buscar estatísticas com cache - carregar automaticamente quando eventId mudar
+  const { data: allStatsData = [], isLoading: allStatsLoading } = useAllUserStats(
     currentAgencyId,
     isMasterAdmin,
-    false // disabled por padrão
+    eventId === "all" && !!eventId
   );
 
-  const { data: eventStatsData = [], isLoading: eventStatsLoading, refetch: refetchEventStats } = useEventUserStats(
-    selectedEventId,
+  const { data: eventStatsData = [], isLoading: eventStatsLoading } = useEventUserStats(
+    eventId === "all" ? "" : (eventId || ""),
     currentAgencyId,
     isMasterAdmin,
-    false // disabled por padrão
+    !!eventId && eventId !== "all"
   );
 
   const loading = eventsLoading || allStatsLoading || eventStatsLoading;
-  const userStats = selectedEventId === "all" ? allStatsData : eventStatsData;
+  const userStats = eventId === "all" ? allStatsData : eventStatsData;
 
   // IMPORTANTE: filteredStats DEVE vir ANTES de qualquer early return
   const filteredStats = useMemo(() => {
@@ -64,14 +61,6 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
   useEffect(() => {
     checkAgencyAndLoadEvents();
   }, []);
-
-  // Se eventId foi passado como prop, usar ele
-  useEffect(() => {
-    if (eventId && eventId !== selectedEventId) {
-      setSelectedEventId(eventId);
-      setHasSearched(true);
-    }
-  }, [eventId]);
 
   // Debounce search name
   useEffect(() => {
@@ -111,33 +100,12 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
 
     const agencyId = agencyResult.data?.id || null;
     setCurrentAgencyId(agencyId);
-
-    // Setar selectedEventId inicial
-    if (events.length > 0) {
-      setSelectedEventId("all");
-    }
-  };
-
-  const handleSearch = async () => {
-    if (!selectedEventId) {
-      toast.error("Por favor, selecione um evento antes de buscar.");
-      return;
-    }
-    
-    setHasSearched(true);
-    
-    // Trigger refetch com base no selectedEventId
-    if (selectedEventId === "all") {
-      await refetchAllStats();
-    } else {
-      await refetchEventStats();
-    }
   };
 
   const exportToExcel = () => {
-    const eventName = selectedEventId === "all" 
+    const eventName = eventId === "all" 
       ? "Todos os Eventos" 
-      : events.find(e => e.id === selectedEventId)?.title || "Evento";
+      : events.find(e => e.id === eventId)?.title || "Evento";
 
     const worksheet = XLSX.utils.json_to_sheet(
       filteredStats.map(stat => ({
@@ -172,7 +140,7 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
 
  const exportToPDF = () => {
   const doc = new jsPDF();
-  const eventName = events.find(e => e.id === selectedEventId)?.title || 'Todos';
+  const eventName = events.find(e => e.id === eventId)?.title || 'Todos';
   
   // 🔧 CORREÇÃO 4: Função melhorada para remover acentos E emojis
   const cleanTextForPDF = (str: string) => {
@@ -231,7 +199,7 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
   });
 };
 
-  if (loading && !hasSearched) {
+  if (loading && !eventId) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -241,13 +209,10 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
             <Skeleton className="h-10 w-24" />
           </div>
         </div>
-        <Card className="p-6">
-          <Skeleton className="h-48 w-full" />
-        </Card>
         <div className="grid gap-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
         </div>
       </div>
     );
@@ -258,7 +223,7 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="text-2xl font-bold">Desempenho por Usuário</h2>
-          {hasSearched && (
+          {eventId && (
             <div className="flex flex-wrap gap-2">
               <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2">
                 <FileSpreadsheet className="w-4 h-4" />
@@ -272,58 +237,8 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
           )}
         </div>
         
-        {/* Filtros sempre visíveis */}
-        <Card className="p-6">
-          <p className="text-sm text-muted-foreground mb-4">
-            📊 Selecione os filtros abaixo e clique em "Buscar" para carregar os dados de desempenho dos usuários.
-          </p>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[240px]">
-                <label className="text-sm font-medium mb-2 block">Evento</label>
-                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um evento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os Eventos</SelectItem>
-                    {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.title} {!event.is_active && '(Inativo)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1 min-w-[180px]">
-                <label className="text-sm font-medium mb-2 block">Status</label>
-                <Select value={activeFilter} onValueChange={setActiveFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os status</SelectItem>
-                    <SelectItem value="active">Somente ativos</SelectItem>
-                    <SelectItem value="inactive">Somente inativos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button onClick={handleSearch} disabled={!selectedEventId} className="w-full md:w-auto">
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Carregando...
-                </>
-              ) : (
-                'Buscar Dados'
-              )}
-            </Button>
-          </div>
-        </Card>
-
-        {/* Filtros de busca - só aparecem após buscar */}
-        {hasSearched && !loading && (
+        {/* Filtros de busca - só aparecem quando tem dados */}
+        {eventId && (
           <div className="flex gap-2">
             <Input 
               placeholder="Filtrar por nome..." 
@@ -341,18 +256,20 @@ export const UserPerformance = ({ eventId }: UserPerformanceProps = {}) => {
         )}
       </div>
 
-      {/* Dados - só aparecem após buscar */}
-      {!hasSearched ? (
+      {/* Dados */}
+      {!eventId ? (
         <Card className="p-12 text-center">
           <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Selecione os filtros e clique em Buscar</h3>
+          <h3 className="text-lg font-semibold mb-2">Selecione um evento nos filtros globais</h3>
           <p className="text-muted-foreground">
-            Escolha um evento e clique no botão "Buscar Dados" para visualizar o desempenho dos usuários.
+            Use os filtros no topo da aba Estatísticas para carregar os dados.
           </p>
         </Card>
       ) : loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="grid gap-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
         </div>
       ) : (
         <div className="grid gap-4">

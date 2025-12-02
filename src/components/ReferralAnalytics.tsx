@@ -32,7 +32,6 @@ export const ReferralAnalytics = ({ agencyId, eventId }: ReferralAnalyticsProps)
   const [loading, setLoading] = useState(true);
   const [referrals, setReferrals] = useState<ReferralData[]>([]);
   const [filteredReferrals, setFilteredReferrals] = useState<ReferralData[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<string>("all");
   const [events, setEvents] = useState<{ id: string; title: string }[]>([]);
   const { toast } = useToast();
 
@@ -40,20 +39,14 @@ export const ReferralAnalytics = ({ agencyId, eventId }: ReferralAnalyticsProps)
     loadReferrals();
   }, [agencyId]);
 
-  // Se eventId foi passado como prop, usar ele
+  // Filtrar automaticamente quando eventId mudar
   useEffect(() => {
-    if (eventId && eventId !== selectedEvent) {
-      setSelectedEvent(eventId);
-    }
-  }, [eventId]);
-
-  useEffect(() => {
-    if (selectedEvent === "all") {
+    if (eventId === "all") {
       setFilteredReferrals(referrals);
-    } else {
-      setFilteredReferrals(referrals.filter(r => r.event_id === selectedEvent));
+    } else if (eventId) {
+      setFilteredReferrals(referrals.filter(r => r.event_id === eventId));
     }
-  }, [selectedEvent, referrals]);
+  }, [eventId, referrals]);
 
   const loadReferrals = async () => {
     try {
@@ -126,9 +119,13 @@ export const ReferralAnalytics = ({ agencyId, eventId }: ReferralAnalyticsProps)
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
@@ -174,25 +171,10 @@ export const ReferralAnalytics = ({ agencyId, eventId }: ReferralAnalyticsProps)
         </Card>
       </div>
 
-      {/* Filtro por Evento */}
+      {/* Histórico de Indicações */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Histórico de Indicações</h3>
-          <div className="w-64">
-            <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por evento..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Eventos</SelectItem>
-                {events.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         {filteredReferrals.length === 0 ? (
@@ -206,7 +188,7 @@ export const ReferralAnalytics = ({ agencyId, eventId }: ReferralAnalyticsProps)
             <div className="mb-4">
               <Badge variant="outline" className="text-sm">
                 {filteredTotal} {filteredTotal === 1 ? "indicação" : "indicações"}
-                {selectedEvent !== "all" && " neste evento"}
+                {eventId && eventId !== "all" && " neste evento"}
               </Badge>
             </div>
             <div className="border rounded-lg overflow-hidden">
