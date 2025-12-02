@@ -1249,11 +1249,15 @@ const Admin = () => {
       });
 
       // Buscar status de participação do evento
-      const { data: participationData } = await sb
+      const { data: participationData, error: participationError } = await sb
         .from("user_event_goals")
         .select("user_id, participation_status, goal_achieved")
         .eq("event_id", submissionEventFilter)
         .in("user_id", userIds);
+
+      if (participationError) {
+        console.error("Erro ao buscar dados de participação:", participationError);
+      }
 
       // Criar map de participação
       const participationMap: Record<string, any> = {};
