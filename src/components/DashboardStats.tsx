@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { sb } from "@/lib/supabaseSafe";
 import { Trophy, Users, Target, TrendingUp, FileSpreadsheet, FileText, AlertTriangle, CheckCircle, Clock, Award, BarChart3, PieChart, Calendar } from "lucide-react";
 import { BarChart, Bar, PieChart as RePieChart, Pie, LineChart, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -66,9 +67,6 @@ interface DashboardStatsProps {
 }
 
 export const DashboardStats = ({ eventId }: DashboardStatsProps = {}) => {
-  const [events, setEvents] = useState<any[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [eventStats, setEventStats] = useState<EventStats[]>([]);
   const [userStats, setUserStats] = useState<UserStats[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineData[]>([]);
@@ -77,8 +75,8 @@ export const DashboardStats = ({ eventId }: DashboardStatsProps = {}) => {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportType, setExportType] = useState<'excel' | 'pdf'>('excel');
   const [currentAgencyId, setCurrentAgencyId] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
   const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(false);
+  const [events, setEvents] = useState<any[]>([]);
   const [selectedSections, setSelectedSections] = useState({
     essentialData: true,
     participationMetrics: true,
@@ -97,11 +95,10 @@ export const DashboardStats = ({ eventId }: DashboardStatsProps = {}) => {
     checkAgencyAndLoadEvents();
   }, []);
 
-  // Se eventId foi passado como prop, usar ele
+  // Carregar dados automaticamente quando eventId mudar
   useEffect(() => {
-    if (eventId && eventId !== selectedEventId) {
-      setSelectedEventId(eventId);
-      setHasSearched(true);
+    if (eventId) {
+      loadStats();
     }
   }, [eventId]);
 
@@ -147,9 +144,6 @@ export const DashboardStats = ({ eventId }: DashboardStatsProps = {}) => {
       .order('created_at', { ascending: false });
     
     setEvents(data || []);
-    if (data && data.length > 0) {
-      setSelectedEventId("all");
-    }
   };
 
   const loadEvents = async (agencyId: string) => {
@@ -159,31 +153,19 @@ export const DashboardStats = ({ eventId }: DashboardStatsProps = {}) => {
       .eq('agency_id', agencyId)
       .order('created_at', { ascending: false });
     
-    console.log('📊 Loaded events for agency:', data?.length || 0);
     setEvents(data || []);
-    if (data && data.length > 0) {
-      setSelectedEventId("all");
-    }
-  };
-
-  const handleSearch = () => {
-    if (!selectedEventId) {
-      toast.error("Por favor, selecione um evento antes de buscar.");
-      return;
-    }
-    setHasSearched(true);
-    loadStats();
   };
 
 const loadStats = async () => {
+  if (!eventId) return;
+  
   setLoading(true);
   try {
     // ✅ Verificar cache primeiro
-    const cacheKey = `stats_${selectedEventId}`;
+    const cacheKey = `stats_${eventId}`;
     const cached = getCachedStats(cacheKey);
     
     if (cached) {
-      console.log('📦 Usando dados em cache');
       setEventStats(cached.eventStats || []);
       setUserStats(cached.userStats || []);
       setTimelineData(cached.timelineData || []);
@@ -193,10 +175,10 @@ const loadStats = async () => {
     }
 
     // ✅ Carregar dados em paralelo quando possível
-    if (selectedEventId === "all") {
+    if (eventId === "all") {
       await loadAllStats();
     } else {
-      await loadEventSpecificStats(selectedEventId);
+      await loadEventSpecificStats(eventId);
     }
     
     // ✅ Salvar no cache
@@ -252,9 +234,9 @@ const setCachedStats = (key: string, data: any) => {
   };
 
   const exportEventStatsToExcel = () => {
-    const eventName = selectedEventId === "all" 
+    const eventName = eventId === "all" 
       ? "Todos os Eventos" 
-      : events.find(e => e.id === selectedEventId)?.title || "Evento";
+      : events.find(e => e.id === eventId)?.title || "Evento";
 
     const workbook = XLSX.utils.book_new();
     workbook.Workbook = { Views: [{ RTL: false }] };
@@ -374,9 +356,9 @@ const setCachedStats = (key: string, data: any) => {
   };
 
   const exportEventStatsToPDF = async () => {
-    const eventName = selectedEventId === "all" 
+    const eventName = eventId === "all" 
       ? "Todos os Eventos" 
-      : events.find(e => e.id === selectedEventId)?.title || "Evento";
+      : events.find(e => e.id === eventId)?.title || "Evento";
 
     toast.info("Gerando PDF com gráficos...");
 
@@ -692,15 +674,10 @@ const setCachedStats = (key: string, data: any) => {
     }
 
     // Estatísticas por evento
-    let query = sb.from('events').select('*').eq('agency_id', currentAgencyId);
-    
-    if (activeFilter === "active") {
-      query = query.eq('is_active', true);
-    } else if (activeFilter === "inactive") {
-      query = query.eq('is_active', false);
-    }
-    
-    const { data: eventsData } = await query;
+    const { data: eventsData } = await sb
+      .from('events')
+      .select('*')
+      .eq('agency_id', currentAgencyId);
     console.log('📊 Loading stats for events:', eventsData?.length || 0);
 
     const eventStatsData: EventStats[] = [];
@@ -1098,8 +1075,7 @@ const setCachedStats = (key: string, data: any) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-bold">📊 Dashboard de Desempenho Completo</h2>
-        {hasSearched && (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
             <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
               <DialogTrigger asChild>
                 <Button 
@@ -1262,72 +1238,26 @@ const setCachedStats = (key: string, data: any) => {
             PDF Completo
           </Button>
         </div>
-        )}
       </div>
-      
-      {/* Filtros sempre visíveis */}
-      <Card className="p-6">
-        <p className="text-sm text-muted-foreground mb-4">
-          📊 Selecione os filtros abaixo e clique em "Buscar" para carregar as estatísticas do evento.
-        </p>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[280px]">
-              <label className="text-sm font-medium mb-2 block">Evento</label>
-              <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Eventos</SelectItem>
-                  {events.map((event) => (
-                    <SelectItem key={event.id} value={event.id}>
-                      {event.title} {!event.is_active && '(Inativo)'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium mb-2 block">Status</label>
-              <Select value={activeFilter} onValueChange={setActiveFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filtrar status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="active">Somente ativos</SelectItem>
-                  <SelectItem value="inactive">Somente inativos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <Button onClick={handleSearch} disabled={!selectedEventId} className="w-full md:w-auto">
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Carregando...
-              </>
-            ) : (
-              'Buscar Dados'
-            )}
-          </Button>
-        </div>
-      </Card>
 
-      {/* Dados - só aparecem após buscar */}
-      {!hasSearched ? (
+      {loading ? (
+        <div className="space-y-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      ) : !eventId ? (
         <Card className="p-12 text-center">
           <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Selecione os filtros e clique em Buscar</h3>
+          <h3 className="text-lg font-semibold mb-2">Selecione um evento nos filtros globais</h3>
           <p className="text-muted-foreground">
-            Escolha um evento e clique no botão "Buscar Dados" para visualizar as estatísticas completas.
+            Use os filtros no topo da aba Estatísticas para carregar os dados.
           </p>
         </Card>
-      ) : loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
       ) : (
         <>
           <Tabs defaultValue="overview" className="space-y-6">
