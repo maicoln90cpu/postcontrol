@@ -1124,6 +1124,9 @@ const Admin = () => {
   }, {
     key: "motivo_rejeicao",
     label: "Motivo Rejeição"
+  }, {
+    key: "status_participante",
+    label: "Status do Participante"
   }];
 
   // ✅ ITEM 1: Abrir popup de seleção de colunas
@@ -1243,6 +1246,19 @@ const Admin = () => {
       const profilesMap: Record<string, any> = {};
       (profilesData || []).forEach(profile => {
         profilesMap[profile.id] = profile;
+      });
+
+      // Buscar status de participação do evento
+      const { data: participationData } = await sb
+        .from("user_event_goals")
+        .select("user_id, participation_status, goal_achieved")
+        .eq("event_id", submissionEventFilter)
+        .in("user_id", userIds);
+
+      // Criar map de participação
+      const participationMap: Record<string, any> = {};
+      (participationData || []).forEach((p: any) => {
+        participationMap[p.user_id] = p;
       });
 
       // 🆕 Buscar total de submissões aprovadas por usuário no evento específico
@@ -1369,7 +1385,14 @@ const Admin = () => {
           vendas_aprovadas_evento: eventSalesMap[sub.user_id] || 0,
           // ✅ ITEM 1: Nova coluna
           email_ticketeira: sub.user_ticketer_email || "N/A",
-          motivo_rejeicao: sub.rejection_reason || "N/A"
+          motivo_rejeicao: sub.rejection_reason || "N/A",
+          status_participante: (() => {
+            const p = participationMap[sub.user_id];
+            if (!p) return "Em Progresso";
+            if (p.participation_status === 'withdrawn') return "Removida";
+            if (p.goal_achieved) return "Bateu Meta";
+            return "Em Progresso";
+          })()
         };
       });
 
