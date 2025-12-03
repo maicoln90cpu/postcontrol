@@ -24,16 +24,29 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('🚀 Iniciando migração de metas múltiplas...');
+    // Aceitar eventId específico opcional
+    let specificEventId: string | null = null;
+    try {
+      const body = await req.json();
+      specificEventId = body?.eventId || null;
+    } catch {
+      // Sem body ou body inválido - processar todos os eventos
+    }
 
-    // Buscar eventos que tenham regras em event_requirements OU submissões aprovadas
-    const { data: eventIdsWithRequirements } = await supabase
-      .from('event_requirements')
-      .select('event_id');
+    console.log('🚀 Iniciando recálculo de metas...', specificEventId ? `(evento: ${specificEventId})` : '(todos os eventos)');
+
+    // Buscar eventos que tenham regras em event_requirements
+    let query = supabase.from('event_requirements').select('event_id');
+    
+    if (specificEventId) {
+      query = query.eq('event_id', specificEventId);
+    }
+    
+    const { data: eventIdsWithRequirements } = await query;
 
     const eventIds = [...new Set(eventIdsWithRequirements?.map(r => r.event_id) || [])];
 
-    console.log(`📋 Encontrados ${eventIds.length} eventos com regras em event_requirements`);
+    console.log(`📋 Encontrados ${eventIds.length} eventos para processar`);
 
     if (eventIds.length === 0) {
       console.log('⚠️ Nenhum evento com regras encontrado');
