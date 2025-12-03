@@ -1216,17 +1216,21 @@ const Submit = () => {
                   </h1>
                   <p className="text-muted-foreground">Preencha seus dados e envie o print da sua postagem no Instagram</p>
                 </div>
-                <RefreshDataButton 
-                  onRefresh={async () => {
-                    await loadEvents();
-                    if (selectedEvent) {
-                      await loadPostsForEvent(selectedEvent, submissionType as "post" | "sale");
-                    }
-                  }}
-                  size="sm"
-                  variant="outline"
-                  className="shrink-0"
-                />
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <RefreshDataButton 
+                    onRefresh={async () => {
+                      await loadEvents();
+                      if (selectedEvent) {
+                        await loadPostsForEvent(selectedEvent, submissionType as "post" | "sale");
+                      }
+                    }}
+                    size="sm"
+                    variant="outline"
+                  />
+                  <p className="text-[10px] sm:text-xs text-muted-foreground text-right max-w-[140px] sm:max-w-none">
+                    Postagem não aparece? Clique em Atualizar
+                  </p>
+                </div>
               </div>
             </div>
 
