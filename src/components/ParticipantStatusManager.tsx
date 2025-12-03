@@ -77,7 +77,9 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
         goal_achieved,
         participation_status,
         withdrawn_reason,
-        withdrawn_at
+        withdrawn_at,
+        manual_approval,
+        manual_approval_reason
       `)
       .eq("event_id", eventId)
       .order("goal_achieved", { ascending: false })
