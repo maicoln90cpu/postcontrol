@@ -54,16 +54,16 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
 
       if (profilesError) throw profilesError;
 
-      // Using 'as any' because new columns may not be in generated types yet
-      const { data: goals, error: goalsError } = await (supabase
+      // Query without manual_approval fields for backward compatibility
+      const { data: goals, error: goalsError } = await supabase
         .from('user_event_goals')
-        .select('user_id, goal_achieved, required_posts, required_sales, manual_approval, manual_approval_reason') as any)
+        .select('user_id, goal_achieved, required_posts, required_sales')
         .eq('event_id', eventId);
 
       if (goalsError) throw goalsError;
 
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      const goalsMap = new Map((goals as any[])?.map((g: any) => [g.user_id, g]) || []);
+      const goalsMap = new Map(goals?.map((g) => [g.user_id, g]) || []);
 
       const userMap = new Map<string, PromoterStats>();
 
@@ -82,8 +82,8 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
             salesCount: 0,
             totalPosts: 0,
             goalAchieved: goal?.goal_achieved || false,
-            manualApproval: goal?.manual_approval || false,
-            manualApprovalReason: goal?.manual_approval_reason || null,
+            manualApproval: (goal as any)?.manual_approval || false,
+            manualApprovalReason: (goal as any)?.manual_approval_reason || null,
             requiredPosts: goal?.required_posts || 0,
             requiredSales: goal?.required_sales || 0,
           });
