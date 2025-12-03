@@ -1,7 +1,7 @@
 import { useEventAvailableSlots } from '@/hooks/useEventAvailableSlots';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, TrendingUp, Users, Info } from 'lucide-react';
+import { AlertCircle, TrendingUp, Users, Info, Award, CheckCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import {
   Tooltip,
@@ -29,7 +29,6 @@ export const EventSlotsCounter = ({ eventId, eventTitle, variant = 'compact' }: 
 
   const availablePercentage = 100 - slots.occupancy_percentage;
   
-  // Determinar cor e status baseado na % disponível
   const getStatusColor = () => {
     if (availablePercentage > 50) return 'text-green-600 dark:text-green-400';
     if (availablePercentage > 20) return 'text-yellow-600 dark:text-yellow-400';
@@ -74,7 +73,7 @@ export const EventSlotsCounter = ({ eventId, eventTitle, variant = 'compact' }: 
           </div>
         )}
         
-        {/* 🆕 Participantes Totais */}
+        {/* Participantes Totais */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20 gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
@@ -83,11 +82,19 @@ export const EventSlotsCounter = ({ eventId, eventTitle, variant = 'compact' }: 
               <p className="text-xs text-muted-foreground">Participantes totais</p>
             </div>
           </div>
-          <div className="text-left sm:text-right">
-            <p className="font-semibold text-green-600 dark:text-green-400">
-              {slots.occupied_slots} ✅
-            </p>
-            <p className="text-xs text-muted-foreground">Bateram meta</p>
+          <div className="flex flex-col gap-1 text-left sm:text-right">
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <CheckCircle className="h-3 w-3" />
+              <span className="font-semibold">{slots.goal_achieved_count}</span>
+              <span className="text-xs text-muted-foreground">Bateram meta</span>
+            </div>
+            {slots.manual_approved_count > 0 && (
+              <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400">
+                <Award className="h-3 w-3" />
+                <span className="font-semibold">{slots.manual_approved_count}</span>
+                <span className="text-xs text-muted-foreground">Aprovadas</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -102,7 +109,7 @@ export const EventSlotsCounter = ({ eventId, eventTitle, variant = 'compact' }: 
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   <p className="text-xs">
-                    Contabiliza divulgadoras que completaram qualquer uma das metas disponíveis para o evento.
+                    Contabiliza divulgadoras que completaram a meta OU foram aprovadas manualmente pela agência.
                   </p>
                 </TooltipContent>
               </Tooltip>

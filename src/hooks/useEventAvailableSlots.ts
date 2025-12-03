@@ -6,7 +6,9 @@ interface SlotStats {
   occupied_slots: number;
   available_slots: number;
   occupancy_percentage: number;
-  total_participants: number; // 🆕 Total de participantes (batendo meta ou não)
+  total_participants: number;
+  goal_achieved_count: number;
+  manual_approved_count: number;
 }
 
 export const useEventAvailableSlots = (eventId: string | null) => {
@@ -27,8 +29,8 @@ export const useEventAvailableSlots = (eventId: string | null) => {
       return data as unknown as SlotStats;
     },
     enabled: !!eventId,
-    staleTime: 30000, // 30 segundos
-    gcTime: 5 * 60 * 1000, // 5 minutos
-    refetchInterval: 60000, // Atualizar a cada 1 minuto
+    staleTime: 30000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 60000,
   });
 };
