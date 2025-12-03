@@ -74,8 +74,9 @@ export const useUserGoalProgress = (eventId: string | null, userId: string | nul
       return mapToGoalProgress(data, requirements || []);
     },
     enabled: !!eventId && !!userId,
-    staleTime: 30000, // 30 segundos
-    gcTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 10000, // 10 segundos (reduzido de 30)
+    gcTime: 1000 * 60 * 2, // 2 minutos
+    refetchOnMount: 'always', // ✅ CORREÇÃO MOBILE: sempre buscar dados novos
   });
 };
 

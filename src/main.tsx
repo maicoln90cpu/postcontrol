@@ -11,12 +11,12 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutos
-      gcTime: 1000 * 60 * 10, // 10 minutos - mantém cache por mais tempo
+      staleTime: 1000 * 60 * 2, // 2 minutos (reduzido de 5)
+      gcTime: 1000 * 60 * 5, // 5 minutos (reduzido de 10)
       retry: 1,
-      refetchOnWindowFocus: false, // ✅ FASE B: Evita refetch ao trocar de aba
-      refetchOnReconnect: false, // ✅ FASE B: Evita refetch ao reconectar rede
-      refetchOnMount: false, // ✅ FASE B: Não refetch ao montar se dados em cache
+      refetchOnWindowFocus: true, // ✅ CORREÇÃO MOBILE: recarregar ao voltar para aba
+      refetchOnReconnect: true, // ✅ CORREÇÃO MOBILE: recarregar ao reconectar rede
+      refetchOnMount: true, // ✅ CORREÇÃO MOBILE: sempre buscar dados ao montar componente
     },
   },
 });

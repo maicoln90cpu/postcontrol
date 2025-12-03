@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Upload, ArrowLeft, X, AlertCircle, HelpCircle } from "lucide-react";
+import { Upload, ArrowLeft, X, AlertCircle, HelpCircle, RefreshCw } from "lucide-react";
+import { RefreshDataButton } from "@/components/RefreshDataButton";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/authStore";
@@ -1208,10 +1209,25 @@ const Submit = () => {
 
           <Card className="p-8 shadow-card">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
-                Enviar Postagem
-              </h1>
-              <p className="text-muted-foreground">Preencha seus dados e envie o print da sua postagem no Instagram</p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
+                    Enviar Postagem
+                  </h1>
+                  <p className="text-muted-foreground">Preencha seus dados e envie o print da sua postagem no Instagram</p>
+                </div>
+                <RefreshDataButton 
+                  onRefresh={async () => {
+                    await loadEvents();
+                    if (selectedEvent) {
+                      await loadPostsForEvent(selectedEvent, submissionType as "post" | "sale");
+                    }
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                />
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">

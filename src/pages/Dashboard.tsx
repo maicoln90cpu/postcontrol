@@ -12,8 +12,10 @@ import { ArrowLeft, TrendingUp, Award, Calendar, LogOut, MessageCircle, Building
 // ✅ ITEM 7: Ícone para Guest Dashboard
 ClipboardCheck,
 // ✅ R2: Ícone para Análise Manual
-Share2 // Ícone para indicação
+Share2, // Ícone para indicação
+RefreshCw // Ícone para atualizar
 } from "lucide-react";
+import { RefreshDataButton } from "@/components/RefreshDataButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -609,6 +611,7 @@ const Dashboard = () => {
                  </div>
 
                  <div className="flex-wrap items-center justify-center flex flex-row gap-[18px]">
+                   <RefreshDataButton onRefresh={async () => { await refetch(); }} size="icon" showLabel={false} />
                    <ThemeToggle />
                    <NotificationBell userId={user!.id} />
 
