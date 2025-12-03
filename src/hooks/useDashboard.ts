@@ -137,10 +137,10 @@ export const useDashboard = () => {
       };
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    staleTime: 1000 * 60 * 1, // 1 minuto (reduzido de 5)
+    gcTime: 1000 * 60 * 5, // 5 minutos
+    refetchOnWindowFocus: true, // ✅ CORREÇÃO MOBILE
+    refetchOnMount: 'always', // ✅ CRÍTICO: sempre buscar dados novos ao montar
   });
 };
 
