@@ -28,6 +28,8 @@ interface PromoterRank {
   goal_achieved: boolean;
   rank: number;
   achieved_requirement_id?: string;
+  manual_approval?: boolean;
+  manual_approval_reason?: string;
 }
 
 export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRankingProps) => {
@@ -105,6 +107,8 @@ export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRanking
               className={`flex items-center gap-3 p-4 sm:p-3 rounded-lg transition-colors ${
                 promoter.goal_achieved 
                   ? 'bg-green-500/10 border border-green-500/20' 
+                  : promoter.manual_approval
+                  ? 'bg-violet-500/10 border border-violet-500/20'
                   : 'hover:bg-muted/50'
               }`}
             >
@@ -149,6 +153,28 @@ export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRanking
                             🎯 Vaga garantida no evento
                           </p>
                         )}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                ) : promoter.manual_approval ? (
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Badge className="bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20 cursor-help text-xs">
+                        <Award className="w-3 h-3 mr-1" />
+                        Aprovada
+                      </Badge>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64">
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold">🏅 Aprovada pela Agência</p>
+                        {promoter.manual_approval_reason && (
+                          <p className="text-xs text-muted-foreground italic">
+                            "{promoter.manual_approval_reason}"
+                          </p>
+                        )}
+                        <p className="text-xs text-violet-600 dark:text-violet-400">
+                          🎯 Vaga garantida manualmente
+                        </p>
                       </div>
                     </HoverCardContent>
                   </HoverCard>

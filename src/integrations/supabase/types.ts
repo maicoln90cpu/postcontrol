@@ -2052,6 +2052,8 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: {
           available_slots: number
+          goal_achieved_count: number
+          manual_approved_count: number
           occupancy_percentage: number
           occupied_slots: number
           total_participants: number
@@ -2082,6 +2084,8 @@ export type Database = {
           current_sales: number
           full_name: string
           goal_achieved: boolean
+          manual_approval: boolean
+          manual_approval_reason: string
           rank: number
           required_posts: number
           required_sales: number
