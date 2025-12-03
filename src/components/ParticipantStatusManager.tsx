@@ -65,8 +65,8 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
   const fetchParticipants = async () => {
     setLoading(true);
     
-    // Using 'as any' because new columns may not be in generated types yet
-    const { data: goalsData, error: goalsError } = await (supabase
+    // Query base fields that always exist
+    const { data: goalsData, error: goalsError } = await supabase
       .from("user_event_goals")
       .select(`
         user_id,
@@ -77,13 +77,11 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
         goal_achieved,
         participation_status,
         withdrawn_reason,
-        withdrawn_at,
-        manual_approval,
-        manual_approval_reason
+        withdrawn_at
       `)
       .eq("event_id", eventId)
       .order("goal_achieved", { ascending: false })
-      .order("current_posts", { ascending: false }) as any);
+      .order("current_posts", { ascending: false });
 
     if (goalsError) {
       toast.error("Erro ao carregar participantes");
@@ -113,23 +111,24 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
       (profilesData || []).map(p => [p.id, p])
     );
 
-    const formatted = goalsData.map((g) => {
+    const formatted = goalsData.map((g: any) => {
       const profile = profilesMap.get(g.user_id);
       return {
         user_id: g.user_id,
         full_name: profile?.full_name || "Sem nome",
         avatar_url: profile?.avatar_url || null,
         phone: profile?.phone || null,
-        current_posts: g.current_posts,
-        current_sales: g.current_sales,
-        required_posts: g.required_posts,
-        required_sales: g.required_sales,
-        goal_achieved: g.goal_achieved,
+        current_posts: g.current_posts || 0,
+        current_sales: g.current_sales || 0,
+        required_posts: g.required_posts || 0,
+        required_sales: g.required_sales || 0,
+        goal_achieved: g.goal_achieved || false,
         participation_status: g.participation_status || "active",
-        withdrawn_reason: g.withdrawn_reason,
-        withdrawn_at: g.withdrawn_at,
+        withdrawn_reason: g.withdrawn_reason || null,
+        withdrawn_at: g.withdrawn_at || null,
+        // These fields may not exist yet if migration not applied
         manual_approval: g.manual_approval || false,
-        manual_approval_reason: g.manual_approval_reason,
+        manual_approval_reason: g.manual_approval_reason || null,
       };
     });
 

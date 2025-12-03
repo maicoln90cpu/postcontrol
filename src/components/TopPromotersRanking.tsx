@@ -33,16 +33,72 @@ interface PromoterRank {
 }
 
 export const TopPromotersRanking = ({ eventId, limit = 10 }: TopPromotersRankingProps) => {
-  const { data: ranking, isLoading } = useQuery({
+  const { data: ranking, isLoading, error } = useQuery({
     queryKey: ['top-promoters', eventId, limit],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_top_promoters_ranking', {
-        p_event_id: eventId,
-        p_limit: limit,
-      });
+      try {
+        const { data, error } = await supabase.rpc('get_top_promoters_ranking', {
+          p_event_id: eventId,
+          p_limit: limit,
+        });
 
-      if (error) throw error;
-      return data as PromoterRank[];
+        if (error) {
+          // If the RPC fails (e.g., column doesn't exist), fall back to manual query
+          console.warn('RPC failed, falling back to manual query:', error.message);
+          throw error;
+        }
+        return data as PromoterRank[];
+      } catch {
+        // Fallback: manual query without manual_approval fields
+        const { data: goals, error: goalsError } = await supabase
+          .from('user_event_goals')
+          .select('user_id, current_posts, current_sales, required_posts, required_sales, goal_achieved, participation_status')
+          .eq('event_id', eventId)
+          .neq('participation_status', 'withdrawn')
+          .order('goal_achieved', { ascending: false })
+          .order('current_posts', { ascending: false })
+          .limit(limit);
+
+        if (goalsError) throw goalsError;
+        if (!goals) return [];
+
+        const userIds = goals.map(g => g.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+
+        const profilesMap = new Map((profiles || []).map(p => [p.id, p]));
+
+        return goals.map((g, index) => {
+          const profile = profilesMap.get(g.user_id);
+          const reqPosts = g.required_posts || 0;
+          const reqSales = g.required_sales || 0;
+          const curPosts = g.current_posts || 0;
+          const curSales = g.current_sales || 0;
+          
+          const postPct = reqPosts > 0 ? (curPosts / reqPosts) * 100 : 0;
+          const salesPct = reqSales > 0 ? (curSales / reqSales) * 100 : 0;
+          const completion = reqPosts > 0 && reqSales > 0 
+            ? (postPct + salesPct) / 2 
+            : reqPosts > 0 ? postPct : salesPct;
+
+          return {
+            user_id: g.user_id,
+            full_name: profile?.full_name || 'Sem nome',
+            avatar_url: profile?.avatar_url || '',
+            current_posts: curPosts,
+            current_sales: curSales,
+            required_posts: reqPosts,
+            required_sales: reqSales,
+            completion_percentage: Math.min(100, completion),
+            goal_achieved: g.goal_achieved || false,
+            rank: index + 1,
+            manual_approval: false,
+            manual_approval_reason: undefined,
+          };
+        });
+      }
     },
     enabled: !!eventId,
   });
