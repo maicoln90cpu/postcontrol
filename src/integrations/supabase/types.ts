@@ -1821,6 +1821,10 @@ export type Database = {
           goal_achieved: boolean | null
           goal_achieved_at: string | null
           id: string
+          manual_approval: boolean | null
+          manual_approval_at: string | null
+          manual_approval_by: string | null
+          manual_approval_reason: string | null
           notified: boolean | null
           notified_at: string | null
           participation_status: string | null
@@ -1842,6 +1846,10 @@ export type Database = {
           goal_achieved?: boolean | null
           goal_achieved_at?: string | null
           id?: string
+          manual_approval?: boolean | null
+          manual_approval_at?: string | null
+          manual_approval_by?: string | null
+          manual_approval_reason?: string | null
           notified?: boolean | null
           notified_at?: string | null
           participation_status?: string | null
@@ -1863,6 +1871,10 @@ export type Database = {
           goal_achieved?: boolean | null
           goal_achieved_at?: string | null
           id?: string
+          manual_approval?: boolean | null
+          manual_approval_at?: string | null
+          manual_approval_by?: string | null
+          manual_approval_reason?: string | null
           notified?: boolean | null
           notified_at?: string | null
           participation_status?: string | null
