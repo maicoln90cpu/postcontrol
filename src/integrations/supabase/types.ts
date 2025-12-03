@@ -1990,6 +1990,15 @@ export type Database = {
       }
     }
     Functions: {
+      approve_participant_manually: {
+        Args: {
+          p_approve: boolean
+          p_event_id: string
+          p_reason?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       check_and_update_user_goal: {
         Args: { p_event_id: string; p_user_id: string }
         Returns: {
