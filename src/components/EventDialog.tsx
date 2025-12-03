@@ -473,6 +473,23 @@ export const EventDialog = ({ open, onOpenChange, onEventCreated, event }: Event
       }
       console.log('✅ Requisitos inseridos com sucesso');
 
+      // 🔄 Recalcular metas automaticamente após alterar requisitos
+      if (event) {
+        console.log('🎯 Recalculando metas após alteração de requisitos...');
+        try {
+          const { error: recalcError } = await supabase.functions.invoke('populate-user-goals-multi-requirements', {
+            body: { eventId: eventId }
+          });
+          if (recalcError) {
+            console.warn('⚠️ Erro ao recalcular metas (não crítico):', recalcError);
+          } else {
+            console.log('✅ Metas recalculadas com sucesso');
+          }
+        } catch (recalcErr) {
+          console.warn('⚠️ Exceção ao recalcular metas (não crítico):', recalcErr);
+        }
+      }
+
       toast({
         title: event ? "Evento atualizado!" : "Evento criado!",
         description: event ? "O evento foi atualizado com sucesso." : "O evento foi criado com sucesso.",
