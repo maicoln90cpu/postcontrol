@@ -4,6 +4,7 @@ import { sb } from '@/lib/supabaseSafe';
 /**
  * Hook para carregar e injetar Google Tag Manager dinamicamente
  * Busca o GTM ID das configurações de admin e injeta o script no head
+ * OTIMIZAÇÃO: Carrega GTM apenas após o primeiro paint para não bloquear LCP
  */
 export const useGTM = () => {
   const [gtmLoaded, setGtmLoaded] = useState(false);
@@ -13,15 +14,10 @@ export const useGTM = () => {
       try {
         let gtmId: string | null = null;
 
-        // 🆕 CORREÇÃO #3: Priorizar variável de ambiente pública primeiro
-        console.log('🔍 [GTM] Buscando GTM ID...');
-        
         // 1. Tentar variável de ambiente primeiro (público, funciona para todos)
         gtmId = import.meta.env.VITE_GTM_ID?.trim() || null;
         
-        if (gtmId) {
-          console.log('✅ [GTM] GTM ID encontrado em variável de ambiente');
-        } else {
+        if (!gtmId) {
           // 2. Fallback: tentar buscar do banco (apenas para admins autenticados)
           try {
             const { data: settings } = await sb
@@ -31,27 +27,20 @@ export const useGTM = () => {
               .maybeSingle();
             
             gtmId = settings?.setting_value?.trim() || null;
-            if (gtmId) {
-              console.log('✅ [GTM] GTM ID encontrado no banco de dados');
-            }
           } catch (error) {
-            console.log('ℹ️ [GTM] Não foi possível buscar GTM do banco (usuário não autenticado ou RLS)');
+            // Silently fail - GTM is not critical
           }
         }
 
         if (!gtmId || gtmId === '') {
-          console.log('⚠️ [GTM] GTM ID não configurado em nenhuma fonte');
           return;
         }
 
         // Verificar se já foi injetado
         if (document.querySelector(`script[data-gtm-id="${gtmId}"]`)) {
-          console.log('✅ GTM já carregado:', gtmId);
           setGtmLoaded(true);
           return;
         }
-
-        console.log('📊 Injetando Google Tag Manager:', gtmId);
 
         // Injetar script do GTM no head
         const script = document.createElement('script');
@@ -74,13 +63,31 @@ export const useGTM = () => {
         document.body.insertBefore(noscript, document.body.firstChild);
 
         setGtmLoaded(true);
-        console.log('✅ GTM injetado com sucesso');
       } catch (error) {
-        console.error('❌ Erro ao carregar GTM:', error);
+        // Silently fail - GTM is not critical for app functionality
       }
     };
 
-    loadGTM();
+    // OTIMIZAÇÃO: Adiar carregamento do GTM para não bloquear First Paint
+    const deferGTMLoad = () => {
+      // Usar requestIdleCallback se disponível, senão setTimeout
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => loadGTM(), { timeout: 3000 });
+      } else {
+        setTimeout(loadGTM, 2000);
+      }
+    };
+
+    // Aguardar página carregar antes de iniciar GTM
+    if (document.readyState === 'complete') {
+      deferGTMLoad();
+    } else {
+      window.addEventListener('load', deferGTMLoad, { once: true });
+    }
+
+    return () => {
+      window.removeEventListener('load', deferGTMLoad);
+    };
   }, []);
 
   return { gtmLoaded };
