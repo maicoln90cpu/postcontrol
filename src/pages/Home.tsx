@@ -76,12 +76,29 @@ const Home = () => {
   const [agencyName, setAgencyName] = useState("");
   const [agencySlug, setAgencySlug] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
+  
+  // OTIMIZAÇÃO CLS: Usar estado para dimensões da janela (evita window undefined no SSR/primeiro render)
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Parallax scroll effects
   const { scrollY } = useScroll();
   const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
   const textY = useTransform(scrollY, [0, 500], [0, -50]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+
+  // OTIMIZAÇÃO CLS: Definir dimensões apenas após hidratação
+  useEffect(() => {
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    setIsHydrated(true);
+    
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadPlans();
@@ -384,54 +401,58 @@ const Home = () => {
           />
         </motion.div>
 
-        {/* Elementos Flutuantes - Ícones */}
-        <FloatingElement delay={0} x={100} y={150}>
-          <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <Upload className="w-8 h-8 text-white/60" />
-          </div>
-        </FloatingElement>
-        <FloatingElement delay={0.5} duration={5} x={window.innerWidth - 200} y={100}>
-          <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <Trophy className="w-10 h-10 text-white/60" />
-          </div>
-        </FloatingElement>
-        <FloatingElement delay={1} duration={6} x={150} y={window.innerHeight - 300}>
-          <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <Users className="w-7 h-7 text-white/60" />
-          </div>
-        </FloatingElement>
-        <FloatingElement delay={1.5} duration={4.5} x={window.innerWidth - 150} y={window.innerHeight - 250}>
-          <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <Zap className="w-6 h-6 text-white/60" />
-          </div>
-        </FloatingElement>
-        <FloatingElement delay={2} duration={5.5} x={80} y={window.innerHeight / 2}>
-          <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <Shield className="w-8 h-8 text-white/60" />
-          </div>
-        </FloatingElement>
-        <FloatingElement delay={2.5} duration={4.8} x={window.innerWidth - 180} y={window.innerHeight - 400}>
-          <div className="w-18 h-18 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-            <BarChart3 className="w-9 h-9 text-white/60" />
-          </div>
-        </FloatingElement>
+        {/* Elementos Flutuantes - Ícones (renderiza apenas após hidratação para evitar CLS) */}
+        {isHydrated && windowSize.width > 0 && (
+          <>
+            <FloatingElement delay={0} x={100} y={150}>
+              <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <Upload className="w-8 h-8 text-white/60" />
+              </div>
+            </FloatingElement>
+            <FloatingElement delay={0.5} duration={5} x={windowSize.width - 200} y={100}>
+              <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <Trophy className="w-10 h-10 text-white/60" />
+              </div>
+            </FloatingElement>
+            <FloatingElement delay={1} duration={6} x={150} y={windowSize.height - 300}>
+              <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <Users className="w-7 h-7 text-white/60" />
+              </div>
+            </FloatingElement>
+            <FloatingElement delay={1.5} duration={4.5} x={windowSize.width - 150} y={windowSize.height - 250}>
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <Zap className="w-6 h-6 text-white/60" />
+              </div>
+            </FloatingElement>
+            <FloatingElement delay={2} duration={5.5} x={80} y={windowSize.height / 2}>
+              <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <Shield className="w-8 h-8 text-white/60" />
+              </div>
+            </FloatingElement>
+            <FloatingElement delay={2.5} duration={4.8} x={windowSize.width - 180} y={windowSize.height - 400}>
+              <div className="w-18 h-18 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <BarChart3 className="w-9 h-9 text-white/60" />
+              </div>
+            </FloatingElement>
 
-        {/* Formas Geométricas Decorativas */}
-        <FloatingElement delay={0.3} duration={6} x={window.innerWidth * 0.2} y={window.innerHeight * 0.3}>
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-md" />
-        </FloatingElement>
-        <FloatingElement delay={1.2} duration={5} x={window.innerWidth * 0.75} y={window.innerHeight * 0.2}>
-          <div
-            className="w-20 h-20 bg-gradient-to-br from-accent/30 to-accent/10 backdrop-blur-md"
-            style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }}
-          />
-        </FloatingElement>
-        <FloatingElement delay={1.8} duration={5.5} x={window.innerWidth * 0.1} y={window.innerHeight * 0.6}>
-          <div
-            className="w-16 h-16 bg-gradient-to-br from-primary/30 to-primary/10 backdrop-blur-md"
-            style={{ clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }}
-          />
-        </FloatingElement>
+            {/* Formas Geométricas Decorativas */}
+            <FloatingElement delay={0.3} duration={6} x={windowSize.width * 0.2} y={windowSize.height * 0.3}>
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-md" />
+            </FloatingElement>
+            <FloatingElement delay={1.2} duration={5} x={windowSize.width * 0.75} y={windowSize.height * 0.2}>
+              <div
+                className="w-20 h-20 bg-gradient-to-br from-accent/30 to-accent/10 backdrop-blur-md"
+                style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }}
+              />
+            </FloatingElement>
+            <FloatingElement delay={1.8} duration={5.5} x={windowSize.width * 0.1} y={windowSize.height * 0.6}>
+              <div
+                className="w-16 h-16 bg-gradient-to-br from-primary/30 to-primary/10 backdrop-blur-md"
+                style={{ clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }}
+              />
+            </FloatingElement>
+          </>
+        )}
 
         <motion.div className="relative z-10 text-center max-w-5xl mx-auto w-full" style={{ y: textY, opacity }}>
           <Badge className="mb-4 md:mb-6 text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-green-500 to-emerald-500 backdrop-blur-sm border-white/30 text-white animate-pulse shadow-glow inline-flex items-center">

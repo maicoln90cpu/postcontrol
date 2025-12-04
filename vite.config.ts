@@ -89,11 +89,25 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: true,
     rollupOptions: {
       output: {
+        // OTIMIZAÇÃO: Code splitting para reduzir bundle principal
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-tooltip',
+          ],
+          charts: ['recharts'],
+          motion: ['framer-motion'],
+          forms: ['react-hook-form', 'zod', '@hookform/resolvers'],
+          query: ['@tanstack/react-query'],
+          utils: ['date-fns', 'clsx', 'tailwind-merge'],
         },
         assetFileNames: (assetInfo) => {
-          // ✅ CORREÇÃO #5: Garantir Content-Type correto para arquivos JS
           if (assetInfo.name?.endsWith('.js')) {
             return 'assets/[name]-[hash].js';
           }
