@@ -1002,11 +1002,11 @@ const Submit = () => {
         console.log("[Submit] Comprovante de venda: múltiplas submissões permitidas");
       }
 
-      // Rate limiting check (5 submissions per hour)
+      // Rate limiting check (15 submissions per hour - increased from 5)
       const { data: rateLimitCheck, error: rateLimitError } = await sb.rpc("check_rate_limit", {
         p_user_id: user!.id,
         p_action_type: "submission",
-        p_max_count: 5,
+        p_max_count: 15,
         p_window_minutes: 60,
       });
 
@@ -1015,11 +1015,10 @@ const Submit = () => {
       }
 
       if (rateLimitCheck === false) {
-        const minutesLeft = 60; // Simplificado - idealmente calcular tempo real restante
         toast({
           variant: "destructive",
           title: "Limite de envios atingido",
-          description: `Você atingiu o limite de 5 submissões por hora. Aguarde aproximadamente ${minutesLeft} minutos para enviar novamente.`,
+          description: `Você atingiu o limite de 15 submissões por hora. Aguarde alguns minutos para enviar novamente.`,
         });
         setIsSubmitting(false);
         return;
@@ -1077,23 +1076,38 @@ const Submit = () => {
         submission_type: submissionType === "post" ? "divulgacao" : submissionType,
       };
 
-      // Upload da imagem principal (se houver)
+      // Helper: Upload com retry automático (3 tentativas)
+      const uploadWithRetry = async (file: File, path: string, maxRetries = 3): Promise<void> => {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const { error: uploadError } = await supabase.storage.from("screenshots").upload(path, file);
+            if (uploadError) throw uploadError;
+            return; // Sucesso
+          } catch (error: any) {
+            console.error(`Upload attempt ${attempt}/${maxRetries} failed:`, error);
+            if (attempt === maxRetries) {
+              // Última tentativa falhou
+              throw new Error(`UPLOAD_FAILED: ${error?.message || 'Falha no upload da imagem'}`);
+            }
+            // Aguardar antes de retry (1s, 2s, 4s - exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+          }
+        }
+      };
+
+      // Upload da imagem principal (se houver) com retry
       if (fileToUpload) {
         const fileExt = fileToUpload.name.split(".").pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from("screenshots").upload(fileName, fileToUpload);
-        if (uploadError) throw uploadError;
+        await uploadWithRetry(fileToUpload, fileName);
         insertData.screenshot_path = fileName;
       }
 
-      // 🆕 Upload de screenshot do perfil (se for seleção de perfil)
+      // 🆕 Upload de screenshot do perfil (se for seleção de perfil) com retry
       if (selectedEventData?.event_purpose === "selecao_perfil" && profileScreenshotFile) {
         const profileFileExt = profileScreenshotFile.name.split(".").pop();
         const profileFileName = `${user.id}/profile_${Date.now()}.${profileFileExt}`;
-        const { error: profileUploadError } = await supabase.storage
-          .from("screenshots")
-          .upload(profileFileName, profileScreenshotFile);
-        if (profileUploadError) throw profileUploadError;
+        await uploadWithRetry(profileScreenshotFile, profileFileName);
         insertData.profile_screenshot_path = profileFileName;
       }
 
@@ -1182,11 +1196,41 @@ const Submit = () => {
       setFollowersRange(""); // 🆕
       setSelectedPost("");
       setSelectedEvent("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting:", error);
+      
+      // Identificar tipo de erro e mostrar mensagem específica
+      let errorTitle = "Erro ao enviar";
+      let errorDescription = "Ocorreu um erro inesperado. Tente novamente.";
+      
+      const errorMessage = error?.message || '';
+      const errorCode = error?.code || '';
+      
+      if (errorMessage.includes('UPLOAD_FAILED') || errorMessage.includes('storage') || error?.statusCode === 413) {
+        errorTitle = "Erro no upload da imagem";
+        errorDescription = "Não foi possível enviar a imagem. Verifique sua conexão e o tamanho do arquivo (máx. 5MB).";
+      } else if (errorCode === 'PGRST301' || errorMessage.includes('JWT') || errorMessage.includes('expired')) {
+        errorTitle = "Sessão expirada";
+        errorDescription = "Sua sessão expirou. Faça login novamente.";
+        // Redirecionar para login após 2 segundos
+        setTimeout(() => navigate('/auth'), 2000);
+      } else if (errorCode === '23505' || errorMessage.includes('duplicate')) {
+        errorTitle = "Submissão duplicada";
+        errorDescription = "Você já enviou esta postagem. Verifique seu Dashboard.";
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('network') || errorMessage.includes('Failed to fetch')) {
+        errorTitle = "Erro de conexão";
+        errorDescription = "Conexão instável. Verifique sua internet e tente novamente.";
+      } else if (errorMessage.includes('Post de venda não encontrado')) {
+        errorTitle = "Post não encontrado";
+        errorDescription = "O post de venda não foi encontrado. Selecione outro evento.";
+      } else if (errorMessage.includes('No file to upload')) {
+        errorTitle = "Imagem obrigatória";
+        errorDescription = "Selecione uma imagem para enviar.";
+      }
+      
       toast({
-        title: "Erro ao enviar",
-        description: "Ocorreu um erro ao enviar sua postagem. Tente novamente.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {
