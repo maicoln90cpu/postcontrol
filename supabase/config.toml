@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.track-guest-list-analytics]
 verify_jwt = false
+
+[functions.send-guest-list-email]
+verify_jwt = false

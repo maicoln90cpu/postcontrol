@@ -13,6 +13,16 @@ interface GuestListRegistration {
   registered_at: string;
 }
 
+// Função para obter data/hora no timezone configurado
+function getNowInTimezone(timezone: string): Date {
+  const dateString = new Date().toLocaleString("en-US", { timeZone: timezone });
+  return new Date(dateString);
+}
+
+function getTodayInTimezone(timezone: string): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -31,10 +41,25 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY não configurada");
     }
 
+    // Buscar timezone configurado no sistema
+    const { data: tzData } = await supabase
+      .from('admin_settings')
+      .select('setting_value')
+      .eq('setting_key', 'system_timezone')
+      .is('agency_id', null)
+      .single();
+
+    const systemTimezone = tzData?.setting_value || 'America/Sao_Paulo';
+    console.log(`⏰ Usando timezone: ${systemTimezone}`);
+
+    const todayStr = getTodayInTimezone(systemTimezone);
+    const nowInTz = getNowInTimezone(systemTimezone);
+    console.log(`📅 Data atual no timezone: ${todayStr}, Hora: ${nowInTz.toLocaleTimeString()}`);
+
     // Buscar datas de eventos que:
     // 1. Tem send_notification_email = true
     // 2. Ainda não enviou notificação (notification_sent_at IS NULL)
-    // 3. Horário do evento já passou (event_date + start_time < now())
+    // 3. Data do evento <= hoje (no timezone configurado)
     const { data: datesToNotify, error: datesError } = await supabase
       .from("guest_list_dates")
       .select(`
@@ -57,7 +82,7 @@ serve(async (req) => {
       `)
       .eq("send_notification_email", true)
       .is("notification_sent_at", null)
-      .lt("event_date", new Date().toISOString());
+      .lte("event_date", todayStr);
 
     if (datesError) {
       console.error("❌ Erro ao buscar datas:", datesError);
@@ -72,7 +97,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`📧 Encontrados ${datesToNotify.length} eventos para notificar`);
+    console.log(`📧 Encontrados ${datesToNotify.length} eventos para verificar`);
 
     const results = [];
 
@@ -80,13 +105,29 @@ serve(async (req) => {
       try {
         // Validar se start_time já passou (se configurado)
         if (date.start_time) {
-        const eventDateTime = new Date(`${date.event_date}T${date.start_time}-03:00`);
-          const now = new Date();
+          // Criar datetime no timezone configurado
+          const [hours, minutes] = date.start_time.split(':').map(Number);
+          const eventDate = new Date(date.event_date + 'T00:00:00');
+          eventDate.setHours(hours, minutes, 0, 0);
           
-          if (eventDateTime > now) {
-            console.log(`⏰ Evento ${date.id} ainda não iniciou. Pulando...`);
-            continue;
+          // Comparar com hora atual no timezone
+          const nowHours = nowInTz.getHours();
+          const nowMinutes = nowInTz.getMinutes();
+          const eventHours = hours;
+          const eventMinutes = minutes;
+          
+          // Se é hoje, verificar se horário já passou
+          if (date.event_date === todayStr) {
+            const nowTotalMinutes = nowHours * 60 + nowMinutes;
+            const eventTotalMinutes = eventHours * 60 + eventMinutes;
+            
+            if (eventTotalMinutes > nowTotalMinutes) {
+              console.log(`⏰ Evento ${date.id} (${date.name}) ainda não iniciou hoje. Horário: ${date.start_time}, Agora: ${nowHours}:${nowMinutes}. Pulando...`);
+              continue;
+            }
           }
+          
+          console.log(`✅ Evento ${date.id} (${date.name}) já passou. Processando...`);
         }
 
         const event = Array.isArray(date.guest_list_events) 
@@ -131,8 +172,8 @@ serve(async (req) => {
               <td style="padding: 12px; text-align: center;">${index + 1}</td>
               <td style="padding: 12px;">${reg.full_name}</td>
               <td style="padding: 12px;">${reg.email}</td>
-              <td style="padding: 12px; text-align: center;">${reg.gender === 'female' ? 'Feminino' : 'Masculino'}</td>
-              <td style="padding: 12px; text-align: center;">${new Date(reg.registered_at).toLocaleString('pt-BR')}</td>
+              <td style="padding: 12px; text-align: center;">${reg.gender === 'feminino' ? 'Feminino' : 'Masculino'}</td>
+              <td style="padding: 12px; text-align: center;">${new Date(reg.registered_at).toLocaleString('pt-BR', { timeZone: systemTimezone })}</td>
             </tr>
           `)
           .join("") || '<tr><td colspan="5" style="padding: 12px; text-align: center;">Nenhum participante registrado</td></tr>';
@@ -193,7 +234,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "Lista VIP <noreply@domain.com.br>",
+            from: "Lista VIP <noreply@mdagencia.com.br>",
             to: [recipientEmail],
             subject: `📋 Lista de Participantes - ${eventLocation} (${eventName})`,
             html: emailHTML,
