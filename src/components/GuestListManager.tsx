@@ -380,6 +380,15 @@ export default function GuestListManager() {
     if (sortConfig.key === "event_date") {
       const dateA = new Date(aValue as string).getTime();
       const dateB = new Date(bValue as string).getTime();
+      
+      // Se mesma data, ordenar por start_time
+      if (dateA === dateB) {
+        const timeA = a.start_time || "00:00:00";
+        const timeB = b.start_time || "00:00:00";
+        const timeCompare = timeA.localeCompare(timeB);
+        return sortConfig.direction === "asc" ? timeCompare : -timeCompare;
+      }
+      
       return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
     }
     if (typeof aValue === "number" && typeof bValue === "number") {
@@ -445,15 +454,25 @@ export default function GuestListManager() {
     resetPage();
   }, [filterEventId, filterDateId, filterGender, filterDateTimePeriod, resetPage]);
 
-  // Copiar nomes filtrados (usa TODOS os filtrados, não só a página atual)
+  // Copiar nomes filtrados (usa selecionados se houver, senão todos os filtrados)
   const copyFilteredNames = () => {
-    if (filteredRegistrations.length === 0) {
+    // Se há seleção, copiar apenas os selecionados
+    const namesToCopy = selectedRegistrations.length > 0
+      ? filteredRegistrations.filter(r => selectedRegistrations.includes(r.id))
+      : filteredRegistrations;
+      
+    if (namesToCopy.length === 0) {
       toast.error("Nenhum nome para copiar");
       return;
     }
-    const names = filteredRegistrations.map(r => r.full_name).join("\n");
+    
+    const names = namesToCopy.map(r => r.full_name).join("\n");
     navigator.clipboard.writeText(names);
-    toast.success(`${filteredRegistrations.length} nomes copiados!`);
+    
+    const message = selectedRegistrations.length > 0
+      ? `${namesToCopy.length} nomes selecionados copiados!`
+      : `${namesToCopy.length} nomes copiados!`;
+    toast.success(message);
   };
 
   // Mutation: Deletar inscrição
@@ -566,8 +585,13 @@ export default function GuestListManager() {
     setDateDialogOpen(true);
   };
 
-  // Datas filtradas por evento selecionado no filtro
-  const datesForFilteredEvent = allDates?.filter(d => filterEventId === "all" ? true : d.event_id === filterEventId) || [];
+  // Datas filtradas por evento selecionado no filtro (ordenadas do mais atual para o mais antigo)
+  const datesForFilteredEvent = [...(allDates?.filter(d => filterEventId === "all" ? true : d.event_id === filterEventId) || [])]
+    .sort((a, b) => {
+      const dateA = new Date(a.event_date).getTime();
+      const dateB = new Date(b.event_date).getTime();
+      return dateB - dateA; // Mais atual primeiro
+    });
   return <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>

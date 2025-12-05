@@ -100,15 +100,24 @@ serve(async (req) => {
     console.log(`📧 Encontrados ${datesToNotify.length} eventos para verificar`);
 
     const results = [];
+    let emailsSent = 0;
+    const MAX_EMAILS_PER_RUN = 10; // Limitar por execução para evitar rate limit
+
+    // Função de delay para evitar rate limit (2 req/s = 500ms mínimo)
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     for (const date of datesToNotify) {
+      // Verificar limite de emails por execução
+      if (emailsSent >= MAX_EMAILS_PER_RUN) {
+        console.log(`⏸️ Limite de ${MAX_EMAILS_PER_RUN} emails atingido. Restante será processado na próxima execução.`);
+        break;
+      }
+
       try {
         // Validar se start_time já passou (se configurado)
         if (date.start_time) {
           // Criar datetime no timezone configurado
           const [hours, minutes] = date.start_time.split(':').map(Number);
-          const eventDate = new Date(date.event_date + 'T00:00:00');
-          eventDate.setHours(hours, minutes, 0, 0);
           
           // Comparar com hora atual no timezone
           const nowHours = nowInTz.getHours();
@@ -226,6 +235,11 @@ serve(async (req) => {
           </html>
         `;
 
+        // Aguardar 600ms antes de enviar para evitar rate limit
+        if (emailsSent > 0) {
+          await delay(600);
+        }
+
         // Enviar email via Resend
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -243,11 +257,19 @@ serve(async (req) => {
 
         if (!emailResponse.ok) {
           const errorData = await emailResponse.text();
-          throw new Error(`Resend API error: ${errorData}`);
+          console.error(`❌ Resend API error: ${errorData}`);
+          // Continuar para próximo em caso de erro, não abortar tudo
+          results.push({
+            date_id: date.id,
+            success: false,
+            error: `Resend API error: ${errorData}`,
+          });
+          continue;
         }
 
         const emailData = await emailResponse.json();
         console.log(`✅ Email enviado para ${recipientEmail}:`, emailData);
+        emailsSent++;
 
         // Marcar como enviado
         const { error: updateError } = await supabase
@@ -274,6 +296,8 @@ serve(async (req) => {
           success: false,
           error: error.message,
         });
+        // Continuar para próximo, não abortar
+        continue;
       }
     }
 
