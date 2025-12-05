@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Check, Music } from "lucide-react";
-import { parseEventDateBRT, hasEventPassed } from "@/lib/dateUtils";
+import { parseEventDateBRT, hasEventPassed, hasEventEnded } from "@/lib/dateUtils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -132,12 +132,14 @@ export const DateSelector = ({
         {dates.map(date => {
           // Verificar se evento já começou (start_time passou)
           const hasStarted = date.start_time && hasEventPassed(date.event_date, date.start_time);
-          // Verificar se evento já terminou (end_time passou)
-          const hasEnded = date.end_time && hasEventPassed(date.event_date, date.end_time);
+          // Verificar se evento já terminou usando regra inteligente:
+          // Se end_time < start_time → dia seguinte (ex: 23h-07h)
+          // Se end_time >= start_time → mesmo dia (ex: 09h-22h)
+          const ended = date.end_time && hasEventEnded(date.event_date, date.end_time, date.start_time || undefined);
           // Link alternativo visível: após início E antes do fim
           const hasAlternative = date.show_alternative_after_start && 
                                  hasStarted && 
-                                 !hasEnded && 
+                                 !ended && 
                                  (date.alternative_link_female || date.alternative_link_male);
 
           // Computar preços uma vez por data para evitar recalcular e facilitar debug

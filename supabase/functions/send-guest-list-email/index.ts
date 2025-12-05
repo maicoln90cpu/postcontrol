@@ -23,6 +23,35 @@ function getTodayInTimezone(timezone: string): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: timezone });
 }
 
+/**
+ * Check if event has ended using smart rule:
+ * - If end_time < start_time → end_time is on the NEXT day (e.g., 23h-07h)
+ * - If end_time >= start_time → end_time is on the SAME day (e.g., 09h-22h)
+ */
+function hasEventEnded(eventDate: string, endTime: string, startTime: string | null, nowTz: Date): boolean {
+  // Determine if end_time is on next day (smart rule)
+  let endDateStr = eventDate;
+  
+  if (startTime) {
+    const endHours = parseInt(endTime.split(':')[0], 10);
+    const startHours = parseInt(startTime.split(':')[0], 10);
+    
+    // If end_time < start_time → next day
+    if (endHours < startHours) {
+      const eventDateObj = new Date(eventDate + 'T00:00:00');
+      eventDateObj.setDate(eventDateObj.getDate() + 1);
+      endDateStr = eventDateObj.toISOString().split('T')[0];
+    }
+  }
+  
+  // Create datetime for end time
+  const [hours, minutes] = endTime.split(':').map(Number);
+  const endDateTime = new Date(endDateStr + 'T00:00:00');
+  endDateTime.setHours(hours, minutes, 0);
+  
+  return endDateTime < nowTz;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

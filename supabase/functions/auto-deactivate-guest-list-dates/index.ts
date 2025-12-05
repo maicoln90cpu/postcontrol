@@ -34,10 +34,10 @@ Deno.serve(async (req) => {
     // Buscar datas que devem ser desativadas:
     // - auto_deactivate_after_start = true
     // - is_active = true
-    // - event_date + start_time < NOW()
+    // - event_date + end_time < NOW() (usando regra inteligente)
     const { data: datesToDeactivate, error: fetchError } = await supabase
       .from('guest_list_dates')
-      .select('id, name, event_date, start_time')
+      .select('id, name, event_date, start_time, end_time')
       .eq('auto_deactivate_after_start', true)
       .eq('is_active', true);
 
@@ -73,6 +73,32 @@ Deno.serve(async (req) => {
       return new Date().toLocaleDateString('en-CA', { timeZone: tz });
     };
 
+    /**
+     * Check if event has ended using smart rule:
+     * - If end_time < start_time → end_time is on the NEXT day (e.g., 23h-07h)
+     * - If end_time >= start_time → end_time is on the SAME day (e.g., 09h-22h)
+     */
+    const hasEventEnded = (eventDate: string, endTime: string, startTime: string | null, nowTz: Date): boolean => {
+      let endDateStr = eventDate;
+      
+      if (startTime) {
+        const endHours = parseInt(endTime.split(':')[0], 10);
+        const startHours = parseInt(startTime.split(':')[0], 10);
+        
+        if (endHours < startHours) {
+          const eventDateObj = new Date(eventDate + 'T00:00:00');
+          eventDateObj.setDate(eventDateObj.getDate() + 1);
+          endDateStr = eventDateObj.toISOString().split('T')[0];
+        }
+      }
+      
+      const [hours, minutes] = endTime.split(':').map(Number);
+      const endDateTime = new Date(endDateStr + 'T00:00:00');
+      endDateTime.setHours(hours, minutes, 0);
+      
+      return endDateTime < nowTz;
+    };
+
     const nowTZ = getNowInTimezone(systemTimezone);
     const todayTZ = getTodayInTimezone(systemTimezone);
     const dateIdsToDeactivate: string[] = [];
@@ -87,16 +113,26 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Criar datetime a partir da data e horário
+      // Se tem end_time, usar regra inteligente para verificar se terminou
+      if (date.end_time) {
+        const ended = hasEventEnded(date.event_date, date.end_time, date.start_time, nowTZ);
+        if (ended) {
+          console.log(`[AUTO-DEACTIVATE-DATES] Evento terminou (end_time): ${date.name || date.event_date} ${date.start_time}-${date.end_time}`);
+          dateIdsToDeactivate.push(date.id);
+        }
+        continue;
+      }
+
+      // Se não tem end_time, desativar quando start_time passar
       const [hours, minutes, seconds = '00'] = date.start_time.split(':');
       const eventDateTime = new Date(date.event_date + 'T00:00:00');
       eventDateTime.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds || '0'));
       
       console.log(`[AUTO-DEACTIVATE-DATES] Comparando evento: ${date.event_date} ${date.start_time} vs agora (${systemTimezone}): ${nowTZ.toLocaleString('pt-BR')}`);
 
-      // Se o evento já começou, marcar para desativar
+      // Se o evento já começou e não tem end_time, marcar para desativar
       if (eventDateTime < nowTZ) {
-        console.log(`[AUTO-DEACTIVATE-DATES] Data passada: ${date.name || date.event_date} às ${date.start_time}`);
+        console.log(`[AUTO-DEACTIVATE-DATES] Data passada (sem end_time): ${date.name || date.event_date} às ${date.start_time}`);
         dateIdsToDeactivate.push(date.id);
       }
     }
