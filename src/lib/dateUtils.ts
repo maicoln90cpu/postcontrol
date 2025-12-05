@@ -151,3 +151,36 @@ export function hasEventPassed(eventDate: string, startTime?: string): boolean {
   const nowBRT = getNowBRT();
   return eventDateTime < nowBRT;
 }
+
+/**
+ * Check if event has ended using smart rule:
+ * - If end_time < start_time → end_time is on the NEXT day (e.g., 23h-07h → 07h is next day)
+ * - If end_time >= start_time → end_time is on the SAME day (e.g., 09h-22h → 22h is same day)
+ * @param eventDate - Date string in format YYYY-MM-DD
+ * @param endTime - Time string in format HH:mm or HH:mm:ss
+ * @param startTime - Optional start time to determine if end_time is next day
+ * @returns true if event has ended
+ */
+export function hasEventEnded(eventDate: string, endTime: string, startTime?: string): boolean {
+  const nowBRT = getNowBRT();
+  
+  // Determine if end_time is on next day (smart rule)
+  let endDateStr = eventDate;
+  
+  if (startTime) {
+    const endHours = parseInt(endTime.split(':')[0], 10);
+    const startHours = parseInt(startTime.split(':')[0], 10);
+    
+    // If end_time < start_time → next day (e.g., 23h-07h means 07h is next day)
+    if (endHours < startHours) {
+      const eventDateObj = new Date(eventDate + 'T00:00:00');
+      eventDateObj.setDate(eventDateObj.getDate() + 1);
+      endDateStr = eventDateObj.toISOString().split('T')[0];
+    }
+  }
+  
+  // Create datetime for end time
+  const endDateTime = parseDateTimeBRT(endDateStr, endTime);
+  
+  return endDateTime < nowBRT;
+}

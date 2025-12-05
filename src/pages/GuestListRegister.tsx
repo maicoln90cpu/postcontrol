@@ -9,7 +9,7 @@ import { DateSelector } from "@/components/GuestList/DateSelector";
 import { GuestListForm } from "@/components/GuestList/GuestListForm";
 import { NoAvailableDatesPage } from "@/components/GuestList/NoAvailableDatesPage";
 import { toast } from "sonner";
-import { hasEventPassed, getTodayBRT, getSystemTimezone } from "@/lib/dateUtils";
+import { hasEventPassed, hasEventEnded, getTodayBRT, getSystemTimezone } from "@/lib/dateUtils";
 interface GuestListEvent {
   id: string;
   agency_id: string;
@@ -126,11 +126,13 @@ export default function GuestListRegister() {
 
       // Filtrar datas que devem ser desativadas após início OU mostrar com links alternativos
       const activeDates = (datesData as unknown as GuestListDate[]).filter(date => {
-        // Verificar se evento já terminou (end_time passou)
-        const hasEnded = date.end_time && hasEventPassed(date.event_date, date.end_time);
+        // Verificar se evento já terminou usando regra inteligente:
+        // Se end_time < start_time → end_time é no dia seguinte (ex: 23h-07h)
+        // Se end_time >= start_time → end_time é no mesmo dia (ex: 09h-22h)
+        const ended = date.end_time && hasEventEnded(date.event_date, date.end_time, date.start_time || undefined);
         
         // Se evento terminou, SEMPRE remover da lista
-        if (hasEnded) return false;
+        if (ended) return false;
         
         if (!date.auto_deactivate_after_start) return true;
         if (!date.start_time) return true;
