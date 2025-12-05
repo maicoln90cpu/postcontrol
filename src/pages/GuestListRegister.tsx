@@ -9,7 +9,7 @@ import { DateSelector } from "@/components/GuestList/DateSelector";
 import { GuestListForm } from "@/components/GuestList/GuestListForm";
 import { NoAvailableDatesPage } from "@/components/GuestList/NoAvailableDatesPage";
 import { toast } from "sonner";
-import { hasEventPassed, getTodayBRT } from "@/lib/dateUtils";
+import { hasEventPassed, getTodayBRT, getSystemTimezone } from "@/lib/dateUtils";
 interface GuestListEvent {
   id: string;
   agency_id: string;
@@ -70,7 +70,8 @@ export default function GuestListRegister() {
   const [hasNoDates, setHasNoDates] = useState(false);
   useEffect(() => {
     if (!agencySlug || !eventSlug) return;
-    loadEventData();
+    // Carregar timezone configurado antes de carregar dados
+    getSystemTimezone().then(() => loadEventData());
   }, [agencySlug, eventSlug]);
   useEffect(() => {
     // Registrar visualização da página
