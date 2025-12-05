@@ -129,10 +129,16 @@ export const DateSelector = ({
         </p>
         
         <div className="space-y-3">
-          {dates.map(date => {
-          // Verificar se evento passou e tem links alternativos
-          const isPast = date.start_time && hasEventPassed(date.event_date, date.start_time);
-          const hasAlternative = date.show_alternative_after_start && isPast && (date.alternative_link_female || date.alternative_link_male);
+        {dates.map(date => {
+          // Verificar se evento já começou (start_time passou)
+          const hasStarted = date.start_time && hasEventPassed(date.event_date, date.start_time);
+          // Verificar se evento já terminou (end_time passou)
+          const hasEnded = date.end_time && hasEventPassed(date.event_date, date.end_time);
+          // Link alternativo visível: após início E antes do fim
+          const hasAlternative = date.show_alternative_after_start && 
+                                 hasStarted && 
+                                 !hasEnded && 
+                                 (date.alternative_link_female || date.alternative_link_male);
 
           // Computar preços uma vez por data para evitar recalcular e facilitar debug
           const datePrices = getDatePrices(date);

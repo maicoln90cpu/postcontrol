@@ -114,6 +114,9 @@ export default function GuestListRegister() {
         error: datesError
       } = await supabase.from('guest_list_dates').select('*').eq('event_id', eventData.id).eq('is_active', true).gte('event_date', todayBRT).order('event_date', {
         ascending: true
+      }).order('start_time', {
+        ascending: true,
+        nullsFirst: false
       });
       if (datesError) throw datesError;
       if (!datesData || datesData.length === 0) {
