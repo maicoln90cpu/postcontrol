@@ -20,7 +20,7 @@ function getNowInTimezone(timezone: string): Date {
 }
 
 function getTodayInTimezone(timezone: string): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+  return new Date().toLocaleDateString("en-CA", { timeZone: timezone });
 }
 
 serve(async (req) => {
@@ -31,10 +31,7 @@ serve(async (req) => {
   try {
     console.log("🚀 Iniciando verificação de eventos para envio de email...");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -43,13 +40,13 @@ serve(async (req) => {
 
     // Buscar timezone configurado no sistema
     const { data: tzData } = await supabase
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'system_timezone')
-      .is('agency_id', null)
+      .from("admin_settings")
+      .select("setting_value")
+      .eq("setting_key", "system_timezone")
+      .is("agency_id", null)
       .single();
 
-    const systemTimezone = tzData?.setting_value || 'America/Sao_Paulo';
+    const systemTimezone = tzData?.setting_value || "America/Sao_Paulo";
     console.log(`⏰ Usando timezone: ${systemTimezone}`);
 
     const todayStr = getTodayInTimezone(systemTimezone);
@@ -62,7 +59,8 @@ serve(async (req) => {
     // 3. Data do evento <= hoje (no timezone configurado)
     const { data: datesToNotify, error: datesError } = await supabase
       .from("guest_list_dates")
-      .select(`
+      .select(
+        `
         id,
         event_id,
         event_date,
@@ -79,7 +77,8 @@ serve(async (req) => {
             admin_email
           )
         )
-      `)
+      `,
+      )
       .eq("send_notification_email", true)
       .is("notification_sent_at", null)
       .lte("event_date", todayStr);
@@ -91,10 +90,9 @@ serve(async (req) => {
 
     if (!datesToNotify || datesToNotify.length === 0) {
       console.log("✅ Nenhum evento pendente de notificação");
-      return new Response(
-        JSON.stringify({ success: true, message: "Nenhum evento pendente" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ success: true, message: "Nenhum evento pendente" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log(`📧 Encontrados ${datesToNotify.length} eventos para verificar`);
@@ -104,12 +102,14 @@ serve(async (req) => {
     const MAX_EMAILS_PER_RUN = 10; // Limitar por execução para evitar rate limit
 
     // Função de delay para evitar rate limit (2 req/s = 500ms mínimo)
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     for (const date of datesToNotify) {
       // Verificar limite de emails por execução
       if (emailsSent >= MAX_EMAILS_PER_RUN) {
-        console.log(`⏸️ Limite de ${MAX_EMAILS_PER_RUN} emails atingido. Restante será processado na próxima execução.`);
+        console.log(
+          `⏸️ Limite de ${MAX_EMAILS_PER_RUN} emails atingido. Restante será processado na próxima execução.`,
+        );
         break;
       }
 
@@ -117,34 +117,32 @@ serve(async (req) => {
         // Validar se start_time já passou (se configurado)
         if (date.start_time) {
           // Criar datetime no timezone configurado
-          const [hours, minutes] = date.start_time.split(':').map(Number);
-          
+          const [hours, minutes] = date.start_time.split(":").map(Number);
+
           // Comparar com hora atual no timezone
           const nowHours = nowInTz.getHours();
           const nowMinutes = nowInTz.getMinutes();
           const eventHours = hours;
           const eventMinutes = minutes;
-          
+
           // Se é hoje, verificar se horário já passou
           if (date.event_date === todayStr) {
             const nowTotalMinutes = nowHours * 60 + nowMinutes;
             const eventTotalMinutes = eventHours * 60 + eventMinutes;
-            
+
             if (eventTotalMinutes > nowTotalMinutes) {
-              console.log(`⏰ Evento ${date.id} (${date.name}) ainda não iniciou hoje. Horário: ${date.start_time}, Agora: ${nowHours}:${nowMinutes}. Pulando...`);
+              console.log(
+                `⏰ Evento ${date.id} (${date.name}) ainda não iniciou hoje. Horário: ${date.start_time}, Agora: ${nowHours}:${nowMinutes}. Pulando...`,
+              );
               continue;
             }
           }
-          
+
           console.log(`✅ Evento ${date.id} (${date.name}) já passou. Processando...`);
         }
 
-        const event = Array.isArray(date.guest_list_events) 
-          ? date.guest_list_events[0] 
-          : date.guest_list_events;
-        const agency = event 
-          ? (Array.isArray(event.agencies) ? event.agencies[0] : event.agencies)
-          : null;
+        const event = Array.isArray(date.guest_list_events) ? date.guest_list_events[0] : date.guest_list_events;
+        const agency = event ? (Array.isArray(event.agencies) ? event.agencies[0] : event.agencies) : null;
 
         if (!agency) {
           console.warn(`⚠️ Agência não encontrada para evento ${date.id}`);
@@ -175,19 +173,23 @@ serve(async (req) => {
         console.log(`📊 Data ${date.id}: ${totalRegistrations} participantes`);
 
         // Gerar HTML da tabela
-        const participantsHTML = registrations
-          ?.map((reg: GuestListRegistration, index: number) => `
+        const participantsHTML =
+          registrations
+            ?.map(
+              (reg: GuestListRegistration, index: number) => `
             <tr style="border-bottom: 1px solid #e5e7eb;">
               <td style="padding: 12px; text-align: center;">${index + 1}</td>
               <td style="padding: 12px;">${reg.full_name}</td>
               <td style="padding: 12px;">${reg.email}</td>
-              <td style="padding: 12px; text-align: center;">${reg.gender === 'feminino' ? 'Feminino' : 'Masculino'}</td>
-              <td style="padding: 12px; text-align: center;">${new Date(reg.registered_at).toLocaleString('pt-BR', { timeZone: systemTimezone })}</td>
+              <td style="padding: 12px; text-align: center;">${reg.gender === "feminino" ? "Feminino" : "Masculino"}</td>
+              <td style="padding: 12px; text-align: center;">${new Date(reg.registered_at).toLocaleString("pt-BR", { timeZone: systemTimezone })}</td>
             </tr>
-          `)
-          .join("") || '<tr><td colspan="5" style="padding: 12px; text-align: center;">Nenhum participante registrado</td></tr>';
+          `,
+            )
+            .join("") ||
+          '<tr><td colspan="5" style="padding: 12px; text-align: center;">Nenhum participante registrado</td></tr>';
 
-        const eventName = date.name || new Date(date.event_date).toLocaleDateString('pt-BR');
+        const eventName = date.name || new Date(date.event_date).toLocaleDateString("pt-BR");
         const eventLocation = event?.name || "Evento";
 
         const emailHTML = `
@@ -206,8 +208,8 @@ serve(async (req) => {
             <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
               <h2 style="margin: 0 0 10px 0; color: #1f2937;">📊 Resumo</h2>
               <p style="margin: 5px 0;"><strong>Total de participantes:</strong> ${totalRegistrations}</p>
-              <p style="margin: 5px 0;"><strong>Data do evento:</strong> ${new Date(date.event_date).toLocaleDateString('pt-BR')}</p>
-              ${date.start_time ? `<p style="margin: 5px 0;"><strong>Horário:</strong> ${date.start_time}</p>` : ''}
+              <p style="margin: 5px 0;"><strong>Data do evento:</strong> ${new Date(date.event_date).toLocaleDateString("pt-BR")}</p>
+              ${date.start_time ? `<p style="margin: 5px 0;"><strong>Horário:</strong> ${date.start_time}</p>` : ""}
             </div>
 
             <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
@@ -244,11 +246,11 @@ serve(async (req) => {
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${resendApiKey}`,
+            Authorization: `Bearer ${resendApiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "Lista VIP <noreply@mdagencia.com.br>",
+            from: "Lista VIP <noreply@infoprolab.com.br>",
             to: [recipientEmail],
             subject: `📋 Lista de Participantes - ${eventLocation} (${eventName})`,
             html: emailHTML,
@@ -288,7 +290,6 @@ serve(async (req) => {
           participants: totalRegistrations,
           success: true,
         });
-
       } catch (error: any) {
         console.error(`❌ Erro ao processar data ${date.id}:`, error);
         results.push({
@@ -309,17 +310,13 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
-
   } catch (error: any) {
     console.error("❌ Erro geral:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
