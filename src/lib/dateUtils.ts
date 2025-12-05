@@ -1,6 +1,29 @@
 import { format as dateFnsFormat } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// Offset BRT em minutos (UTC-3)
+const BRT_OFFSET_MINUTES = -3 * 60;
+
+/**
+ * Retorna a data de hoje no formato YYYY-MM-DD em BRT (UTC-3)
+ * Usado para filtragens de data que precisam considerar o fuso brasileiro
+ */
+export function getTodayBRT(): string {
+  const now = new Date();
+  const utcOffset = now.getTimezoneOffset(); // offset local em minutos
+  const brtTime = new Date(now.getTime() + (utcOffset + BRT_OFFSET_MINUTES) * 60000);
+  return brtTime.toISOString().split('T')[0];
+}
+
+/**
+ * Retorna o timestamp atual em BRT
+ */
+export function getNowBRT(): Date {
+  const now = new Date();
+  const utcOffset = now.getTimezoneOffset();
+  return new Date(now.getTime() + (utcOffset + BRT_OFFSET_MINUTES) * 60000);
+}
+
 /**
  * Parse date and time in BRT (UTC-3) timezone
  * @param date - Date string in format YYYY-MM-DD

@@ -404,6 +404,17 @@ export function GuestListAnalytics() {
               {metrics.formCompletionRate.toFixed(1)}%
             </Badge>
           </div>
+          
+          {/* Nota explicativa para discrepância histórica */}
+          {metrics.submissions > metrics.formStarts && (
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
+              <p className="text-xs text-muted-foreground">
+                ⚠️ <strong>Nota:</strong> Algumas inscrições foram realizadas antes da implementação 
+                do tracking de início de formulário, por isso o número de inscrições pode ser maior 
+                que o de formulários iniciados. Bloqueadores de anúncios também podem afetar o tracking.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

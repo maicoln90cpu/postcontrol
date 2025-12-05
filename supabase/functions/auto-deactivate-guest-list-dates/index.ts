@@ -49,9 +49,18 @@ Deno.serve(async (req) => {
 
     console.log(`[AUTO-DEACTIVATE-DATES] Encontradas ${datesToDeactivate.length} datas candidatas`);
 
-    // Filtrar datas que já passaram
-    const now = new Date();
+    // Obter hora atual em BRT de forma confiável
+    const getNowBRT = (): Date => {
+      const now = new Date();
+      // Converter para string em BRT e depois criar Date
+      const brtString = now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+      return new Date(brtString);
+    };
+
+    const nowBRT = getNowBRT();
     const dateIdsToDeactivate: string[] = [];
+
+    console.log(`[AUTO-DEACTIVATE-DATES] Hora atual em BRT: ${nowBRT.toISOString()}`);
 
     for (const date of datesToDeactivate) {
       // Ignorar datas sem horário definido
@@ -60,15 +69,17 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Criar datetime ISO completo com timezone BRT (UTC-3)
-      const dateTimeStr = `${date.event_date}T${date.start_time}-03:00`;
-      const dateTime = new Date(dateTimeStr);
+      // Criar datetime a partir da data e horário (já em BRT)
+      // O horário de start_time já é em BRT, então criamos o Date diretamente
+      const [hours, minutes, seconds = '00'] = date.start_time.split(':');
+      const eventDateTime = new Date(date.event_date);
+      eventDateTime.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds || '0'));
       
-      console.log(`[AUTO-DEACTIVATE-DATES] Comparando: ${dateTime.toISOString()} vs ${now.toISOString()}`);
+      console.log(`[AUTO-DEACTIVATE-DATES] Comparando evento: ${eventDateTime.toLocaleString('pt-BR')} vs agora BRT: ${nowBRT.toLocaleString('pt-BR')}`);
 
       // Se o evento já começou, marcar para desativar
-      if (dateTime < now) {
-        console.log(`[AUTO-DEACTIVATE-DATES] Data passada: ${date.name || date.event_date} (${dateTime.toISOString()})`);
+      if (eventDateTime < nowBRT) {
+        console.log(`[AUTO-DEACTIVATE-DATES] Data passada: ${date.name || date.event_date} às ${date.start_time}`);
         dateIdsToDeactivate.push(date.id);
       }
     }
