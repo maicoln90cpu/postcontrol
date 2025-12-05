@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { RequireAuth } from "@/components/RequireAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { getSystemTimezone } from "@/lib/dateUtils";
 import Home from "./pages/Home";
 import Submit from "./pages/Submit";
 import Auth from "./pages/Auth";
@@ -29,6 +31,11 @@ import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 const App = () => {
   useAuth(); // Inicializa o listener de autenticação
+  
+  // Inicializa cache do timezone do sistema
+  useEffect(() => {
+    getSystemTimezone();
+  }, []);
   
   return (
     <ThemeProvider defaultTheme="system" storageKey="app-theme">
