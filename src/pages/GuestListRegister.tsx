@@ -9,7 +9,7 @@ import { DateSelector } from "@/components/GuestList/DateSelector";
 import { GuestListForm } from "@/components/GuestList/GuestListForm";
 import { NoAvailableDatesPage } from "@/components/GuestList/NoAvailableDatesPage";
 import { toast } from "sonner";
-import { hasEventPassed } from "@/lib/dateUtils";
+import { hasEventPassed, getTodayBRT } from "@/lib/dateUtils";
 interface GuestListEvent {
   id: string;
   agency_id: string;
@@ -106,11 +106,12 @@ export default function GuestListRegister() {
       }
       setEvent(eventData as any);
 
-      // Buscar datas disponíveis
+      // Buscar datas disponíveis (usando BRT para filtrar corretamente)
+      const todayBRT = getTodayBRT();
       const {
         data: datesData,
         error: datesError
-      } = await supabase.from('guest_list_dates').select('*').eq('event_id', eventData.id).eq('is_active', true).gte('event_date', new Date().toISOString().split('T')[0]).order('event_date', {
+      } = await supabase.from('guest_list_dates').select('*').eq('event_id', eventData.id).eq('is_active', true).gte('event_date', todayBRT).order('event_date', {
         ascending: true
       });
       if (datesError) throw datesError;
