@@ -126,15 +126,21 @@ export default function GuestListRegister() {
 
       // Filtrar datas que devem ser desativadas após início OU mostrar com links alternativos
       const activeDates = (datesData as unknown as GuestListDate[]).filter(date => {
+        // Verificar se evento já terminou (end_time passou)
+        const hasEnded = date.end_time && hasEventPassed(date.event_date, date.end_time);
+        
+        // Se evento terminou, SEMPRE remover da lista
+        if (hasEnded) return false;
+        
         if (!date.auto_deactivate_after_start) return true;
         if (!date.start_time) return true;
         
-        // Se tem link alternativo configurado, SEMPRE mostra
+        // Se tem link alternativo configurado, mostra (mas só até end_time, já verificado acima)
         const hasAlternative = date.show_alternative_after_start && 
                               (date.alternative_link_female || date.alternative_link_male);
         if (hasAlternative) return true;
         
-        // Senão, só mostra se não passou
+        // Senão, só mostra se não passou start_time
         return !hasEventPassed(date.event_date, date.start_time);
       });
       if (activeDates.length === 0) {
