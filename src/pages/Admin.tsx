@@ -1,4 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from "react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import { formatPostName } from "@/lib/postNameFormatter";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,8 +26,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 // 🆕 SPRINT 2 + CACHE: Importar hook de contadores com cache
 import { useSubmissionCountsByEvent, useSubmissionCountsByPost, useApprovedSalesCount } from "@/hooks/useSubmissionCounters";
-import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon
-} from "lucide-react";
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
 import { useNavigate, Link } from "react-router-dom";
@@ -172,6 +175,9 @@ const Admin = () => {
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
   const [zoomSubmissionIndex, setZoomSubmissionIndex] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // ✅ Estado para controlar eventos colapsados na tab Postagens
+  const [collapsedEvents, setCollapsedEvents] = useState<Set<string>>(new Set());
 
   // ✅ SPRINT 1: Persistir índice de zoom entre filtros
   useEffect(() => {
@@ -186,7 +192,7 @@ const Admin = () => {
   useEffect(() => {
     if (zoomDialogOpen) {
       sessionStorage.setItem("adminZoomIndex", zoomSubmissionIndex.toString());
-      console.log("💾 [Zoom] Índice salvo:", zoomSubmissionIndex);
+      logger.info("💾 [Zoom] Índice salvo:", zoomSubmissionIndex);
     }
   }, [zoomDialogOpen, zoomSubmissionIndex]);
 
@@ -253,9 +259,9 @@ const Admin = () => {
   // Debug: Verificar eventos carregados (incluindo inativos)
   const events = eventsData?.events || [];
   const allPosts = eventsData?.posts || []; // 🆕 CORREÇÃO #3: Extrair posts do eventsData
-  console.log("🔍 [Admin Debug] Total de eventos carregados:", events.length);
-  console.log("🔍 [Admin Debug] Total de posts carregados:", allPosts.length);
-  console.log("🔍 [Admin Debug] Eventos:", events.map(e => ({
+  logger.info("🔍 [Admin Debug] Total de eventos carregados:", events.length);
+  logger.info("🔍 [Admin Debug] Total de posts carregados:", allPosts.length);
+  logger.info("🔍 [Admin Debug] Eventos:", events.map(e => ({
     title: e.title,
     active: e.is_active,
     id: e.id
@@ -275,13 +281,40 @@ const Admin = () => {
     isLoading: loadingSalesCount
   } = useApprovedSalesCount(currentAgency?.id, !!currentAgency?.id);
   const loadingCounters = loadingEventCounters || loadingPostCounters;
-  console.log("📊 [Admin] Contadores carregados do cache:", {
+  logger.info("📊 [Admin] Contadores carregados do cache:", {
     submissionsByEvent,
     submissionsByPost,
     approvedSalesCount,
     loadingCounters,
     loadingSalesCount
   });
+
+  // ✅ Inicializar TODOS os eventos como colapsados ao carregar dados
+  useEffect(() => {
+    if (events.length > 0 && collapsedEvents.size === 0) {
+      setCollapsedEvents(new Set(events.map(e => e.id)));
+    }
+  }, [events.length]);
+
+  // ✅ Função memoizada para calcular métricas do evento (contagem por tipo de post)
+  const getEventMetrics = useCallback((eventId: string) => {
+    const eventPosts = allPosts.filter((p: any) => p.event_id === eventId);
+    
+    // Contar posts por tipo
+    const postsByType = {
+      comprovante: eventPosts.filter((p: any) => p.post_type === 'sale').length,
+      divulgacao: eventPosts.filter((p: any) => p.post_type === 'divulgacao').length,
+      selecao: eventPosts.filter((p: any) => p.post_type === 'selecao_perfil').length,
+    };
+    
+    // Somar submissões de todos os posts do evento
+    const totalSubmissions = eventPosts.reduce((sum: number, post: any) => 
+      sum + (submissionsByPost[post.id] || 0), 0
+    );
+    
+    return { postsByType, totalSubmissions, totalPosts: eventPosts.length };
+  }, [allPosts, submissionsByPost]);
+
   const {
     data: submissionsData,
     isLoading: submissionsLoading,
@@ -320,17 +353,17 @@ const Admin = () => {
   const loadingSubmissions = submissionsLoading;
 
   // 🆕 CORREÇÃO 3: Logs de debug expandidos
-  console.log("🔍 [Admin Debug] Total de submissões carregadas:", submissions.length);
-  console.log("🔍 [Admin Debug] Total count do backend:", submissionsData?.count);
-  console.log("🔍 [Admin Debug] Filtros enviados ao backend:", {
+  logger.info("🔍 [Admin Debug] Total de submissões carregadas:", submissions.length);
+  logger.info("🔍 [Admin Debug] Total count do backend:", submissionsData?.count);
+  logger.info("🔍 [Admin Debug] Filtros enviados ao backend:", {
     agencyId: currentAgency?.id,
     eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
     status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined,
     postType: postTypeFilter !== "all" ? postTypeFilter : undefined,
     searchTerm: searchTerm || undefined
   });
-  console.log("🔍 [Admin Debug] Agência atual:", currentAgency?.name);
-  console.log("🔍 [Admin Debug] Página atual:", currentPage);
+  logger.info("🔍 [Admin Debug] Agência atual:", currentAgency?.name);
+  logger.info("🔍 [Admin Debug] Página atual:", currentPage);
 
   // Trial state management
   const [trialInfo, setTrialInfo] = useState<{
@@ -378,7 +411,7 @@ const Admin = () => {
     const agencyId = urlParams.get("agencyId");
     const initializeData = async () => {
       if (!user || !isAgencyAdmin && !isMasterAdmin) return;
-      console.log("🚀 [Admin] Inicializando dados...");
+      logger.info("🚀 [Admin] Inicializando dados...");
 
       // 1. Carregar agência se houver slug/id na URL
       if (agencyId && isMasterAdmin) {
@@ -407,7 +440,7 @@ const Admin = () => {
   // Recarregar eventos quando currentAgency estiver disponível
   useEffect(() => {
     if (currentAgency && !hasLoadedInitialData) {
-      console.log("✅ [Admin] currentAgency carregado, recarregando eventos...", currentAgency.name);
+      logger.info("✅ [Admin] currentAgency carregado, recarregando eventos...", currentAgency.name);
       refetchEvents();
       loadUsersCount();
       setHasLoadedInitialData(true);
@@ -440,9 +473,9 @@ const Admin = () => {
       table: "agencies",
       filter: `id=eq.${currentAgency.id}`
     }, (payload: any) => {
-      console.log("🔄 [Realtime] Agência atualizada:", payload.new);
+      logger.info("🔄 [Realtime] Agência atualizada:", payload.new);
       if (payload.new.logo_url !== currentAgency.logo_url) {
-        console.log("🖼️ [Realtime] Logo atualizado:", payload.new.logo_url);
+        logger.info("🖼️ [Realtime] Logo atualizado:", payload.new.logo_url);
         setCurrentAgency((prev: any) => ({
           ...prev,
           logo_url: payload.new.logo_url
@@ -464,7 +497,7 @@ const Admin = () => {
       const filterKey = `${submissionEventFilter}-${currentAgency.id}`;
       // Apenas refetch se filtro realmente mudou OU primeira carga
       if (!hasLoadedSubmissions || lastSubmissionFilter !== filterKey) {
-        console.log("🔄 [Admin] Recarregando submissões...", filterKey);
+        logger.info("🔄 [Admin] Recarregando submissões...", filterKey);
         refetchSubmissions();
         setHasLoadedSubmissions(true);
         setLastSubmissionFilter(filterKey);
@@ -479,7 +512,7 @@ const Admin = () => {
   // ✅ CORREÇÃO #3+4: Invalidar todos os caches quando agência mudar
   useEffect(() => {
     if (currentAgency?.id) {
-      console.log("🔄 [Admin] Invalidando caches para agência:", currentAgency.id);
+      logger.info("🔄 [Admin] Invalidando caches para agência:", currentAgency.id);
       queryClient.invalidateQueries({
         queryKey: ["events"]
       });
@@ -497,12 +530,12 @@ const Admin = () => {
     } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", id).maybeSingle();
     if (data) {
       setCurrentAgency(data);
-      console.log("🏢 Master Admin visualizando agência:", data.name);
+      logger.info("🏢 Master Admin visualizando agência:", data.name);
     }
   };
   const loadCurrentAgency = async () => {
     if (!user) return;
-    console.log("🔍 [loadCurrentAgency] Iniciando...");
+    logger.info("🔍 [loadCurrentAgency] Iniciando...");
 
     // Load user profile
     const {
@@ -510,10 +543,10 @@ const Admin = () => {
       error: profileError
     } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
     if (profileError) {
-      console.error("❌ Erro ao carregar profile:", profileError);
+      logger.error("❌ Erro ao carregar profile:", profileError);
       return;
     }
-    console.log("✅ Profile carregado:", {
+    logger.info("✅ Profile carregado:", {
       id: profileData?.id,
       email: profileData?.email,
       agency_id: profileData?.agency_id
@@ -530,10 +563,10 @@ const Admin = () => {
         error
       } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("slug", agencySlug).maybeSingle();
       if (error) {
-        console.error("❌ Erro ao carregar agência por slug:", error);
+        logger.error("❌ Erro ao carregar agência por slug:", error);
         return;
       }
-      console.log("🏢 Loaded agency from URL (slug):", data);
+      logger.info("🏢 Loaded agency from URL (slug):", data);
       setCurrentAgency(data);
       setAgencySlug(data?.slug || "");
       return;
@@ -544,10 +577,10 @@ const Admin = () => {
         error
       } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", agencyId).maybeSingle();
       if (error) {
-        console.error("❌ Erro ao carregar agência por ID:", error);
+        logger.error("❌ Erro ao carregar agência por ID:", error);
         return;
       }
-      console.log("🏢 Loaded agency from URL (id):", data);
+      logger.info("🏢 Loaded agency from URL (id):", data);
       setCurrentAgency(data);
       setAgencySlug(data?.slug || "");
       return;
@@ -555,26 +588,26 @@ const Admin = () => {
 
     // If agency admin, load their own agency
     if (isAgencyAdmin && !isMasterAdmin && profileData?.agency_id) {
-      console.log("👤 Agency Admin detectado, carregando agência:", profileData.agency_id);
+      logger.info("👤 Agency Admin detectado, carregando agência:", profileData.agency_id);
       const {
         data: agencyData,
         error: agencyError
       } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", profileData.agency_id).maybeSingle();
       if (agencyError) {
-        console.error("❌ Erro ao carregar agência:", agencyError);
+        logger.error("❌ Erro ao carregar agência:", agencyError);
         toast.error("Erro ao carregar dados da agência");
         return;
       }
       if (!agencyData) {
-        console.error("❌ Agência não encontrada para ID:", profileData.agency_id);
+        logger.error("❌ Agência não encontrada para ID:", profileData.agency_id);
         toast.error("Agência não encontrada");
         return;
       }
-      console.log("✅ Agência carregada:", agencyData);
+      logger.info("✅ Agência carregada:", agencyData);
       setCurrentAgency(agencyData);
       setAgencySlug(agencyData?.slug || "");
     } else if (isMasterAdmin && !agencySlug && !agencyId) {
-      console.log("👑 Master Admin sem filtro de agência - visualizando todos os dados");
+      logger.info("👑 Master Admin sem filtro de agência - visualizando todos os dados");
     }
   };
   const loadAgencyBySlug = async (slug: string) => {
@@ -759,7 +792,7 @@ const Admin = () => {
       return;
     }
     try {
-      console.log(`🚀 [Bulk Approve] Iniciando aprovação em massa de ${ids.length} submissões...`);
+      logger.info(`🚀 [Bulk Approve] Iniciando aprovação em massa de ${ids.length} submissões...`);
       toast.loading(`Aprovando ${ids.length} submissões...`, {
         id: "bulk-approve"
       });
@@ -778,9 +811,9 @@ const Admin = () => {
       setSelectedSubmissions(new Set());
 
       // ✅ Refetch acontece automaticamente via invalidateQueries na mutation
-      console.log(`✅ [Bulk Approve] Concluído`);
+      logger.info(`✅ [Bulk Approve] Concluído`);
     } catch (error) {
-      console.error("❌ [Bulk Approve] Erro:", error);
+      logger.error("❌ [Bulk Approve] Erro:", error);
       toast.error("Erro ao aprovar submissões em massa", {
         id: "bulk-approve"
       });
@@ -1066,13 +1099,13 @@ const Admin = () => {
     // Filtrar posts do evento selecionado
     const eventPosts = allPosts.filter(p => p.event_id === submissionEventFilter);
     if (!eventPosts || eventPosts.length === 0) {
-      console.warn(`⚠️ Nenhum post encontrado para o evento ${submissionEventFilter}`);
+      logger.warn(`⚠️ Nenhum post encontrado para o evento ${submissionEventFilter}`);
       return [];
     }
 
     // Retornar TODOS os post_numbers do evento (ordenados)
     const postNumbers = eventPosts.map(p => p.post_number).filter((num): num is number => num !== null && num !== undefined).sort((a, b) => a - b);
-    console.log(`📋 Posts disponíveis para evento ${submissionEventFilter}:`, postNumbers);
+    logger.info(`📋 Posts disponíveis para evento ${submissionEventFilter}:`, postNumbers);
     return postNumbers;
   };
 
@@ -1281,7 +1314,7 @@ const Admin = () => {
       (approvedCountsData || []).forEach(item => {
         approvedCountsMap[item.user_id] = (approvedCountsMap[item.user_id] || 0) + 1;
       });
-      console.log("✅ Contagens de aprovados carregadas:", {
+      logger.info("✅ Contagens de aprovados carregadas:", {
         usuariosComAprovados: Object.keys(approvedCountsMap).length,
         totalUsuarios: userIds.length,
         eventoFiltrado: submissionEventFilter !== "all" ? submissionEventFilter : "todos"
@@ -1297,7 +1330,7 @@ const Admin = () => {
           eventSalesMap[item.user_id] = (eventSalesMap[item.user_id] || 0) + 1;
         }
       });
-      console.log(`✅ Vendas aprovadas no evento carregadas para ${Object.keys(eventSalesMap).length} usuários`);
+      logger.info(`✅ Vendas aprovadas no evento carregadas para ${Object.keys(eventSalesMap).length} usuários`);
 
       // Enriquecer submissions com profiles
       const enrichedSubmissions = fullSubmissionsData.map(sub => ({
@@ -1314,7 +1347,7 @@ const Admin = () => {
       // 🔧 ITEM 7: Buscar informações de posts com query robusta
       let postsMap: Record<string, any> = {};
       if (submissionIds.length > 0) {
-        console.log("🔍 Buscando posts para", submissionIds.length, "submissões");
+        logger.info("🔍 Buscando posts para", submissionIds.length, "submissões");
 
         // Passo 1: Buscar post_ids das submissões
         const {
@@ -1322,7 +1355,7 @@ const Admin = () => {
           error: postsIdsError
         } = await sb.from("submissions").select("id, post_id").in("id", submissionIds).not("post_id", "is", null);
         if (postsIdsError) {
-          console.error("Erro ao buscar post_ids:", postsIdsError);
+          logger.error("Erro ao buscar post_ids:", postsIdsError);
         } else {
           const postIds = (submissionsWithPosts || []).map((s: any) => s.post_id).filter(Boolean);
           if (postIds.length > 0) {
@@ -1339,7 +1372,7 @@ const Admin = () => {
                 )
               `).in("id", postIds);
             if (postsError) {
-              console.error("Erro ao buscar posts:", postsError);
+              logger.error("Erro ao buscar posts:", postsError);
             } else {
               // Criar map de post_id → post_data
               const postsDataMap: Record<string, any> = {};
@@ -1358,7 +1391,7 @@ const Admin = () => {
                   postsMap[item.id] = postsDataMap[item.post_id];
                 }
               });
-              console.log("✅ Posts carregados:", {
+              logger.info("✅ Posts carregados:", {
                 submissionsTotal: submissionIds.length,
                 postsEncontrados: Object.keys(postsDataMap).length,
                 submissoesComPosts: Object.keys(postsMap).length
@@ -1367,7 +1400,7 @@ const Admin = () => {
           }
         }
       }
-      console.log("📊 Posts mapeados:", Object.keys(postsMap).length, "de", submissionIds.length);
+      logger.info("📊 Posts mapeados:", Object.keys(postsMap).length, "de", submissionIds.length);
 
       // ✅ ITEM 1: Preparar dados completos (todas as colunas)
       const fullExportData = (enrichedSubmissions || []).map((sub: any) => {
@@ -1885,63 +1918,132 @@ const Admin = () => {
             </div>
 
             <Card className="p-1">
-              {filteredPosts.length === 0 ? <p className="text-muted-foreground text-center py-8">
+              {loadingEvents ? (
+                <div className="space-y-4 p-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="space-y-3">
+                      <Skeleton className="h-10 w-full" />
+                      <div className="pl-6 space-y-2">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredPosts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
                   {postEventFilter === "all" ? "Nenhuma postagem cadastrada ainda" : "Nenhuma postagem para este evento"}
-                </p> /* ✅ ITEM 3: Agrupar posts por evento */ : <div className="space-y-6">
+                </p>
+              ) : (
+                <div className="space-y-2">
                   {(() => {
-                // Agrupar posts por evento
-                const postsByEvent: Record<string, typeof filteredPosts> = {};
-                filteredPosts.forEach(post => {
-                  const eventTitle = getEventTitle(post);
-                  if (!postsByEvent[eventTitle]) {
-                    postsByEvent[eventTitle] = [];
-                  }
-                  postsByEvent[eventTitle].push(post);
-                });
-                return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => <div key={eventTitle} className="space-y-3">
-                        {/* Cabeçalho do grupo de evento */}
-                        <div className="flex items-center gap-2 px-2">
-                          <Calendar className="h-4 w-4 text-primary" />
-                          <h3 className="font-semibold text-lg">{eventTitle}</h3>
-                          <Badge variant="outline">
-                            {eventPosts.length} post{eventPosts.length > 1 ? "s" : ""}
-                          </Badge>
-                        </div>
-
-                        {/* Lista de posts do evento */}
-                        <div className="space-y-2 pl-3 sm:pl-6 border-l-2 border-primary/20">
-                          {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => <Card key={post.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <h4 className="font-bold text-sm sm:text-base break-words">{formatPostName(post.post_type, post.post_number)}</h4>
-                                      {/* ✅ ITEM 2: Badge com contador de submissões */}
-                                      <Badge variant="secondary" className="text-xs shrink-0">
-                                        {submissionsByPost[post.id] || 0} submiss
-                                        {(submissionsByPost[post.id] || 0) === 1 ? "ão" : "ões"}
-                                      </Badge>
+                    // Agrupar posts por evento
+                    const postsByEvent: Record<string, typeof filteredPosts> = {};
+                    filteredPosts.forEach(post => {
+                      const eventTitle = getEventTitle(post);
+                      if (!postsByEvent[eventTitle]) {
+                        postsByEvent[eventTitle] = [];
+                      }
+                      postsByEvent[eventTitle].push(post);
+                    });
+                    
+                    return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => {
+                      const eventId = eventPosts[0]?.event_id;
+                      const isCollapsed = collapsedEvents.has(eventId);
+                      const metrics = getEventMetrics(eventId);
+                      
+                      return (
+                        <Collapsible
+                          key={eventTitle}
+                          open={!isCollapsed}
+                          onOpenChange={(open) => {
+                            setCollapsedEvents(prev => {
+                              const newSet = new Set(prev);
+                              if (open) {
+                                newSet.delete(eventId);
+                              } else {
+                                newSet.add(eventId);
+                              }
+                              return newSet;
+                            });
+                          }}
+                        >
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center gap-2 px-3 py-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer">
+                              <ChevronRight className={cn(
+                                "h-4 w-4 text-primary transition-transform shrink-0",
+                                !isCollapsed && "rotate-90"
+                              )} />
+                              <Calendar className="h-4 w-4 text-primary shrink-0" />
+                              <h3 className="font-semibold text-sm sm:text-lg text-left truncate">{eventTitle}</h3>
+                              
+                              {/* Badges: Contagem por tipo de post */}
+                              <div className="flex gap-1 shrink-0 flex-wrap">
+                                {metrics.postsByType.divulgacao > 0 && (
+                                  <Badge variant="outline" className="text-xs" title="Divulgação">
+                                    📢 {metrics.postsByType.divulgacao}
+                                  </Badge>
+                                )}
+                                {metrics.postsByType.comprovante > 0 && (
+                                  <Badge variant="outline" className="text-xs" title="Comprovante de Venda">
+                                    💰 {metrics.postsByType.comprovante}
+                                  </Badge>
+                                )}
+                                {metrics.postsByType.selecao > 0 && (
+                                  <Badge variant="outline" className="text-xs" title="Seleção de Perfil">
+                                    👤 {metrics.postsByType.selecao}
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              {/* Badge: Total de submissões */}
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                {metrics.totalSubmissions} submissões
+                              </Badge>
+                            </div>
+                          </CollapsibleTrigger>
+                          
+                          <CollapsibleContent>
+                            {/* Lista de posts do evento */}
+                            <div className="space-y-2 pl-3 sm:pl-6 border-l-2 border-primary/20 mt-2 mb-4">
+                              {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => (
+                                <Card key={post.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
+                                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <h4 className="font-bold text-sm sm:text-base break-words">{formatPostName(post.post_type, post.post_number)}</h4>
+                                        {/* Badge com contador de submissões */}
+                                        <Badge variant="secondary" className="text-xs shrink-0">
+                                          {submissionsByPost[post.id] || 0} submiss
+                                          {(submissionsByPost[post.id] || 0) === 1 ? "ão" : "ões"}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
+                                        Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
+                                      </p>
                                     </div>
-                                    <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
-                                      Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
-                                    </p>
+                                    <div className="flex gap-2 shrink-0">
+                                      <Button variant="ghost" size="sm" onClick={() => {
+                                        setSelectedPost(post);
+                                        setPostDialogOpen(true);
+                                      }} disabled={isReadOnly}>
+                                        <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="sm" onClick={() => handleDeletePostClick(post.id)} className="text-destructive hover:text-destructive" disabled={isReadOnly}>
+                                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div className="flex gap-2 shrink-0">
-                                    <Button variant="ghost" size="sm" onClick={() => {
-                            setSelectedPost(post);
-                            setPostDialogOpen(true);
-                          }} disabled={isReadOnly}>
-                                      <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => handleDeletePostClick(post.id)} className="text-destructive hover:text-destructive" disabled={isReadOnly}>
-                                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </Card>)}
-                        </div>
-                      </div>);
-              })()}
-                </div>}
+                                </Card>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
             </Card>
           </TabsContent>
 
