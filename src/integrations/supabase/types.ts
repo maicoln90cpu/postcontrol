@@ -2145,16 +2145,6 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: undefined
       }
-      send_event_reminders: { Args: never; Returns: undefined }
-      send_push_to_user: {
-        Args: {
-          p_body: string
-          p_data?: Json
-          p_title: string
-          p_user_id: string
-        }
-        Returns: undefined
-      }
       update_participation_status: {
         Args: {
           p_event_id: string
