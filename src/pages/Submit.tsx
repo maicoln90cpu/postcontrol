@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Upload, ArrowLeft, X, AlertCircle, HelpCircle, RefreshCw } from "lucide-react";
+import { Upload, ArrowLeft, X, AlertCircle, HelpCircle, RefreshCw, Loader2 } from "lucide-react";
 import { RefreshDataButton } from "@/components/RefreshDataButton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/authStore";
@@ -127,7 +129,7 @@ const Submit = () => {
     try {
       return localStorage.getItem('user_ticketer_email') || "";
     } catch (error) {
-      console.error('Erro ao ler localStorage (user_ticketer_email):', error);
+      logger.error('Erro ao ler localStorage (user_ticketer_email):', error);
       return "";
     }
   });
@@ -160,39 +162,124 @@ const Submit = () => {
           // Limpar contexto após usar
           localStorage.removeItem("event_context");
         } catch (err) {
-          console.error("❌ [ITEM 1] Erro ao processar contexto do evento:", err);
+          logger.error("[ITEM 1] Erro ao processar contexto do evento:", err);
         }
       }
     }
   }, [events]); // Roda quando events muda
 
+  // Estado de loading para dados do evento
+  const [loadingEventData, setLoadingEventData] = useState(false);
+  const [eventDataError, setEventDataError] = useState<string | null>(null);
+
+  // 🚀 OTIMIZAÇÃO: Carregar todos os dados do evento em paralelo
+  const loadEventDataOptimized = async (eventId: string, type: "post" | "sale", retryCount = 0) => {
+    if (!user) return;
+    
+    setLoadingEventData(true);
+    setEventDataError(null);
+    setSelectedPost("");
+    
+    try {
+      // GRUPO 1: Queries paralelas independentes
+      const [eventResult, requirementsResult, userSubmissionsResult] = await Promise.all([
+        sb.from("events").select("event_purpose, ticketer_email").eq("id", eventId).maybeSingle(),
+        sb.from("event_requirements").select("*").eq("event_id", eventId).order("display_order", { ascending: true }),
+        sb.from("submissions").select("post_id").eq("user_id", user.id).eq("event_id", eventId)
+      ]);
+
+      if (eventResult.error) throw eventResult.error;
+      if (requirementsResult.error) throw requirementsResult.error;
+      
+      const eventPurpose = eventResult.data?.event_purpose || "divulgacao";
+      const isProfileSelection = eventPurpose === "selecao_perfil";
+      
+      // Configurar ticketeira
+      setTicketerEmailRequired(!!eventResult.data?.ticketer_email);
+      setUserTicketerEmail(localStorage.getItem('user_ticketer_email') || "");
+      setRequirements(requirementsResult.data || []);
+      
+      const submittedPostIds = (userSubmissionsResult.data || []).filter((s: any) => s.post_id).map((s: any) => s.post_id);
+      setUserSubmissions(submittedPostIds);
+
+      // GRUPO 2: Queries dependentes do tipo (paralelas entre si)
+      if (type === "sale") {
+        const [salesPostResult, salesCountResult] = await Promise.all([
+          sb.from("posts").select("id, post_number, deadline, event_id, post_type")
+            .eq("event_id", eventId).eq("post_number", 0).eq("post_type", "sale").maybeSingle(),
+          sb.from("submissions").select("*", { count: "exact", head: true })
+            .eq("user_id", user.id).eq("event_id", eventId).eq("submission_type", "sale")
+        ]);
+
+        if (salesPostResult.data) {
+          setPosts([salesPostResult.data]);
+          setSelectedPost(salesPostResult.data.id);
+        } else {
+          setPosts([]);
+        }
+        setSalesCount(salesCountResult.count || 0);
+        setPostsCount(0);
+      } else {
+        // Posts normais (excluindo #0)
+        let postsQuery = sb.from("posts")
+          .select("id, post_number, deadline, event_id")
+          .eq("event_id", eventId)
+          .neq("post_number", 0)
+          .gte("deadline", new Date().toISOString())
+          .order("deadline", { ascending: true });
+
+        if (submittedPostIds.length > 0 && !isProfileSelection) {
+          postsQuery = postsQuery.not("id", "in", `(${submittedPostIds.join(",")})`);
+        }
+        if (!isProfileSelection) {
+          postsQuery = postsQuery.limit(1);
+        }
+
+        const [postsResult, postsCountResult] = await Promise.all([
+          postsQuery,
+          sb.from("submissions").select("*", { count: "exact", head: true })
+            .eq("user_id", user.id).eq("event_id", eventId).eq("submission_type", "divulgacao")
+        ]);
+
+        const postsData = postsResult.data || [];
+        setPosts(postsData);
+        setPostsCount(postsCountResult.count || 0);
+        setSalesCount(0);
+
+        // Auto-selecionar post único para divulgação
+        if (postsData.length === 1 && !isProfileSelection) {
+          setSelectedPost(postsData[0].id);
+        }
+      }
+
+      setLoadingEventData(false);
+      logger.info("Dados do evento carregados com sucesso");
+    } catch (error: any) {
+      logger.error("Erro ao carregar dados do evento:", error);
+      
+      // Retry com backoff exponencial (máx 3 tentativas)
+      if (retryCount < 3) {
+        const delay = 1000 * (retryCount + 1);
+        logger.info(`Tentando novamente em ${delay}ms... (tentativa ${retryCount + 2}/3)`);
+        await new Promise(r => setTimeout(r, delay));
+        return loadEventDataOptimized(eventId, type, retryCount + 1);
+      }
+      
+      setEventDataError("Não foi possível carregar os dados. Tente novamente.");
+      setLoadingEventData(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedEvent) {
-      setSelectedPost(""); // ✅ Limpar postagem selecionada ao trocar evento
-      loadPostsForEvent(selectedEvent, submissionType as "post" | "sale");
-      loadRequirementsForEvent(selectedEvent);
-      // ✅ FASE 4: Carregar submissions do usuário para este evento
-      loadUserSubmissionsForEvent(selectedEvent);
-      // ✅ Carregar contador de vendas se tipo for sale
-      if (submissionType === "sale") {
-        loadSalesCount(selectedEvent);
-      }
-      // ✅ ITEM 3: Carregar contador de postagens se tipo for post
-      if (submissionType === "post") {
-        loadPostsCount(selectedEvent);
-      }
-      // Verificar se o evento requer e-mail da ticketeira
-      const eventData = events.find((e) => e.id === selectedEvent);
-      setTicketerEmailRequired(!!eventData?.ticketer_email);
-      // 🆕 CORREÇÃO #4: Manter valor do localStorage em vez de limpar
-      setUserTicketerEmail(localStorage.getItem('user_ticketer_email') || "");
+      loadEventDataOptimized(selectedEvent, submissionType as "post" | "sale");
     } else {
       setPosts([]);
       setRequirements([]);
       setSelectedPost("");
       setUserSubmissions([]);
       setSalesCount(0);
-      setPostsCount(0); // ✅ ITEM 3: Resetar contador
+      setPostsCount(0);
     }
     logger.info("submissionType mudou:", submissionType);
   }, [selectedEvent, submissionType]);
@@ -213,7 +300,7 @@ const Submit = () => {
         .limit(1);
 
       if (agenciesError) {
-        console.error("❌ Erro ao buscar agências:", agenciesError);
+        logger.error("Erro ao buscar agências:", agenciesError);
         toast({
           title: "Erro de configuração",
           description: "Não foi possível carregar suas agências.",
@@ -240,7 +327,7 @@ const Submit = () => {
       const contextAgencyId = userAgencies[0].agency_id;
       setAgencyId(contextAgencyId);
 
-      console.log("✅ Agência detectada:", {
+      logger.info("Agência detectada:", {
         agency_id: contextAgencyId,
         user_id: user.id,
       });
@@ -263,7 +350,7 @@ const Submit = () => {
         .order("event_date", { ascending: true });
 
       if (error) {
-        console.error("❌ Erro ao carregar eventos:", error);
+        logger.error("Erro ao carregar eventos:", error);
         toast({
           title: "Erro ao carregar eventos",
           description: error.message,
@@ -283,10 +370,9 @@ const Submit = () => {
         return;
       }
 
-      console.log("📋 Eventos carregados:", {
+      logger.info("Eventos carregados:", {
         agency_id: contextAgencyId,
         total: data?.length || 0,
-        events: data?.map((e) => e.title) || [],
       });
 
       // ✅ ITEM 1: Filtrar por slug se houver contexto de evento
@@ -297,19 +383,19 @@ const Submit = () => {
           const filteredData = data.filter((e) => e.id === eventContext.eventId);
 
           if (filteredData.length > 0) {
-            console.log("🎯 [ITEM 1] Eventos filtrados por slug:", filteredData[0].title);
+            logger.info("[ITEM 1] Eventos filtrados por slug:", filteredData[0].title);
             setEvents(filteredData);
             // ⚠️ Não remover event_context aqui - deixar para o useEffect fazer (linha 124-148)
             return;
           }
         } catch (err) {
-          console.error("Erro ao processar contexto do evento:", err);
+          logger.error("Erro ao processar contexto do evento:", err);
         }
       }
 
       setEvents(data);
     } catch (error) {
-      console.error("❌ Erro crítico ao carregar eventos:", error);
+      logger.error("Erro crítico ao carregar eventos:", error);
       toast({
         title: "Erro ao carregar eventos",
         description: "Tente recarregar a página.",
@@ -319,259 +405,8 @@ const Submit = () => {
     }
   };
 
-  const loadPostsForEvent = async (eventId: string, submissionType: "post" | "sale") => {
-    if (!user) return;
-
-    // Buscar informações do evento para verificar o tipo
-    const { data: eventData } = await sb.from("events").select("event_purpose").eq("id", eventId).maybeSingle();
-
-    const postType = eventData?.event_purpose || "divulgacao";
-    const isProfileSelection = postType === "selecao_perfil";
-
-    // ✅ Log para confirmar tipo do evento
-    console.log("📋 Tipo do evento:", {
-      eventId,
-      eventPurpose: postType,
-      isProfileSelection,
-      submissionType,
-      currentTime: new Date().toISOString(),
-      currentTimeBR: new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
-    });
-
-    // ✅ SIMPLIFICADO: Buscar post #0 real para vendas
-    if (submissionType === "sale") {
-      console.log("💰 Buscando post #0 para venda...");
-
-      const { data: salesPost, error } = await sb
-        .from("posts")
-        .select("id, post_number, deadline, event_id, post_type")
-        .eq("event_id", eventId)
-        .eq("post_number", 0)
-        .eq("post_type", "sale")
-        .maybeSingle();
-
-      if (error) {
-        console.error("Erro ao buscar post de venda:", error);
-        toast({
-          title: "Erro ao carregar",
-          description: "Não foi possível carregar o post de venda.",
-          variant: "destructive",
-        });
-        setPosts([]);
-        return;
-      }
-
-      if (salesPost) {
-        console.log("✅ Post #0 encontrado:", salesPost.id);
-        setPosts([salesPost]);
-        setSelectedPost(salesPost.id);
-      } else {
-        console.log("⚠️ Post #0 não encontrado para este evento");
-        toast({
-          title: "Post de venda não disponível",
-          description: "A agência ainda não criou o post para comprovantes de venda neste evento.",
-          variant: "default",
-        });
-        setPosts([]);
-      }
-      return;
-    }
-
-    // Para postagens normais: EXCLUIR post #0
-    console.log("📸 Carregando posts normais (excluindo #0)...");
-
-    // 1. Buscar IDs dos posts do evento (excluindo #0)
-    const { data: eventPosts } = await sb.from("posts").select("id").eq("event_id", eventId).neq("post_number", 0); // ✅ EXCLUIR post #0
-
-    const eventPostIds = (eventPosts || []).map((p: any) => p.id);
-
-    if (eventPostIds.length === 0) {
-      setPosts([]);
-      return;
-    }
-
-    // 2. Para divulgação, excluir posts já enviados
-    let submittedPostIds: string[] = [];
-
-    if (postType === "divulgacao") {
-      const { data: userSubmissions } = await sb
-        .from("submissions")
-        .select("post_id")
-        .eq("user_id", user.id)
-        .in("post_id", eventPostIds);
-
-      submittedPostIds = (userSubmissions || []).map((s: any) => s.post_id);
-    }
-
-    console.log("🔍 Iniciando busca de posts:", {
-      eventId,
-      isProfileSelection,
-      submittedPostIds,
-      willExcludeSubmitted: submittedPostIds.length > 0 && !isProfileSelection,
-      willApplyLimit: !isProfileSelection,
-    });
-
-    // 3. Buscar postagens disponíveis
-    let query = sb
-      .from("posts")
-      .select("id, post_number, deadline, event_id")
-      .eq("event_id", eventId)
-      .neq("post_number", 0); // ✅ GARANTIR que post #0 seja excluído
-
-    // ✅ TODOS os eventos devem respeitar deadline
-    query = query.gte("deadline", new Date().toISOString());
-
-    // Excluir posts já enviados (apenas para eventos de divulgação)
-    if (submittedPostIds.length > 0 && !isProfileSelection) {
-      query = query.not("id", "in", `(${submittedPostIds.join(",")})`);
-    }
-
-    query = query.order("deadline", { ascending: true });
-
-    // Para divulgação: retornar apenas o primeiro post disponível
-    // Para seleção de perfil: retornar TODOS os posts disponíveis
-    if (!isProfileSelection) {
-      query = query.limit(1);
-    }
-
-    const { data, error } = await query;
-
-    console.log("📊 Resultado da query de posts:", {
-      success: !error,
-      error: error?.message || null,
-      postsReturned: data?.length || 0,
-      rawData: data,
-    });
-
-    if (error) {
-      console.error("❌ Erro ao carregar posts:", error);
-      toast({
-        title: "Erro ao carregar posts",
-        description: `Não foi possível carregar as postagens disponíveis. ${error.message}`,
-        variant: "destructive",
-      });
-      setPosts([]);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      console.warn("⚠️ Nenhum post encontrado para o evento:", {
-        eventId,
-        isProfileSelection,
-        submittedPostIds,
-      });
-      setPosts([]);
-      return;
-    }
-
-    // ✅ Log para mostrar posts encontrados
-    console.log("📍 Posts disponíveis:", {
-      eventType: isProfileSelection ? "Seleção de Perfil" : "Divulgação",
-      total: data?.length || 0,
-      submittedByUser: submittedPostIds.length,
-      posts: data?.map((p) => ({
-        id: p.id,
-        number: p.post_number,
-        deadline: p.deadline,
-        isPastDeadline: new Date(p.deadline) < new Date(),
-      })),
-    });
-
-    setPosts(data || []);
-
-    // Auto-selecionar apenas para eventos de divulgação com 1 post
-    // Para seleção de perfil, deixar usuário escolher
-    if (data && data.length === 1 && !isProfileSelection) {
-      setSelectedPost(data[0].id);
-      console.log("✅ Post auto-selecionado:", data[0].post_number);
-    } else if (data && data.length > 0) {
-      console.log(`ℹ️ ${data.length} posts disponíveis. Usuário deve selecionar manualmente.`);
-    }
-  };
-
-  const loadRequirementsForEvent = async (eventId: string) => {
-    const { data, error } = await sb
-      .from("event_requirements")
-      .select("*")
-      .eq("event_id", eventId)
-      .order("display_order", { ascending: true });
-
-    if (error) {
-      console.error("Error loading requirements:", error);
-      return;
-    }
-
-    setRequirements(data || []);
-  };
-
-  // ✅ FASE 4: Carregar submissions do usuário para marcar posts já enviados
-  const loadUserSubmissionsForEvent = async (eventId: string) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await sb
-        .from("submissions")
-        .select("post_id, posts!inner(event_id)")
-        .eq("user_id", user.id)
-        .eq("posts.event_id", eventId);
-
-      if (error) {
-        console.error("Erro ao carregar submissions do usuário:", error);
-        return;
-      }
-
-      const submittedPostIds = (data || []).filter((s: any) => s.post_id).map((s: any) => s.post_id);
-
-      console.log("✅ Posts já enviados pelo usuário:", submittedPostIds);
-      setUserSubmissions(submittedPostIds);
-    } catch (error) {
-      console.error("Erro ao carregar submissions:", error);
-      setUserSubmissions([]);
-    }
-  };
-
-  const loadSalesCount = async (eventId: string) => {
-    if (!user) return;
-
-    console.log("📊 Carregando contador de vendas...");
-
-    const { count, error } = await sb
-      .from("submissions")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("event_id", eventId)
-      .eq("submission_type", "sale");
-
-    if (error) {
-      console.error("Erro ao carregar contador:", error);
-      return;
-    }
-
-    console.log(`✅ Total de vendas enviadas: ${count || 0}`);
-    setSalesCount(count || 0);
-  };
-
-  // ✅ ITEM 3: Função para carregar contador de postagens
-  const loadPostsCount = async (eventId: string) => {
-    if (!user) return;
-
-    console.log("📊 Carregando contador de postagens...");
-
-    const { count, error } = await sb
-      .from("submissions")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("event_id", eventId)
-      .eq("submission_type", "divulgacao");
-
-    if (error) {
-      console.error("Erro ao carregar contador de postagens:", error);
-      return;
-    }
-
-    console.log(`✅ Total de postagens enviadas: ${count || 0}`);
-    setPostsCount(count || 0);
-  };
+  // NOTA: As funções loadPostsForEvent, loadRequirementsForEvent, loadUserSubmissionsForEvent,
+  // loadSalesCount e loadPostsCount foram consolidadas em loadEventDataOptimized() para performance
 
   const loadUserProfile = async () => {
     if (!user) return;
@@ -583,7 +418,7 @@ const Submit = () => {
       .single();
 
     if (error) {
-      console.error("Error loading profile:", error);
+      logger.error("Error loading profile:", error);
       return;
     }
 
@@ -635,8 +470,8 @@ const Submit = () => {
                   type: "image/jpeg", // Sempre converter para JPEG
                   lastModified: Date.now(),
                 });
-                console.log(
-                  `📦 Imagem comprimida: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`,
+                logger.info(
+                  `Imagem comprimida: ${(file.size / 1024).toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB`,
                 );
                 resolve(compressedFile);
               } else {
@@ -709,7 +544,7 @@ const Submit = () => {
           reader.readAsDataURL(compressedFile);
         }
       } catch (error) {
-        console.error("Erro ao processar imagem:", error);
+        logger.error("Erro ao processar imagem:", error);
         toast({
           title: "Erro ao processar imagem",
           description: "Tente novamente ou use outra imagem.",
@@ -814,7 +649,7 @@ const Submit = () => {
         .single();
 
       if (profileError) {
-        console.error("Erro ao buscar perfil:", profileError);
+        logger.error("Erro ao buscar perfil:", profileError);
       }
 
       const userGender = userProfile?.gender;
@@ -979,7 +814,7 @@ const Submit = () => {
           .maybeSingle();
 
         if (checkError) {
-          console.error("Erro ao verificar duplicata:", checkError);
+          logger.error("Erro ao verificar duplicata:", checkError);
         }
 
         if (existingSubmission) {
@@ -999,7 +834,7 @@ const Submit = () => {
         }
       } else if (submissionType === "sale") {
         // ✅ Para vendas: PERMITIR múltiplas submissões
-        console.log("[Submit] Comprovante de venda: múltiplas submissões permitidas");
+        logger.info("[Submit] Comprovante de venda: múltiplas submissões permitidas");
       }
 
       // Rate limiting check (15 submissions per hour - increased from 5)
@@ -1011,7 +846,7 @@ const Submit = () => {
       });
 
       if (rateLimitError) {
-        console.error("Rate limit check error:", rateLimitError);
+        logger.error("Rate limit check error:", rateLimitError);
       }
 
       if (rateLimitCheck === false) {
@@ -1084,7 +919,7 @@ const Submit = () => {
             if (uploadError) throw uploadError;
             return; // Sucesso
           } catch (error: any) {
-            console.error(`Upload attempt ${attempt}/${maxRetries} failed:`, error);
+            logger.error(`Upload attempt ${attempt}/${maxRetries} failed:`, error);
             if (attempt === maxRetries) {
               // Última tentativa falhou
               throw new Error(`UPLOAD_FAILED: ${error?.message || 'Falha no upload da imagem'}`);
@@ -1197,7 +1032,7 @@ const Submit = () => {
       setSelectedPost("");
       setSelectedEvent("");
     } catch (error: any) {
-      console.error("Error submitting:", error);
+      logger.error("Error submitting:", error);
       
       // Identificar tipo de erro e mostrar mensagem específica
       let errorTitle = "Erro ao enviar";
@@ -1265,7 +1100,7 @@ const Submit = () => {
                     onRefresh={async () => {
                       await loadEvents();
                       if (selectedEvent) {
-                        await loadPostsForEvent(selectedEvent, submissionType as "post" | "sale");
+                        await loadEventDataOptimized(selectedEvent, submissionType as "post" | "sale");
                       }
                     }}
                     size="sm"
@@ -1318,7 +1153,42 @@ const Submit = () => {
                 )}
               </div>
 
-              {selectedEvent && selectedEventData && (
+              {/* Skeleton Loading para dados do evento */}
+              {loadingEventData && (
+                <div className="space-y-4 animate-pulse">
+                  <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
+                    <Skeleton className="h-48 w-full rounded-lg" />
+                    <Skeleton className="h-6 w-3/4" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-4 w-1/3" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              )}
+
+              {/* Erro ao carregar dados do evento */}
+              {eventDataError && !loadingEventData && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>{eventDataError}</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => loadEventDataOptimized(selectedEvent, submissionType as "post" | "sale")}
+                      className="ml-2"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Tentar novamente
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {selectedEvent && selectedEventData && !loadingEventData && !eventDataError && (
                 <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
                   {selectedEventData.event_image_url && (
                     <div className="flex justify-center mb-3">
@@ -1368,7 +1238,7 @@ const Submit = () => {
                 </div>
               )}
 
-              {selectedEvent && (
+              {selectedEvent && !loadingEventData && !eventDataError && (
                 <>
                   {/* Exibir Tipo de Evento de forma destacada */}
                   <div className="space-y-2 bg-muted/50 p-4 rounded-lg border">
