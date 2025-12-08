@@ -286,40 +286,9 @@ serve(async (req) => {
     const successful = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.filter((r) => r.status === "rejected").length;
 
-    // Se houve falhas, salvar para retry (exceto subscriptions expiradas)
+    // Log falhas (sistema de retry desativado para performance)
     if (failed > 0) {
-      const failedResults = results
-        .map((r, i) => ({ result: r, subscription: validSubscriptions[i] }))
-        .filter(({ result }) => 
-          result.status === "rejected" && 
-          result.reason?.message !== "SUBSCRIPTION_EXPIRED"
-        );
-
-      if (failedResults.length > 0) {
-        logStep(`💾 Salvando ${failedResults.length} notificação(ões) para retry`);
-        
-        // Calcular próximo retry (5 minutos)
-        const nextRetry = new Date();
-        nextRetry.setMinutes(nextRetry.getMinutes() + 5);
-
-        const firstFailure = failedResults[0].result;
-        const errorMsg = firstFailure.status === "rejected" 
-          ? (firstFailure.reason instanceof Error ? firstFailure.reason.message : String(firstFailure.reason))
-          : "Unknown error";
-
-        await supabase.from("push_notification_retries").insert({
-          user_id: userId,
-          title,
-          body,
-          data: data || {},
-          notification_type: notificationType,
-          attempt_count: 0,
-          max_attempts: 3,
-          next_retry_at: nextRetry.toISOString(),
-          last_error: errorMsg,
-          status: "pending",
-        });
-      }
+      logStep(`⚠️ ${failed} notificação(ões) falharam (sem retry)`);
     }
 
     // Remover inscrições inválidas (endpoint expirado)
