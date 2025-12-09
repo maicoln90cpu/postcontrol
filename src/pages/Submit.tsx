@@ -930,19 +930,36 @@ const Submit = () => {
         }
       };
 
-      // Upload da imagem principal (se houver) com retry
+      // 🚀 FASE 1: Upload PARALELO das imagens (antes era sequencial ~3-6s, agora ~1.5-3s)
+      const uploadPromises: Promise<void>[] = [];
+      const timestamp = Date.now();
+      
+      // Preparar upload da imagem principal
+      let mainFileName: string | null = null;
       if (fileToUpload) {
         const fileExt = fileToUpload.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-        await uploadWithRetry(fileToUpload, fileName);
-        insertData.screenshot_path = fileName;
+        mainFileName = `${user.id}/${timestamp}.${fileExt}`;
+        uploadPromises.push(uploadWithRetry(fileToUpload, mainFileName));
       }
 
-      // 🆕 Upload de screenshot do perfil (se for seleção de perfil) com retry
+      // Preparar upload do screenshot do perfil (se for seleção de perfil)
+      let profileFileName: string | null = null;
       if (selectedEventData?.event_purpose === "selecao_perfil" && profileScreenshotFile) {
         const profileFileExt = profileScreenshotFile.name.split(".").pop();
-        const profileFileName = `${user.id}/profile_${Date.now()}.${profileFileExt}`;
-        await uploadWithRetry(profileScreenshotFile, profileFileName);
+        profileFileName = `${user.id}/profile_${timestamp}.${profileFileExt}`;
+        uploadPromises.push(uploadWithRetry(profileScreenshotFile, profileFileName));
+      }
+
+      // Executar uploads em paralelo
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
+
+      // Atribuir paths após uploads bem-sucedidos
+      if (mainFileName) {
+        insertData.screenshot_path = mainFileName;
+      }
+      if (profileFileName) {
         insertData.profile_screenshot_path = profileFileName;
       }
 
