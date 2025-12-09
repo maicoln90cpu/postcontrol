@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { sb } from "@/lib/supabaseSafe";
 import { useAuthStore } from "@/stores/authStore";
+import { logger } from "@/lib/logger";
 import AgencySignup from "./AgencySignup";
 
 export default function AgencySignupBySlug() {
@@ -24,7 +25,7 @@ export default function AgencySignupBySlug() {
   useEffect(() => {
     const associateAndRedirect = async () => {
       if (user && agencyId && !loading) {
-        console.log("🔗 Usuário logado detectado, associando à agência:", {
+        logger.info("🔗 Usuário logado detectado, associando à agência:", {
           user_id: user.id,
           agency_id: agencyId,
           agency_name: agencyName,
@@ -43,9 +44,9 @@ export default function AgencySignupBySlug() {
         );
 
         if (agencyLinkError) {
-          console.error("❌ Erro ao vincular agência:", agencyLinkError);
+          logger.error("❌ Erro ao vincular agência:", agencyLinkError);
         } else {
-          console.log("✅ Agência vinculada! Redirecionando para /submit");
+          logger.info("✅ Agência vinculada! Redirecionando para /submit");
         }
 
         // Redirecionar para submit
@@ -67,7 +68,7 @@ export default function AgencySignupBySlug() {
       .rpc('get_agency_signup_data', { agency_slug_or_token: slug });
 
     if (error) {
-      console.error('❌ Erro ao buscar agência:', error);
+      logger.error('❌ Erro ao buscar agência:', error);
     }
 
     if (data && data.length > 0) {

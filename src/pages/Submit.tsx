@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
 import { Upload, ArrowLeft, X, AlertCircle, HelpCircle, RefreshCw, Loader2 } from "lucide-react";
 import { RefreshDataButton } from "@/components/RefreshDataButton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -97,6 +98,7 @@ const Submit = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -802,6 +804,7 @@ const Submit = () => {
   const confirmSubmit = async () => {
     setShowConfirmDialog(false);
     setIsSubmitting(true);
+    setUploadProgress(0);
 
     try {
       // ✅ FASE 2: Validar duplicata ANTES de inserir
@@ -934,6 +937,9 @@ const Submit = () => {
       const uploadPromises: Promise<void>[] = [];
       const timestamp = Date.now();
       
+      // 🚀 FASE 2: Simulação de progresso durante upload
+      setUploadProgress(10);
+      
       // Preparar upload da imagem principal
       let mainFileName: string | null = null;
       if (fileToUpload) {
@@ -950,9 +956,11 @@ const Submit = () => {
         uploadPromises.push(uploadWithRetry(profileScreenshotFile, profileFileName));
       }
 
-      // Executar uploads em paralelo
+      // Executar uploads em paralelo com atualização de progresso
       if (uploadPromises.length > 0) {
+        setUploadProgress(30);
         await Promise.all(uploadPromises);
+        setUploadProgress(70);
       }
 
       // Atribuir paths após uploads bem-sucedidos
@@ -1024,9 +1032,11 @@ const Submit = () => {
         insertData.post_id = selectedPost;
         // event_id virá do post automaticamente via trigger
       }
+      setUploadProgress(90);
       const { error } = await sb.from("submissions").insert(insertData);
 
       if (error) throw error;
+      setUploadProgress(100);
 
       toast({
         title: submissionType === "post" ? "Postagem enviada!" : "Venda enviada!",
@@ -1212,7 +1222,7 @@ const Submit = () => {
                       <img
                         src={selectedEventData.event_image_url}
                         alt={selectedEventData.title}
-                        className="w-100 h-100 object-cover rounded-lg border shadow-sm"
+                        className="w-full max-h-64 object-cover rounded-lg border shadow-sm"
                       />
                     </div>
                   )}
@@ -1745,6 +1755,19 @@ const Submit = () => {
                 </div>
               )}
 
+              {/* 🚀 FASE 2: Barra de progresso durante upload */}
+              {isSubmitting && uploadProgress > 0 && (
+                <div className="space-y-2">
+                  <Progress value={uploadProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground text-center">
+                    {uploadProgress < 30 ? "Preparando..." : 
+                     uploadProgress < 70 ? "Enviando imagens..." : 
+                     uploadProgress < 90 ? "Finalizando upload..." : 
+                     uploadProgress < 100 ? "Salvando submissão..." : "Concluído!"}
+                  </p>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
@@ -1757,7 +1780,12 @@ const Submit = () => {
                     posts.length === 0)
                 }
               >
-                {isSubmitting ? "Enviando..." : submissionType === "post" ? "Enviar Postagem" : "Enviar Comprovante"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : submissionType === "post" ? "Enviar Postagem" : "Enviar Comprovante"}
               </Button>
             </form>
           </Card>
