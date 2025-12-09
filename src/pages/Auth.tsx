@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sb } from "@/lib/supabaseSafe";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // Validation schemas
 const loginSchema = z.object({
@@ -62,7 +63,7 @@ const Auth = () => {
       if (eventContextStr) {
         try {
           const eventContext = JSON.parse(eventContextStr);
-          console.log("🎯 Contexto de evento detectado após login:", eventContext);
+          logger.info("🎯 Contexto de evento detectado após login:", eventContext);
           
           // Vincular usuário à agência
           sb.from("user_agencies").upsert({
@@ -73,9 +74,9 @@ const Auth = () => {
             onConflict: "user_id,agency_id",
           }).then(({ error }) => {
             if (error) {
-              console.error("❌ Erro ao vincular agência:", error);
+              logger.error("❌ Erro ao vincular agência:", error);
             } else {
-              console.log("✅ Usuário vinculado à agência após login!");
+              logger.info("✅ Usuário vinculado à agência após login!");
               toast({
                 title: "Vinculado com sucesso!",
                 description: `Você está vinculado à ${eventContext.agencyName}`,
@@ -87,7 +88,7 @@ const Auth = () => {
           // ✅ ITEM 1: Redirecionar sempre para /submit quando há contexto de evento
           navigate('/submit');
         } catch (err) {
-          console.error("Erro ao processar contexto do evento:", err);
+          logger.error("Erro ao processar contexto do evento:", err);
           navigate('/dashboard');
         }
       } else {

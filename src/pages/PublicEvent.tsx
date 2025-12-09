@@ -9,6 +9,7 @@ import { Calendar, MapPin, Users, ArrowLeft, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface Agency {
   id: string;
@@ -87,7 +88,7 @@ export default function PublicEvent() {
         setEvent(eventData);
         setLoading(false);
       } catch (err) {
-        console.error("Erro ao carregar evento:", err);
+        logger.error("Erro ao carregar evento:", err);
         setError("Erro ao carregar informações do evento");
         setLoading(false);
       }
@@ -101,7 +102,7 @@ export default function PublicEvent() {
     const associateUserToAgency = async () => {
       if (user && agency && !hasAssociated.current) {
         hasAssociated.current = true; // ✅ Marca como executado
-        console.log("🔗 Associando usuário à agência via evento público:", {
+        logger.info("🔗 Associando usuário à agência via evento público:", {
           user_id: user.id,
           agency_id: agency.id,
           agency_name: agency.name,
@@ -120,9 +121,9 @@ export default function PublicEvent() {
         );
 
         if (linkError) {
-          console.error("❌ Erro ao vincular agência:", linkError);
+          logger.error("❌ Erro ao vincular agência:", linkError);
         } else {
-          console.log("✅ Usuário vinculado à agência com sucesso!");
+          logger.info("✅ Usuário vinculado à agência com sucesso!");
           toast.success("Você está vinculado à " + agency.name);
         }
       }
