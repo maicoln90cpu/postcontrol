@@ -1,10 +1,11 @@
 /**
  * Submission Service
  * Handles all submission-related data operations
- * Updated: 2025-01-20 - Added getApprovedSalesCount
+ * ✅ Fase 1: Substituído console.log por logger
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import type {
   Submission,
   SubmissionInsert,
@@ -31,17 +32,17 @@ export async function getSubmissions(
     const {
       eventId,
       status,
-      postType,      // 🆕 SPRINT 2
-      searchTerm,    // 🆕 SPRINT 2
-      isActive,      // 🆕 Filtro por status ativo do evento
-      postNumber,    // 🆕 Filtro por número do post
+      postType,
+      searchTerm,
+      isActive,
+      postNumber,
       userId,
       agencyId,
       page = 1,
       itemsPerPage = 10,
     } = filters;
 
-    console.log('🔍 [Backend] Filtros aplicados:', { eventId, status, postType, searchTerm, isActive, postNumber, agencyId, page });
+    logger.info('[Backend] Filtros aplicados:', { eventId, status, postType, searchTerm, isActive, postNumber, agencyId, page });
 
   // 🆕 CORREÇÃO #2: Se houver busca por nome/email/instagram, buscar user_ids primeiro
   let userIdsFromSearch: string[] | null = null;
@@ -54,10 +55,10 @@ export async function getSubmissions(
     
     if (matchingProfiles && matchingProfiles.length > 0) {
       userIdsFromSearch = matchingProfiles.map(p => p.id);
-      console.log('🔍 [Search] Encontrados', userIdsFromSearch.length, 'perfis correspondentes');
+      logger.info('[Search] Encontrados', userIdsFromSearch.length, 'perfis correspondentes');
     } else {
       // Se não encontrou nenhum perfil, retornar vazio
-      console.log('🔍 [Search] Nenhum perfil encontrado para:', searchTerm);
+      logger.info('[Search] Nenhum perfil encontrado para:', searchTerm);
       return { data: [], count: 0, error: null };
     }
   }
@@ -87,12 +88,12 @@ export async function getSubmissions(
     // 🆕 Filtro por status ativo do evento
     if (isActive !== undefined) {
       query = query.eq('events.is_active', isActive);
-      console.log('🔍 [Backend] Aplicando filtro is_active:', isActive);
+      logger.info('[Backend] Aplicando filtro is_active:', isActive);
     }
     // 🆕 Filtro por número do post
     if (postNumber !== undefined) {
       query = query.eq('posts.post_number', postNumber);
-      console.log('🔍 [Backend] Aplicando filtro post_number:', postNumber);
+      logger.info('[Backend] Aplicando filtro post_number:', postNumber);
     }
     // 🆕 CORREÇÃO #2: Aplicar filtro de user_ids da busca
     if (userIdsFromSearch) {
@@ -123,7 +124,7 @@ export async function getSubmissions(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching submissions:', error);
+    logger.error('Error fetching submissions:', error);
     return {
       data: [],
       count: null,
@@ -141,34 +142,31 @@ export async function getSubmissionCountsByEvent(
 ): Promise<Record<string, number>> {
   try {
     if (!agencyId) {
-      console.warn('⚠️ [COUNTS-RPC] Agency ID não fornecido');
+      logger.warn('[COUNTS-RPC] Agency ID não fornecido');
       return {};
     }
 
-    const startTime = performance.now();
+    logger.time('[COUNTS-RPC] get_submission_counts_by_event');
 
-    // ✅ Chamar RPC do banco de dados
     const { data, error } = await supabase
       .rpc('get_submission_counts_by_event', { p_agency_id: agencyId });
 
-    const endTime = performance.now();
-    console.log(`⏱️ [COUNTS-RPC] get_submission_counts_by_event: ${(endTime - startTime).toFixed(2)} ms`);
+    logger.timeEnd('[COUNTS-RPC] get_submission_counts_by_event');
 
     if (error) {
-      console.error('❌ [COUNTS-RPC] Erro ao buscar contadores por evento:', error);
+      logger.error('[COUNTS-RPC] Erro ao buscar contadores por evento:', error);
       return {};
     }
 
-    // ✅ Mapear para Record<string, number>
     const counts: Record<string, number> = {};
     data?.forEach((row: { event_id: string; submission_count: number }) => {
       counts[row.event_id] = row.submission_count;
     });
 
-    console.log('✅ [COUNTS-RPC] Eventos com submissões:', Object.keys(counts).length);
+    logger.info('[COUNTS-RPC] Eventos com submissões:', Object.keys(counts).length);
     return counts;
   } catch (error) {
-    console.error('❌ [COUNTS-RPC] Erro na função getSubmissionCountsByEvent:', error);
+    logger.error('[COUNTS-RPC] Erro na função getSubmissionCountsByEvent:', error);
     return {};
   }
 }
@@ -182,34 +180,31 @@ export async function getSubmissionCountsByPost(
 ): Promise<Record<string, number>> {
   try {
     if (!agencyId) {
-      console.warn('⚠️ [COUNTS-RPC] Agency ID não fornecido');
+      logger.warn('[COUNTS-RPC] Agency ID não fornecido');
       return {};
     }
 
-    const startTime = performance.now();
+    logger.time('[COUNTS-RPC] get_submission_counts_by_post');
 
-    // ✅ Chamar RPC do banco de dados
     const { data, error } = await supabase
       .rpc('get_submission_counts_by_post', { p_agency_id: agencyId });
 
-    const endTime = performance.now();
-    console.log(`⏱️ [COUNTS-RPC] get_submission_counts_by_post: ${(endTime - startTime).toFixed(2)} ms`);
+    logger.timeEnd('[COUNTS-RPC] get_submission_counts_by_post');
 
     if (error) {
-      console.error('❌ [COUNTS-RPC] Erro ao buscar contadores por post:', error);
+      logger.error('[COUNTS-RPC] Erro ao buscar contadores por post:', error);
       return {};
     }
 
-    // ✅ Mapear para Record<string, number>
     const counts: Record<string, number> = {};
     data?.forEach((row: { post_id: string; submission_count: number }) => {
       counts[row.post_id] = row.submission_count;
     });
 
-    console.log('✅ [COUNTS-RPC] Posts com submissões:', Object.keys(counts).length);
+    logger.info('[COUNTS-RPC] Posts com submissões:', Object.keys(counts).length);
     return counts;
   } catch (error) {
-    console.error('❌ [COUNTS-RPC] Erro na função getSubmissionCountsByPost:', error);
+    logger.error('[COUNTS-RPC] Erro na função getSubmissionCountsByPost:', error);
     return {};
   }
 }
@@ -222,7 +217,7 @@ export async function getApprovedSalesCount(
 ): Promise<number> {
   try {
     if (!agencyId) {
-      console.warn('⚠️ [SALES-COUNT] Agency ID não fornecido');
+      logger.warn('[SALES-COUNT] Agency ID não fornecido');
       return 0;
     }
 
@@ -230,14 +225,14 @@ export async function getApprovedSalesCount(
       .rpc('get_approved_sales_count', { p_agency_id: agencyId });
 
     if (error) {
-      console.error('❌ [SALES-COUNT] Erro ao buscar contagem de vendas:', error);
+      logger.error('[SALES-COUNT] Erro ao buscar contagem de vendas:', error);
       return 0;
     }
 
-    console.log('✅ [SALES-COUNT] Vendas aprovadas:', data);
+    logger.info('[SALES-COUNT] Vendas aprovadas:', data);
     return data || 0;
   } catch (error) {
-    console.error('❌ [SALES-COUNT] Erro inesperado:', error);
+    logger.error('[SALES-COUNT] Erro inesperado:', error);
     return 0;
   }
 }
@@ -269,7 +264,7 @@ export async function getSubmissionById(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching submission:', error);
+    logger.error('Error fetching submission:', error);
     return {
       data: null,
       error: error as Error,
@@ -299,7 +294,7 @@ export async function createSubmission(
       error: null,
     };
   } catch (error) {
-    console.error('Error creating submission:', error);
+    logger.error('Error creating submission:', error);
     return {
       data: null,
       error: error as Error,
@@ -332,7 +327,7 @@ export async function updateSubmission(
       error: null,
     };
   } catch (error) {
-    console.error('Error updating submission:', error);
+    logger.error('Error updating submission:', error);
     return {
       data: null,
       error: error as Error,
@@ -364,7 +359,7 @@ export async function updateSubmissionStatus(
 
     return await updateSubmission(id, updates);
   } catch (error) {
-    console.error('Error updating submission status:', error);
+    logger.error('Error updating submission status:', error);
     return {
       data: null,
       error: error as Error,
@@ -401,8 +396,8 @@ export async function bulkUpdateSubmissionStatus(
       rejection_reason: rejectionReason,
     };
 
-    console.log(`🚀 [Bulk Update] Atualizando ${ids.length} submissões em massa...`);
-    console.time('⏱️ [Performance] Bulk Update');
+    logger.info(`[Bulk Update] Atualizando ${ids.length} submissões em massa...`);
+    logger.time('[Bulk Update]');
 
     const { data, error } = await supabase
       .from('submissions')
@@ -410,18 +405,18 @@ export async function bulkUpdateSubmissionStatus(
       .in('id', ids)
       .select();
 
-    console.timeEnd('⏱️ [Performance] Bulk Update');
+    logger.timeEnd('[Bulk Update]');
 
     if (error) throw error;
 
-    console.log(`✅ [Bulk Update] ${data?.length || 0} submissões atualizadas`);
+    logger.info(`[Bulk Update] ${data?.length || 0} submissões atualizadas`);
 
     return {
       data: data || [],
       error: null,
     };
   } catch (error) {
-    console.error('❌ [Bulk Update] Erro:', error);
+    logger.error('[Bulk Update] Erro:', error);
     return {
       data: null,
       error: error as Error,
@@ -450,7 +445,7 @@ export async function deleteSubmission(
       error: null,
     };
   } catch (error) {
-    console.error('Error deleting submission:', error);
+    logger.error('Error deleting submission:', error);
     return {
       data: null,
       error: error as Error,
@@ -480,7 +475,7 @@ export async function getSubmissionComments(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching submission comments:', error);
+    logger.error('Error fetching submission comments:', error);
     return {
       data: null,
       error: error as Error,
@@ -510,7 +505,7 @@ export async function addSubmissionComment(
       error: null,
     };
   } catch (error) {
-    console.error('Error adding submission comment:', error);
+    logger.error('Error adding submission comment:', error);
     return {
       data: null,
       error: error as Error,
@@ -539,7 +534,7 @@ export async function getSubmissionTags(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching submission tags:', error);
+    logger.error('Error fetching submission tags:', error);
     return {
       data: null,
       error: error as Error,
@@ -569,7 +564,7 @@ export async function addSubmissionTag(
       error: null,
     };
   } catch (error) {
-    console.error('Error adding submission tag:', error);
+    logger.error('Error adding submission tag:', error);
     return {
       data: null,
       error: error as Error,
@@ -598,7 +593,7 @@ export async function removeSubmissionTag(
       error: null,
     };
   } catch (error) {
-    console.error('Error removing submission tag:', error);
+    logger.error('Error removing submission tag:', error);
     return {
       data: null,
       error: error as Error,
@@ -639,7 +634,7 @@ export async function getUserSubmissionStats(userId: string): Promise<
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching user submission stats:', error);
+    logger.error('Error fetching user submission stats:', error);
     return {
       data: null,
       error: error as Error,

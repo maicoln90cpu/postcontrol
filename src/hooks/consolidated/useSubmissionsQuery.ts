@@ -1,142 +1,106 @@
 /**
  * Consolidated Submissions Query Hook
- * ✅ Sprint 2A: Substitui useSubmissions de useReactQuery.ts e useAdminQueries.ts
+ * ✅ Fase 1: Otimizado com RPC para contagem e cache reduzido
  * 
  * @uses submissionService.getSubmissions
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { getSubmissions } from '@/services/submissionService';
-import { sb } from '@/lib/supabaseSafe';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
 export interface UseSubmissionsQueryParams {
   eventId?: string;
   status?: string;
-  postType?: string;      // 🆕 SPRINT 2
-  searchTerm?: string;    // 🆕 SPRINT 2
-  isActive?: boolean;     // 🆕 Filtro por status ativo do evento
-  postNumber?: number;    // 🆕 Filtro por número do post
+  postType?: string;
+  searchTerm?: string;
+  isActive?: boolean;
+  postNumber?: number;
   userId?: string;
   agencyId?: string;
   page?: number;
   itemsPerPage?: number;
   enrichProfiles?: boolean;
   enabled?: boolean;
+  /** Se true, usa cache curto para painéis de aprovação */
+  isAdminPanel?: boolean;
 }
 
 /**
  * Hook consolidado para buscar submissões
- * - Substitui useSubmissions de useReactQuery.ts e useAdminQueries.ts
- * - Usa submissionService da Sprint 1
- * - Suporta paginação, filtros e enriquecimento de perfis
- * 
- * @example
- * const { data, isLoading } = useSubmissionsQuery({ 
- *   agencyId: 'abc123',
- *   status: 'pending',
- *   page: 1,
- *   itemsPerPage: 30,
- *   enrichProfiles: true
- * });
+ * ✅ Fase 1: Usa RPC para contagem em batch (substitui client-side counting)
+ * ✅ Fase 1: staleTime reduzido para 30s em painel admin
  */
 export const useSubmissionsQuery = ({ 
   eventId,
   status,
-  postType,       // 🆕 SPRINT 2
-  searchTerm,     // 🆕 SPRINT 2
-  isActive,       // 🆕 Filtro por status ativo do evento
-  postNumber,     // 🆕 Filtro por número do post
+  postType,
+  searchTerm,
+  isActive,
+  postNumber,
   userId,
   agencyId,
   page = 1,
   itemsPerPage = 30,
   enrichProfiles = true,
-  enabled = true
+  enabled = true,
+  isAdminPanel = false
 }: UseSubmissionsQueryParams = {}) => {
   return useQuery({
     queryKey: ['submissions', eventId, status, postType, searchTerm, isActive, postNumber, userId, agencyId, page, itemsPerPage],
     queryFn: async () => {
-      // ✅ Fase 1: Performance logging only in dev
-      logger.time(`[Performance] Fetch Submissions (page ${page})`);
+      logger.time(`[Submissions] Fetch page ${page}`);
       
-      // ✅ SPRINT 2: Passa todos os filtros para o backend
       const { data: submissions, count, error } = await getSubmissions({
         eventId,
         status,
-        postType,     // 🆕 SPRINT 2
-        searchTerm,   // 🆕 SPRINT 2
-        isActive,     // 🆕 Filtro por status ativo do evento
-        postNumber,   // 🆕 Filtro por número do post
+        postType,
+        searchTerm,
+        isActive,
+        postNumber,
         userId,
         agencyId,
         page,
         itemsPerPage
       });
 
-      logger.timeEnd(`[Performance] Fetch Submissions (page ${page})`);
+      logger.timeEnd(`[Submissions] Fetch page ${page}`);
       if (error) throw error;
 
       // Se enrichProfiles = true, buscar perfis e contagens
       if (enrichProfiles && submissions && submissions.length > 0) {
-        logger.time('[Performance] Enrich Profiles');
+        logger.time('[Submissions] Enrich Profiles');
         
         const userIds = Array.from(new Set(submissions.map(s => s.user_id)));
 
-        // Helper: Dividir array em chunks para evitar URLs muito longas
-        const chunkArray = <T,>(array: T[], size: number): T[][] => {
-          const chunks: T[][] = [];
-          for (let i = 0; i < array.length; i += size) {
-            chunks.push(array.slice(i, i + size));
-          }
-          return chunks;
-        };
-
-        // 🔴 FASE 2: Otimização de contagem com agregação SQL + Batching
-        logger.time('[Performance] Query Profiles');
-        logger.time('[Performance] Query Counts');
-        
-        // Dividir userIds em chunks de 15 para evitar URLs muito longas (400 Bad Request)
-        const userIdChunks = chunkArray(userIds, 15);
-        
+        // ✅ FASE 1: Usar RPC para contagem em batch (1 query ao invés de N)
         const [profilesData, countsResult] = await Promise.all([
-          // Buscar perfis em batches
-          Promise.all(
-            userIdChunks.map(chunk =>
-              sb.from('profiles')
-                .select('id, full_name, email, instagram, phone, avatar_url, followers_range')
-                .in('id', chunk)
-                .then(res => res.data || [])
-            )
-          ).then(results => {
-            logger.timeEnd('[Performance] Query Profiles');
-            return results.flat();
-          }),
+          // Buscar perfis
+          supabase
+            .from('profiles')
+            .select('id, full_name, email, instagram, phone, avatar_url, followers_range')
+            .in('id', userIds)
+            .then(res => res.data || []),
           
-          // Buscar todas as submissions e contar no client-side
-          Promise.all(
-            userIdChunks.map(chunk =>
-              sb.from('submissions')
-                .select('user_id, id')
-                .in('user_id', chunk)
-                .then(res => res.data || [])
-            )
-          ).then(results => {
-            logger.timeEnd('[Performance] Query Counts');
-            const allSubmissions = results.flat();
-            
-            // Agregar contagens no client-side
-            const counts: Record<string, number> = {};
-            allSubmissions.forEach((item: any) => {
-              counts[item.user_id] = (counts[item.user_id] || 0) + 1;
-            });
-            
-            logger.info('[Counts] Total por usuário:', counts);
-            return counts;
-          })
+          // ✅ NOVA RPC: Contagem em batch via SQL
+          supabase
+            .rpc('get_user_submission_counts', { p_user_ids: userIds })
+            .then(res => {
+              if (res.error) {
+                logger.error('[Submissions] RPC counts error:', res.error);
+                return {};
+              }
+              const counts: Record<string, number> = {};
+              res.data?.forEach((row: { user_id: string; submission_count: number }) => {
+                counts[row.user_id] = row.submission_count;
+              });
+              logger.info('[Submissions] User counts loaded:', Object.keys(counts).length);
+              return counts;
+            })
         ]);
         
-        logger.timeEnd('[Performance] Enrich Profiles');
+        logger.timeEnd('[Submissions] Enrich Profiles');
 
         // Criar mapa de perfis por ID
         const profilesById: Record<string, any> = {};
@@ -163,14 +127,17 @@ export const useSubmissionsQuery = ({
       };
     },
     enabled,
-    staleTime: 10 * 60 * 1000, // ✅ Cache otimizado - 10 minutos
-    gcTime: 20 * 60 * 1000,    // ✅ Cache otimizado - 20 minutos
+    // ✅ FASE 1: Cache otimizado - 30s para painel admin, 5min para outros
+    staleTime: isAdminPanel ? 30 * 1000 : 5 * 60 * 1000,
+    gcTime: isAdminPanel ? 60 * 1000 : 10 * 60 * 1000,
+    // ✅ Refetch quando tab fica ativa (para painel admin)
+    refetchOnWindowFocus: isAdminPanel,
+    refetchInterval: isAdminPanel ? 30 * 1000 : false,
   });
 };
 
 /**
  * Hook para buscar submissões de um usuário específico
- * Atalho para useSubmissionsQuery com userId
  */
 export const useUserSubmissionsQuery = (userId: string, agencyId?: string) => {
   return useSubmissionsQuery({ userId, agencyId, enrichProfiles: false });
@@ -178,8 +145,7 @@ export const useUserSubmissionsQuery = (userId: string, agencyId?: string) => {
 
 /**
  * Hook para buscar submissões pendentes de uma agência
- * Atalho para useSubmissionsQuery com status='pending'
  */
 export const usePendingSubmissionsQuery = (agencyId?: string) => {
-  return useSubmissionsQuery({ agencyId, status: 'pending' });
+  return useSubmissionsQuery({ agencyId, status: 'pending', isAdminPanel: true });
 };
