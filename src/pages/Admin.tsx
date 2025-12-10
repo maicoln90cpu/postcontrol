@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, lazy, Suspense } from "react";
+import { useAdminKeyboardShortcuts } from "@/hooks/useAdminKeyboardShortcuts";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -178,6 +179,12 @@ const Admin = () => {
   
   // ✅ Estado para controlar eventos colapsados na tab Postagens
   const [collapsedEvents, setCollapsedEvents] = useState<Set<string>>(new Set());
+  
+  // ✅ FASE 3: Estado para índice focado (navegação por teclado)
+  const [focusedSubmissionIndex, setFocusedSubmissionIndex] = useState(-1);
+  
+  // ✅ FASE 3: Estado para controlar tab ativa (para atalhos)
+  const [activeTab, setActiveTab] = useState("events");
 
   // ✅ SPRINT 1: Persistir índice de zoom entre filtros
   useEffect(() => {
@@ -870,6 +877,29 @@ const Admin = () => {
 
   // ✅ SPRINT 2: Usar count real do backend para totalPages
   const totalPages = Math.ceil((submissionsData?.count || 0) / itemsPerPage);
+
+  // ✅ FASE 3: Contador de pendentes para badge na tab
+  const pendingCount = useMemo(() => {
+    return submissions.filter((s: any) => s.status === 'pending').length;
+  }, [submissions]);
+
+  // ✅ FASE 3: Integrar atalhos de teclado
+  useAdminKeyboardShortcuts({
+    selectedSubmissions,
+    paginatedSubmissions: getPaginatedSubmissions,
+    focusedIndex: focusedSubmissionIndex,
+    setFocusedIndex: setFocusedSubmissionIndex,
+    onApprove: handleApproveSubmission,
+    onReject: handleRejectSubmission,
+    onToggleSelection: toggleSubmissionSelection,
+    isReadOnly,
+    enabled: activeTab === 'submissions',
+  });
+
+  // ✅ FASE 3: Resetar foco quando mudar de página ou filtro
+  useEffect(() => {
+    setFocusedSubmissionIndex(-1);
+  }, [currentPage, submissionStatusFilter, submissionEventFilter]);
 
   // 🔴 GUARD: Validar índice do zoom quando array muda
   useEffect(() => {
@@ -1724,6 +1754,8 @@ const Admin = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="events" className="space-y-6" onValueChange={value => {
+        // ✅ FASE 3: Atualizar tab ativa para atalhos de teclado
+        setActiveTab(value);
         // ✅ ITEM 3 FASE 1: Limpar filtros de submissões ao sair da aba
         if (value !== "submissions") {
           clearFilters();
@@ -1736,8 +1768,17 @@ const Admin = () => {
             <TabsTrigger value="posts" className="text-xs sm:text-sm py-2">
               Postagens
             </TabsTrigger>
-            <TabsTrigger id="submissions-tab" value="submissions" className="text-xs sm:text-sm py-2">
+            {/* ✅ FASE 3: Badge com contador de pendentes */}
+            <TabsTrigger id="submissions-tab" value="submissions" className="text-xs sm:text-sm py-2 relative">
               Submissões
+              {pendingCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px] flex items-center justify-center"
+                >
+                  {pendingCount > 99 ? '99+' : pendingCount}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger id="users-tab" value="users" className="text-xs sm:text-sm py-2">
               Usuários
@@ -2048,13 +2089,23 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="submissions" className="space-y-6">
+            {/* ✅ FASE 3: Dica de atalhos de teclado */}
+            <div className="flex items-center justify-between flex-wrap gap-2 px-4 py-2 bg-muted/30 rounded-md text-xs text-muted-foreground">
+              <span>⌨️ Atalhos: <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">A</kbd> Aprovar · <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">R</kbd> Rejeitar · <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">←</kbd><kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">→</kbd> Navegar · <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">Espaço</kbd> Selecionar</span>
+              {pendingCount > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {pendingCount} pendente{pendingCount !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+
             {/* ✅ Sprint 3A: Usar componente AdminFilters refatorado */}
             <AdminFilters submissionActiveFilter={submissionActiveFilter} // ✅ ITEM 5: Novo filtro
           submissionEventFilter={submissionEventFilter} submissionPostFilter={submissionPostFilter} submissionStatusFilter={submissionStatusFilter} postTypeFilter={postTypeFilter} searchTerm={searchTerm} dateFilterStart={dateFilterStart} dateFilterEnd={dateFilterEnd} kanbanView={kanbanView} cardsGridView={cardsGridView} events={events} submissions={submissions} allPosts={allPosts} onSubmissionActiveFilterChange={setSubmissionActiveFilter} // ✅ ITEM 5: Handler
           onSubmissionEventFilterChange={setSubmissionEventFilter} onSubmissionPostFilterChange={setSubmissionPostFilter} onSubmissionStatusFilterChange={setSubmissionStatusFilter} onPostTypeFilterChange={setPostTypeFilter} onSearchTermChange={setSearchTerm} onDateFilterStartChange={setDateFilterStart} onDateFilterEndChange={setDateFilterEnd} onKanbanViewToggle={() => setKanbanView(!kanbanView)} onCardsGridViewToggle={() => setCardsGridView(!cardsGridView)} onExport={handleExportToExcel} filteredCount={getPaginatedSubmissions.length} totalCount={submissionsData?.count || 0} isLoadingSubmissions={loadingSubmissions} />
 
             {/* ✅ SPRINT 2: Indicador de filtros ativos */}
-            {(submissionStatusFilter !== "all" || postTypeFilter !== "all" || debouncedSearch || submissionEventFilter !== "all" || submissionActiveFilter !== "all") &&
+            {(submissionStatusFilter !== "all" && submissionStatusFilter !== "pending" || postTypeFilter !== "all" || debouncedSearch || submissionEventFilter !== "all" || submissionActiveFilter !== "all") &&
           // ✅ ITEM 5: Incluir novo filtro
           <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md mb-4">
                 <span className="text-sm font-medium">🔍 Filtros ativos:</span>

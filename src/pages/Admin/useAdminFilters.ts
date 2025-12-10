@@ -42,7 +42,8 @@ export const useAdminFilters = () => {
   // Leitores de filtros da URL
   const submissionEventFilter = searchParams.get('event') || 'all';
   const submissionPostFilter = searchParams.get('post') || 'all';
-  const submissionStatusFilter = searchParams.get('status') || 'all';
+  // ✅ FASE 3: Padrão mudou de 'all' para 'pending'
+  const submissionStatusFilter = searchParams.get('status') || 'pending';
   // 🔄 NORMALIZAÇÃO: Converter valores antigos da URL
   const rawPostType = searchParams.get('type') || 'all';
   const postTypeFilter = rawPostType === 'venda' ? 'sale' : rawPostType;
