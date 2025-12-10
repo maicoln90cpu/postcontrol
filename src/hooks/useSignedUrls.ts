@@ -1,96 +1,119 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { SignedUrlCache } from '@/lib/signedUrlCache';
+import { getBatchSignedUrls, extractPathFromUrl } from '@/services/signedUrlService';
+import { logger } from '@/lib/logger';
 
 /**
- * ✅ FASE 2: Hook com cache persistente em localStorage
+ * ✅ FASE 1: Hook otimizado com batch de signed URLs
+ * - Batch: 50 requests → 1 request
+ * - Cache persistente em localStorage
+ * - Cache em memória para acesso instantâneo
  */
 export const useSignedUrls = () => {
   const [urlCache, setUrlCache] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(false);
+  const [pendingUrls, setPendingUrls] = useState<Set<string>>(new Set());
 
-  // ✅ NOVO: Limpar cache expirado ao montar componente
+  // Limpar cache expirado ao montar componente
   useEffect(() => {
     SignedUrlCache.clearExpired();
-    
-    // Debug: Mostrar estatísticas do cache
     const stats = SignedUrlCache.getStats();
-    console.log('📦 [Cache] Estatísticas:', stats);
+    logger.info('[SignedURL] Cache stats:', stats);
   }, []);
 
+  /**
+   * Busca uma única signed URL (com cache)
+   */
   const getSignedUrl = useCallback(async (screenshotUrl: string | null): Promise<string | null> => {
     if (!screenshotUrl) return null;
 
-    // ✅ OTIMIZAÇÃO: Verificar cache em memória primeiro (mais rápido)
+    // Cache em memória (mais rápido)
     if (urlCache[screenshotUrl]) {
       return urlCache[screenshotUrl];
     }
 
-    // ✅ OTIMIZAÇÃO: Verificar localStorage (cache persistente)
+    // Cache persistente (localStorage)
     const cachedUrl = SignedUrlCache.get(screenshotUrl);
     if (cachedUrl) {
-      console.log('✅ [Cache] Hit do localStorage:', screenshotUrl.slice(0, 50));
+      logger.info('[SignedURL] Cache hit:', screenshotUrl.slice(0, 40));
       setUrlCache(prev => ({ ...prev, [screenshotUrl]: cachedUrl }));
       return cachedUrl;
     }
 
-    // Evitar múltiplas requisições simultâneas
-    if (loading[screenshotUrl]) {
-      return null;
-    }
+    // Adiciona à fila de pendentes para batch
+    setPendingUrls(prev => new Set(prev).add(screenshotUrl));
+    return null;
+  }, [urlCache]);
 
-    try {
-      setLoading(prev => ({ ...prev, [screenshotUrl]: true }));
-
-      const path = screenshotUrl.split('/screenshots/')[1];
-      if (!path) return screenshotUrl;
-
-      console.log('🌐 [Cache] Miss - Gerando signed URL:', path.slice(0, 50));
-
-      const { data, error } = await supabase.storage
-        .from('screenshots')
-        .createSignedUrl(path, 86400); // 24 horas
-
-      if (error) {
-        console.error('❌ [Cache] Erro ao gerar signed URL:', error);
-        return screenshotUrl;
-      }
-
-      const signedUrl = data?.signedUrl || screenshotUrl;
-      
-      // ✅ Salvar nos dois caches (memória + localStorage)
-      setUrlCache(prev => ({ ...prev, [screenshotUrl]: signedUrl }));
-      SignedUrlCache.set(screenshotUrl, signedUrl);
-      
-      return signedUrl;
-    } catch (error) {
-      console.error('❌ [Cache] Exception:', error);
-      return screenshotUrl;
-    } finally {
-      setLoading(prev => ({ ...prev, [screenshotUrl]: false }));
-    }
-  }, [urlCache, loading]);
-
+  /**
+   * ✅ BATCH: Pré-carrega múltiplas URLs em uma única chamada
+   * Substitui N requests por 1 request
+   */
   const preloadUrls = useCallback(async (urls: (string | null)[]) => {
-    const validUrls = urls.filter((url): url is string => !!url && !urlCache[url]);
-    
-    if (validUrls.length === 0) return;
-
-    console.log(`📦 [Cache] Preload de ${validUrls.length} URLs`);
-
-    const results = await Promise.all(
-      validUrls.map(url => getSignedUrl(url))
-    );
-
-    const newCache: Record<string, string> = {};
-    validUrls.forEach((url, index) => {
-      if (results[index]) {
-        newCache[url] = results[index]!;
+    const validUrls = urls.filter((url): url is string => {
+      if (!url) return false;
+      // Já em cache de memória
+      if (urlCache[url]) return false;
+      // Já em cache persistente
+      if (SignedUrlCache.get(url)) {
+        // Mover para cache de memória
+        setUrlCache(prev => ({ ...prev, [url]: SignedUrlCache.get(url)! }));
+        return false;
       }
+      return true;
     });
 
-    setUrlCache(prev => ({ ...prev, ...newCache }));
-  }, [urlCache, getSignedUrl]);
+    if (validUrls.length === 0) return;
 
-  return { getSignedUrl, preloadUrls, urlCache };
+    setLoading(true);
+    logger.info(`[SignedURL] Batch preload: ${validUrls.length} URLs`);
+
+    try {
+      // Extrair paths das URLs
+      const paths = validUrls
+        .map(url => extractPathFromUrl(url))
+        .filter((path): path is string => !!path);
+
+      if (paths.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // ✅ UMA ÚNICA CHAMADA para todas as URLs
+      const signedUrlMap = await getBatchSignedUrls(paths);
+
+      // Mapear de volta para URLs originais
+      const newCache: Record<string, string> = {};
+      validUrls.forEach(originalUrl => {
+        const path = extractPathFromUrl(originalUrl);
+        if (path && signedUrlMap[path]) {
+          newCache[originalUrl] = signedUrlMap[path];
+          SignedUrlCache.set(originalUrl, signedUrlMap[path]);
+        }
+      });
+
+      setUrlCache(prev => ({ ...prev, ...newCache }));
+      logger.info(`[SignedURL] Cached ${Object.keys(newCache).length} URLs`);
+    } catch (error) {
+      logger.error('[SignedURL] Batch preload error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [urlCache]);
+
+  /**
+   * Retorna URL do cache (sync) ou null se não disponível
+   */
+  const getCachedUrl = useCallback((screenshotUrl: string | null): string | null => {
+    if (!screenshotUrl) return null;
+    return urlCache[screenshotUrl] || SignedUrlCache.get(screenshotUrl) || null;
+  }, [urlCache]);
+
+  return { 
+    getSignedUrl, 
+    preloadUrls, 
+    getCachedUrl,
+    urlCache, 
+    loading 
+  };
 };
