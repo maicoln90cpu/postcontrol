@@ -118,9 +118,22 @@ const AdminSubmissionListComponent = ({
   const paginatedSubmissions = submissions.slice(startIndex, startIndex + itemsPerPage);
   const allSelected = selectedSubmissions.size === paginatedSubmissions.length && paginatedSubmissions.length > 0;
 
-  // ✅ OTIMIZAÇÃO 1: Usar virtualização para listas grandes
-  const shouldVirtualize = paginatedSubmissions.length > 20; // Virtualizar se >20 items
-  const ITEM_HEIGHT = 450; // Altura estimada de cada card
+  // ✅ OTIMIZAÇÃO: Usar virtualização para listas grandes
+  const shouldVirtualize = paginatedSubmissions.length > 15;
+  // ✅ FASE 2: Altura reduzida dos cards (de 450 para 380)
+  const ITEM_HEIGHT = 380;
+
+  // ✅ FASE 2: Preparar URLs para prefetch das próximas 5 imagens
+  const getPrefetchUrls = (currentIndex: number): string[] => {
+    const urls: string[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const nextSubmission = paginatedSubmissions[currentIndex + i];
+      if (nextSubmission) {
+        urls.push(imageUrls[nextSubmission.id] || nextSubmission.screenshot_url || '');
+      }
+    }
+    return urls.filter(Boolean);
+  };
 
   const { listRef, itemCount, itemHeight, containerHeight, overscanCount } = 
     useVirtualizedList({
@@ -130,196 +143,191 @@ const AdminSubmissionListComponent = ({
       overscanCount: 2,
     });
 
-  // Renderizar item individual
+  // Renderizar item individual com layout compacto
   const renderSubmissionCard = ({ index, style }: { index: number; style?: React.CSSProperties }) => {
     const submission = paginatedSubmissions[index];
+    const prefetchUrls = getPrefetchUrls(index);
     
     return (
       <div style={style} className={shouldVirtualize ? "px-1" : ""}>
-        <Card key={submission.id} className="p-6 mb-4">
-          <div className="space-y-4">
-            {/* Header com checkbox e informações básicas */}
-            <div className="flex items-start gap-4">
-              <Checkbox
-                checked={selectedSubmissions.has(submission.id)}
-                onCheckedChange={() => onToggleSelection(submission.id)}
-                className="mt-1"
-              />
-              
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={submission.profiles?.avatar_url} />
-                <AvatarFallback>
-                  <User className="h-6 w-6" />
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <h3 className="font-semibold text-lg">{submission.profiles?.full_name || 'Nome não disponível'}</h3>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
-                      {submission.profiles?.instagram && (
-                        <span>@{submission.profiles.instagram}</span>
-                      )}
-                      {submission.profiles?.email && (
-                        <span className="text-xs">• {submission.profiles.email}</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <Badge 
-                    variant={
-                      submission.status === 'approved' ? 'default' :
-                      submission.status === 'rejected' ? 'destructive' :
-                      'secondary'
-                    }
-                  >
-                    {submission.status === 'approved' ? 'Aprovado' :
-                     submission.status === 'rejected' ? 'Reprovado' :
-                     'Pendente'}
-                  </Badge>
+        <Card key={submission.id} className="p-4 mb-3">
+          {/* ✅ FASE 2: Layout horizontal compacto */}
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Coluna esquerda: Imagem com altura reduzida */}
+            {SubmissionImageDisplay && submission.screenshot_url && (
+              <div className="lg:w-48 lg:flex-shrink-0">
+                {/* ✅ FASE 2: Altura reduzida de h-64 para h-36 lg:h-48 */}
+                <div className="w-full h-36 lg:h-48 bg-muted rounded-lg overflow-hidden">
+                  <Suspense fallback={<Skeleton className="w-full h-full" />}>
+                    <SubmissionImageDisplay
+                      screenshotUrl={imageUrls[submission.id] || submission.screenshot_url}
+                      submissionId={submission.id}
+                      onImageClick={() => onImageZoom(imageUrls[submission.id] || submission.screenshot_url, startIndex + index)}
+                      className="w-full h-full object-cover"
+                      enablePrefetch={index < 3}
+                      prefetchUrls={prefetchUrls}
+                    />
+                  </Suspense>
                 </div>
+              </div>
+            )}
 
-                {/* Informações do post */}
-                <div className="mt-3 space-y-1 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <div>
+            {/* Coluna direita: Informações e ações */}
+            <div className="flex-1 min-w-0 space-y-3">
+              {/* Header compacto */}
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  checked={selectedSubmissions.has(submission.id)}
+                  onCheckedChange={() => onToggleSelection(submission.id)}
+                  className="mt-1"
+                />
+                
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={submission.profiles?.avatar_url} />
+                  <AvatarFallback>
+                    <User className="h-5 w-5" />
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base truncate">{submission.profiles?.full_name || 'Nome não disponível'}</h3>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                        {submission.profiles?.instagram && (
+                          <span>@{submission.profiles.instagram}</span>
+                        )}
+                        {submission.profiles?.email && (
+                          <span className="hidden sm:inline">• {submission.profiles.email}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Badge 
+                      variant={
+                        submission.status === 'approved' ? 'default' :
+                        submission.status === 'rejected' ? 'destructive' :
+                        'secondary'
+                      }
+                      className="flex-shrink-0"
+                    >
+                      {submission.status === 'approved' ? 'Aprovado' :
+                       submission.status === 'rejected' ? 'Reprovado' :
+                       'Pendente'}
+                    </Badge>
+                  </div>
+
+                  {/* Informações do post - layout inline */}
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" />
                       <span className="font-medium">
                         {formatPostName(submission.posts?.post_type, submission.posts?.post_number)}
                       </span>
                       {submission.posts?.events?.title && (
-                        <span className="block text-xs text-muted-foreground mt-0.5">
-                          {submission.posts.events.title}
+                        <span className="text-muted-foreground/70">
+                          ({submission.posts.events.title})
                         </span>
                       )}
                     </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>{new Date(submission.submitted_at).toLocaleString('pt-BR')}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>Enviado em {new Date(submission.submitted_at).toLocaleString('pt-BR')}</span>
-                  </div>
-                </div>
-                
-                {/* 🆕 CORREÇÃO #1: Exibir motivo de rejeição DENTRO da div flex-1 */}
-                {submission.status === 'rejected' && submission.rejection_reason && (
-                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                    <p className="text-sm font-semibold text-destructive mb-1">
-                      Motivo da rejeição:
-                    </p>
-                    <p className="text-sm text-destructive/90">
-                      {submission.rejection_reason}
-                    </p>
-                  </div>
-                )}
                 </div>
               </div>
-
-            {/* Imagem da submissão */}
-            {SubmissionImageDisplay && submission.screenshot_url && (
-              <div className="mt-4 w-full aspect-video bg-muted rounded-lg overflow-hidden">
-                <Suspense fallback={<Skeleton className="w-full h-full" />}>
-                  <SubmissionImageDisplay
-                    screenshotUrl={imageUrls[submission.id] || submission.screenshot_url}
-                    submissionId={submission.id}
-                    onImageClick={() => onImageZoom(imageUrls[submission.id] || submission.screenshot_url, startIndex + index)}
-                    className="w-full h-full object-cover"
-                  />
-                </Suspense>
-              </div>
-            )}
-
-            {/* Ações */}
-            <div className="space-y-3 pt-3 border-t">
-              {/* Seletor de Status */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1">
-                  <label className="text-sm text-muted-foreground mb-1 block">
-                    Status da Submissão:
-                  </label>
-                  <Select
-                    value={submission.status}
-                    onValueChange={(newStatus) => onStatusChange(submission.id, newStatus)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Aguardando aprovação</SelectItem>
-                      <SelectItem value="approved">Aprovado</SelectItem>
-                      <SelectItem value="rejected">Rejeitado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onAuditLog(submission.id)}
-                  >
-                    Ver Histórico
-                  </Button>
-                </div>
-              </div>
-
-              {/* Botões de aprovação/rejeição para pendentes */}
-              {submission.status === 'pending' && (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-green-500 hover:bg-green-600 w-full sm:w-auto"
-                    onClick={() => onApprove(submission.id)}
-                    disabled={isReadOnly}
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    Aprovar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="w-full sm:w-auto"
-                    onClick={() => onReject(submission.id)}
-                    disabled={isReadOnly}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Rejeitar
-                  </Button>
+              
+              {/* Motivo de rejeição compacto */}
+              {submission.status === 'rejected' && submission.rejection_reason && (
+                <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-xs text-destructive">
+                    <span className="font-semibold">Rejeição:</span> {submission.rejection_reason}
+                  </p>
                 </div>
               )}
 
-              {/* Botão de deletar */}
-              <div>
+              {/* ✅ FASE 2: Ações em linha única */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                {/* Botões de aprovação para pendentes - maiores em mobile */}
+                {submission.status === 'pending' && (
+                  <>
+                    <Button
+                      size="default"
+                      className="bg-green-500 hover:bg-green-600 h-10 sm:h-9 min-w-[100px]"
+                      onClick={() => onApprove(submission.id)}
+                      disabled={isReadOnly}
+                    >
+                      <Check className="mr-1.5 h-4 w-4" />
+                      Aprovar
+                    </Button>
+                    <Button
+                      size="default"
+                      variant="destructive"
+                      className="h-10 sm:h-9 min-w-[100px]"
+                      onClick={() => onReject(submission.id)}
+                      disabled={isReadOnly}
+                    >
+                      <X className="mr-1.5 h-4 w-4" />
+                      Rejeitar
+                    </Button>
+                  </>
+                )}
+                
+                {/* Seletor de Status compacto */}
+                <Select
+                  value={submission.status}
+                  onValueChange={(newStatus) => onStatusChange(submission.id, newStatus)}
+                >
+                  <SelectTrigger className="w-[140px] h-10 sm:h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="approved">Aprovado</SelectItem>
+                    <SelectItem value="rejected">Rejeitado</SelectItem>
+                  </SelectContent>
+                </Select>
+
                 <Button
-                  size="sm"
                   variant="outline"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto"
+                  size="default"
+                  className="h-10 sm:h-9"
+                  onClick={() => onAuditLog(submission.id)}
+                >
+                  Histórico
+                </Button>
+
+                <Button
+                  size="default"
+                  variant="ghost"
+                  className="h-10 sm:h-9 text-muted-foreground"
+                  onClick={() => onToggleComments(submission.id)}
+                >
+                  <MessageSquare className="mr-1.5 h-4 w-4" />
+                  {expandedComments.has(submission.id) ? 'Ocultar' : 'Comentários'}
+                </Button>
+
+                <Button
+                  size="default"
+                  variant="ghost"
+                  className="h-10 sm:h-9 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
                   onClick={() => onDelete(submission.id)}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Deletar Submissão
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
 
-            {/* Seção de Comentários */}
-            <div className="border-t pt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onToggleComments(submission.id)}
-                className="mb-3"
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                {expandedComments.has(submission.id) ? 'Ocultar' : 'Mostrar'} Comentários
-              </Button>
-
+              {/* Seção de Comentários expandível */}
               {expandedComments.has(submission.id) && SubmissionComments && (
-                <Suspense fallback={<Skeleton className="h-32 w-full" />}>
-                  <SubmissionComments
-                    submissionId={submission.id}
-                    onCommentAdded={() => {/* refetch if needed */}}
-                  />
-                </Suspense>
+                <div className="pt-2">
+                  <Suspense fallback={<Skeleton className="h-24 w-full" />}>
+                    <SubmissionComments
+                      submissionId={submission.id}
+                      onCommentAdded={() => {}}
+                    />
+                  </Suspense>
+                </div>
               )}
             </div>
           </div>
