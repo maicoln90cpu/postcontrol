@@ -111,16 +111,28 @@ const DashboardSubmissionHistoryComponent = ({
                     </Suspense>
                   </div>}
               </div>
-              {/* Botão excluir apenas para submissões pendentes */}
-              {submission.status === 'pending' && <div className="mt-3 pt-3 border-t">
-                  <Button size="sm" variant="outline" className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto" onClick={() => onDeleteSubmission({
-            id: submission.id,
-            status: submission.status
-          })}>
+              {/* Botão excluir para submissões pendentes ou reprovadas */}
+              {(submission.status === 'pending' || submission.status === 'rejected') && (
+                <div className="mt-3 pt-3 border-t">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full sm:w-auto" 
+                    onClick={() => onDeleteSubmission({
+                      id: submission.id,
+                      status: submission.status
+                    })}
+                  >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Excluir Submissão
+                    {submission.status === 'rejected' ? 'Excluir e Reenviar' : 'Excluir Submissão'}
                   </Button>
-                </div>}
+                  {submission.status === 'rejected' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Você pode enviar uma nova submissão após excluir
+                    </p>
+                  )}
+                </div>
+              )}
             </Card>) : <p className="text-center text-muted-foreground py-8">Nenhuma submissão encontrada</p>}
       </div>
     </Card>;
