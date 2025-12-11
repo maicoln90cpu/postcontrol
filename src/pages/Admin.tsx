@@ -149,11 +149,10 @@ const Admin = () => {
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [selectedEventForPrediction, setSelectedEventForPrediction] = useState<string | null>(null);
   const [selectedEventForRanking, setSelectedEventForRanking] = useState<string | null>(null);
-  
+
   // ✅ FASE 1: Estados globais únicos para filtros de Estatísticas
   const [globalStatsEventFilter, setGlobalStatsEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const [globalSelectedEventId, setGlobalSelectedEventId] = useState<string>('all');
-  
   const [suggestionDialogOpen, setSuggestionDialogOpen] = useState(false); // ✅ ITEM 5 FASE 2
   const [addSubmissionDialogOpen, setAddSubmissionDialogOpen] = useState(false);
   const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
@@ -176,13 +175,13 @@ const Admin = () => {
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
   const [zoomSubmissionIndex, setZoomSubmissionIndex] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  
+
   // ✅ Estado para controlar eventos colapsados na tab Postagens
   const [collapsedEvents, setCollapsedEvents] = useState<Set<string>>(new Set());
-  
+
   // ✅ FASE 3: Estado para índice focado (navegação por teclado)
   const [focusedSubmissionIndex, setFocusedSubmissionIndex] = useState(-1);
-  
+
   // ✅ FASE 3: Estado para controlar tab ativa (para atalhos)
   const [activeTab, setActiveTab] = useState("events");
 
@@ -306,22 +305,22 @@ const Admin = () => {
   // ✅ Função memoizada para calcular métricas do evento (contagem por tipo de post)
   const getEventMetrics = useCallback((eventId: string) => {
     const eventPosts = allPosts.filter((p: any) => p.event_id === eventId);
-    
+
     // Contar posts por tipo
     const postsByType = {
       comprovante: eventPosts.filter((p: any) => p.post_type === 'sale').length,
       divulgacao: eventPosts.filter((p: any) => p.post_type === 'divulgacao').length,
-      selecao: eventPosts.filter((p: any) => p.post_type === 'selecao_perfil').length,
+      selecao: eventPosts.filter((p: any) => p.post_type === 'selecao_perfil').length
     };
-    
-    // Somar submissões de todos os posts do evento
-    const totalSubmissions = eventPosts.reduce((sum: number, post: any) => 
-      sum + (submissionsByPost[post.id] || 0), 0
-    );
-    
-    return { postsByType, totalSubmissions, totalPosts: eventPosts.length };
-  }, [allPosts, submissionsByPost]);
 
+    // Somar submissões de todos os posts do evento
+    const totalSubmissions = eventPosts.reduce((sum: number, post: any) => sum + (submissionsByPost[post.id] || 0), 0);
+    return {
+      postsByType,
+      totalSubmissions,
+      totalPosts: eventPosts.length
+    };
+  }, [allPosts, submissionsByPost]);
   const {
     data: submissionsData,
     isLoading: submissionsLoading,
@@ -893,7 +892,7 @@ const Admin = () => {
     onReject: handleRejectSubmission,
     onToggleSelection: toggleSubmissionSelection,
     isReadOnly,
-    enabled: activeTab === 'submissions',
+    enabled: activeTab === 'submissions'
   });
 
   // ✅ FASE 3: Resetar foco quando mudar de página ou filtro
@@ -1312,12 +1311,10 @@ const Admin = () => {
       });
 
       // Buscar status de participação do evento
-      const { data: participationData, error: participationError } = await sb
-        .from("user_event_goals")
-        .select("user_id, participation_status, goal_achieved")
-        .eq("event_id", submissionEventFilter)
-        .in("user_id", userIds);
-
+      const {
+        data: participationData,
+        error: participationError
+      } = await sb.from("user_event_goals").select("user_id, participation_status, goal_achieved").eq("event_id", submissionEventFilter).in("user_id", userIds);
       if (participationError) {
         console.error("Erro ao buscar dados de participação:", participationError);
       }
@@ -1511,7 +1508,7 @@ const Admin = () => {
       </Suspense>
       {/* Admin Context Header */}
       <div className="bg-gradient-primary text-white py-4 px-6 shadow-lg">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto flex-wrap gap-4 flex-col flex items-center justify-between">
           <div className="flex items-center gap-4">
             {profile?.avatar_url ? <Avatar className="h-12 w-12">
                 <AvatarImage src={profile.avatar_url} alt={`Avatar ${profile.full_name}`} />
@@ -1771,14 +1768,9 @@ const Admin = () => {
             {/* ✅ FASE 3: Badge com contador de pendentes */}
             <TabsTrigger id="submissions-tab" value="submissions" className="text-xs sm:text-sm py-2 relative">
               Submissões
-              {pendingCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px] flex items-center justify-center"
-                >
+              {pendingCount > 0 && <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px] flex items-center justify-center">
                   {pendingCount > 99 ? '99+' : pendingCount}
-                </Badge>
-              )}
+                </Badge>}
             </TabsTrigger>
             <TabsTrigger id="users-tab" value="users" className="text-xs sm:text-sm py-2">
               Usuários
@@ -1957,82 +1949,59 @@ const Admin = () => {
             </div>
 
             <Card className="p-1">
-              {loadingEvents ? (
-                <div className="space-y-4 p-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="space-y-3">
+              {loadingEvents ? <div className="space-y-4 p-4">
+                  {[1, 2, 3].map(i => <div key={i} className="space-y-3">
                       <Skeleton className="h-10 w-full" />
                       <div className="pl-6 space-y-2">
                         <Skeleton className="h-16 w-full" />
                         <Skeleton className="h-16 w-full" />
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : filteredPosts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
+                    </div>)}
+                </div> : filteredPosts.length === 0 ? <p className="text-muted-foreground text-center py-8">
                   {postEventFilter === "all" ? "Nenhuma postagem cadastrada ainda" : "Nenhuma postagem para este evento"}
-                </p>
-              ) : (
-                <div className="space-y-2">
+                </p> : <div className="space-y-2">
                   {(() => {
-                    // Agrupar posts por evento
-                    const postsByEvent: Record<string, typeof filteredPosts> = {};
-                    filteredPosts.forEach(post => {
-                      const eventTitle = getEventTitle(post);
-                      if (!postsByEvent[eventTitle]) {
-                        postsByEvent[eventTitle] = [];
+                // Agrupar posts por evento
+                const postsByEvent: Record<string, typeof filteredPosts> = {};
+                filteredPosts.forEach(post => {
+                  const eventTitle = getEventTitle(post);
+                  if (!postsByEvent[eventTitle]) {
+                    postsByEvent[eventTitle] = [];
+                  }
+                  postsByEvent[eventTitle].push(post);
+                });
+                return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => {
+                  const eventId = eventPosts[0]?.event_id;
+                  const isCollapsed = collapsedEvents.has(eventId);
+                  const metrics = getEventMetrics(eventId);
+                  return <Collapsible key={eventTitle} open={!isCollapsed} onOpenChange={open => {
+                    setCollapsedEvents(prev => {
+                      const newSet = new Set(prev);
+                      if (open) {
+                        newSet.delete(eventId);
+                      } else {
+                        newSet.add(eventId);
                       }
-                      postsByEvent[eventTitle].push(post);
+                      return newSet;
                     });
-                    
-                    return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => {
-                      const eventId = eventPosts[0]?.event_id;
-                      const isCollapsed = collapsedEvents.has(eventId);
-                      const metrics = getEventMetrics(eventId);
-                      
-                      return (
-                        <Collapsible
-                          key={eventTitle}
-                          open={!isCollapsed}
-                          onOpenChange={(open) => {
-                            setCollapsedEvents(prev => {
-                              const newSet = new Set(prev);
-                              if (open) {
-                                newSet.delete(eventId);
-                              } else {
-                                newSet.add(eventId);
-                              }
-                              return newSet;
-                            });
-                          }}
-                        >
+                  }}>
                           <CollapsibleTrigger className="w-full">
                             <div className="flex items-center gap-2 px-3 py-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer">
-                              <ChevronRight className={cn(
-                                "h-4 w-4 text-primary transition-transform shrink-0",
-                                !isCollapsed && "rotate-90"
-                              )} />
+                              <ChevronRight className={cn("h-4 w-4 text-primary transition-transform shrink-0", !isCollapsed && "rotate-90")} />
                               <Calendar className="h-4 w-4 text-primary shrink-0" />
                               <h3 className="font-semibold text-sm sm:text-lg text-left truncate">{eventTitle}</h3>
                               
                               {/* Badges: Contagem por tipo de post */}
                               <div className="flex gap-1 shrink-0 flex-wrap">
-                                {metrics.postsByType.divulgacao > 0 && (
-                                  <Badge variant="outline" className="text-xs" title="Divulgação">
+                                {metrics.postsByType.divulgacao > 0 && <Badge variant="outline" className="text-xs" title="Divulgação">
                                     📢 {metrics.postsByType.divulgacao}
-                                  </Badge>
-                                )}
-                                {metrics.postsByType.comprovante > 0 && (
-                                  <Badge variant="outline" className="text-xs" title="Comprovante de Venda">
+                                  </Badge>}
+                                {metrics.postsByType.comprovante > 0 && <Badge variant="outline" className="text-xs" title="Comprovante de Venda">
                                     💰 {metrics.postsByType.comprovante}
-                                  </Badge>
-                                )}
-                                {metrics.postsByType.selecao > 0 && (
-                                  <Badge variant="outline" className="text-xs" title="Seleção de Perfil">
+                                  </Badge>}
+                                {metrics.postsByType.selecao > 0 && <Badge variant="outline" className="text-xs" title="Seleção de Perfil">
                                     👤 {metrics.postsByType.selecao}
-                                  </Badge>
-                                )}
+                                  </Badge>}
                               </div>
                               
                               {/* Badge: Total de submissões */}
@@ -2045,8 +2014,7 @@ const Admin = () => {
                           <CollapsibleContent>
                             {/* Lista de posts do evento */}
                             <div className="space-y-2 pl-3 sm:pl-6 border-l-2 border-primary/20 mt-2 mb-4">
-                              {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => (
-                                <Card key={post.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
+                              {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => <Card key={post.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
                                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
@@ -2063,9 +2031,9 @@ const Admin = () => {
                                     </div>
                                     <div className="flex gap-2 shrink-0">
                                       <Button variant="ghost" size="sm" onClick={() => {
-                                        setSelectedPost(post);
-                                        setPostDialogOpen(true);
-                                      }} disabled={isReadOnly}>
+                                setSelectedPost(post);
+                                setPostDialogOpen(true);
+                              }} disabled={isReadOnly}>
                                         <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
                                       </Button>
                                       <Button variant="ghost" size="sm" onClick={() => handleDeletePostClick(post.id)} className="text-destructive hover:text-destructive" disabled={isReadOnly}>
@@ -2073,16 +2041,13 @@ const Admin = () => {
                                       </Button>
                                     </div>
                                   </div>
-                                </Card>
-                              ))}
+                                </Card>)}
                             </div>
                           </CollapsibleContent>
-                        </Collapsible>
-                      );
-                    });
-                  })()}
-                </div>
-              )}
+                        </Collapsible>;
+                });
+              })()}
+                </div>}
             </Card>
           </TabsContent>
 
@@ -2090,11 +2055,9 @@ const Admin = () => {
             {/* ✅ FASE 3: Dica de atalhos de teclado */}
             <div className="flex items-center justify-between flex-wrap gap-2 px-4 py-2 bg-muted/30 rounded-md text-xs text-muted-foreground">
               <span>⌨️ Atalhos: <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">A</kbd> Aprovar · <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">R</kbd> Rejeitar · <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">←</kbd><kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">→</kbd> Navegar · <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">Espaço</kbd> Selecionar</span>
-              {pendingCount > 0 && (
-                <Badge variant="outline" className="text-xs">
+              {pendingCount > 0 && <Badge variant="outline" className="text-xs">
                   {pendingCount} pendente{pendingCount !== 1 ? 's' : ''}
-                </Badge>
-              )}
+                </Badge>}
             </div>
 
             {/* ✅ Sprint 3A: Usar componente AdminFilters refatorado */}
@@ -2495,9 +2458,9 @@ const Admin = () => {
               </CardHeader>
               <CardContent className="flex gap-4 flex-wrap">
                 <Select value={globalStatsEventFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => {
-                  setGlobalStatsEventFilter(value);
-                  setGlobalSelectedEventId('all'); // Reset event selection when filter changes
-                }}>
+                setGlobalStatsEventFilter(value);
+                setGlobalSelectedEventId('all'); // Reset event selection when filter changes
+              }}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Status do evento" />
                   </SelectTrigger>
@@ -2515,14 +2478,12 @@ const Admin = () => {
                   <SelectContent>
                     <SelectItem value="all">Todos os Eventos</SelectItem>
                     {filteredEvents.filter(e => {
-                      if (globalStatsEventFilter === 'active') return e.is_active;
-                      if (globalStatsEventFilter === 'inactive') return !e.is_active;
-                      return true;
-                    }).map(event => (
-                      <SelectItem key={event.id} value={event.id}>
+                    if (globalStatsEventFilter === 'active') return e.is_active;
+                    if (globalStatsEventFilter === 'inactive') return !e.is_active;
+                    return true;
+                  }).map(event => <SelectItem key={event.id} value={event.id}>
                         {event.title} {!event.is_active && '(Inativo)'}
-                      </SelectItem>
-                    ))}
+                      </SelectItem>)}
                   </SelectContent>
                 </Select>
               </CardContent>
@@ -2618,10 +2579,7 @@ const Admin = () => {
                       </CardHeader>
                       <CardContent>
                         <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                          <ParticipantStatusManager 
-                            eventId={globalSelectedEventId} 
-                            eventTitle={filteredEvents.find(e => e.id === globalSelectedEventId)?.title || ""} 
-                          />
+                          <ParticipantStatusManager eventId={globalSelectedEventId} eventTitle={filteredEvents.find(e => e.id === globalSelectedEventId)?.title || ""} />
                         </Suspense>
                       </CardContent>
                     </Card>
@@ -2631,8 +2589,7 @@ const Admin = () => {
 
               {/* Nova aba Analytics */}
               <TabsContent value="analytics" className="space-y-6">
-                {currentAgency && (
-                  <div className="space-y-4">
+                {currentAgency && <div className="space-y-4">
                     <h3 className="text-xl font-bold flex items-center gap-2">
                       <MessageSquare className="h-5 w-5" />
                       📊 Analytics de Indicações
@@ -2641,8 +2598,7 @@ const Admin = () => {
                     <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                       <ReferralAnalytics agencyId={currentAgency.id} eventId={globalSelectedEventId === 'all' ? undefined : globalSelectedEventId} />
                     </Suspense>
-                  </div>
-                )}
+                  </div>}
               </TabsContent>
 
               {/* Nova aba Gerador UTM */}
