@@ -216,11 +216,11 @@ export default function PublicEvent() {
         <Card className="max-w-4xl mx-auto overflow-hidden">
           {/* Event Image */}
           {event.event_image_url && (
-            <div className="w-full h-64 md:h-96 relative overflow-hidden">
+            <div className="w-full h-64 md:h-96 relative overflow-hidden bg-muted/30 flex items-center justify-center">
               <img 
                 src={event.event_image_url} 
                 alt={event.title} 
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-full object-contain"
               />
             </div>
           )}

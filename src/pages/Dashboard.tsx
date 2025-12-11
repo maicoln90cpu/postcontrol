@@ -496,26 +496,35 @@ const Dashboard = () => {
     }
   };
 
-  // 🆕 ITEM NOVO: Função para excluir submissão pendente
+  // 🆕 Função para excluir submissão pendente ou reprovada
   const handleDeleteSubmission = async (submissionId: string, status: string) => {
-    if (status !== 'pending') {
+    // Permitir exclusão de pendentes e reprovadas
+    if (status !== 'pending' && status !== 'rejected') {
       toast({
         title: "Não permitido",
-        description: "Apenas submissões pendentes podem ser excluídas",
+        description: "Apenas submissões pendentes ou reprovadas podem ser excluídas",
         variant: "destructive"
       });
       return;
     }
+    
     try {
-      const {
-        error
-      } = await supabase.from('submissions').delete().eq('id', submissionId).eq('user_id', user?.id) // Segurança: só pode deletar próprias submissões
-      .eq('status', 'pending'); // Segurança: só pode deletar pendentes
+      // Query base - deletar própria submissão
+      const { error } = await supabase
+        .from('submissions')
+        .delete()
+        .eq('id', submissionId)
+        .eq('user_id', user?.id) // Segurança: só pode deletar próprias submissões
+        .in('status', ['pending', 'rejected']); // Segurança: só pendentes ou reprovadas
 
       if (error) throw error;
+      
+      const isRejected = status === 'rejected';
       toast({
         title: "Submissão excluída!",
-        description: "A postagem pendente foi removida do histórico."
+        description: isRejected 
+          ? "A submissão reprovada foi removida. Você pode enviar uma nova." 
+          : "A postagem pendente foi removida do histórico."
       });
       refetch(); // Recarregar dashboard
     } catch (error: any) {

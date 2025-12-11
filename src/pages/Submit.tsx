@@ -1218,11 +1218,11 @@ const Submit = () => {
               {selectedEvent && selectedEventData && !loadingEventData && !eventDataError && (
                 <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
                   {selectedEventData.event_image_url && (
-                    <div className="flex justify-center mb-3">
+                    <div className="flex justify-center items-center mb-3 bg-muted/30 rounded-lg overflow-hidden max-h-64">
                       <img
                         src={selectedEventData.event_image_url}
                         alt={selectedEventData.title}
-                        className="w-full max-h-64 object-cover rounded-lg border shadow-sm"
+                        className="max-w-full max-h-64 object-contain rounded-lg"
                       />
                     </div>
                   )}
