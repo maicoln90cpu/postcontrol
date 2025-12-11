@@ -80,11 +80,13 @@ const Home = () => {
   // OTIMIZAÇÃO CLS: Usar estado para dimensões da janela (evita window undefined no SSR/primeiro render)
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [isHydrated, setIsHydrated] = useState(false);
+  // OTIMIZAÇÃO Speed Index: Defer heavy animations until after first paint
+  const [animationsReady, setAnimationsReady] = useState(false);
 
-  // Parallax scroll effects
+  // Parallax scroll effects - only enable after animations are ready
   const { scrollY } = useScroll();
-  const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
-  const textY = useTransform(scrollY, [0, 500], [0, -50]);
+  const backgroundY = useTransform(scrollY, [0, 500], [0, animationsReady ? 150 : 0]);
+  const textY = useTransform(scrollY, [0, 500], [0, animationsReady ? -50 : 0]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   // OTIMIZAÇÃO CLS: Definir dimensões apenas após hidratação
@@ -92,12 +94,18 @@ const Home = () => {
     setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     setIsHydrated(true);
     
+    // Defer animations until after first paint to improve Speed Index
+    const timer = setTimeout(() => setAnimationsReady(true), 100);
+    
     const handleResize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     };
     
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+    };
   }, []);
 
   // Defer plans loading - pricing section is below the fold
@@ -420,8 +428,8 @@ const Home = () => {
           />
         </motion.div>
 
-        {/* Elementos Flutuantes - Ícones (renderiza apenas após hidratação para evitar CLS) */}
-        {isHydrated && windowSize.width > 0 && (
+        {/* Elementos Flutuantes - Ícones (renderiza apenas após animações prontas para melhorar Speed Index) */}
+        {animationsReady && windowSize.width > 0 && (
           <>
             <FloatingElement delay={0} x={100} y={150}>
               <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
