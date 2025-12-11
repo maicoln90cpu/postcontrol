@@ -1,11 +1,22 @@
 /**
  * Conditional Logger Utility
  * Fase 1: Performance - Remove console.logs in production
+ * ✅ FASE 1 AUDIT: Adicionado debug() para logs verbosos apenas em dev
  */
 
 const isDevelopment = import.meta.env.DEV;
 
 export const logger = {
+  /**
+   * Debug level - only in development, for verbose/heavy logs
+   * Use for expensive operations like mapping arrays
+   */
+  debug: (message: string, ...args: any[]) => {
+    if (isDevelopment && import.meta.env.VITE_DEBUG === 'true') {
+      console.log(`🔍 ${message}`, ...args);
+    }
+  },
+
   info: (message: string, ...args: any[]) => {
     if (isDevelopment) {
       console.log(`ℹ️ ${message}`, ...args);
