@@ -87,6 +87,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     cssCodeSplit: true,
+    sourcemap: true,
     rollupOptions: {
       output: {
         // OTIMIZAÇÃO: Code splitting para reduzir bundle principal
