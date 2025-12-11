@@ -9,9 +9,22 @@
     
     <!-- Performance: Preconnect para origens críticas -->
     <link rel="preconnect" href="https://vrcqnhksybtrfpagnwdq.supabase.co" crossorigin>
-    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://connect.facebook.net">
-    <link rel="dns-prefetch" href="https://www.google.com">
+    
+    <!-- Preload critical hero image for faster LCP -->
+    <link rel="preload" as="image" href="/src/assets/hero-bg.jpg" fetchpriority="high">
+    
+    <!-- Critical CSS for immediate first paint -->
+    <style>
+      :root { --background: 222.2 84% 4.9%; --foreground: 210 40% 98%; }
+      body { margin: 0; background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+      #root { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+      .initial-loader { width: 2rem; height: 2rem; border: 2px solid transparent; border-top-color: hsl(var(--foreground)); border-radius: 50%; animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0EA5E9" />
