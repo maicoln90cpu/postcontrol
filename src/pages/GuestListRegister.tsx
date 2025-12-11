@@ -46,7 +46,10 @@ interface GuestListDate {
   end_time?: string;
   auto_deactivate_after_start?: boolean;
   price_types?: string[];
-  price_details?: Record<string, { female: number; male: number }>;
+  price_details?: Record<string, {
+    female: number;
+    male: number;
+  }>;
   important_info?: string | null;
   alternative_link_female?: string | null;
   alternative_link_male?: string | null;
@@ -130,18 +133,16 @@ export default function GuestListRegister() {
         // Se end_time < start_time → end_time é no dia seguinte (ex: 23h-07h)
         // Se end_time >= start_time → end_time é no mesmo dia (ex: 09h-22h)
         const ended = date.end_time && hasEventEnded(date.event_date, date.end_time, date.start_time || undefined);
-        
+
         // Se evento terminou, SEMPRE remover da lista
         if (ended) return false;
-        
         if (!date.auto_deactivate_after_start) return true;
         if (!date.start_time) return true;
-        
+
         // Se tem link alternativo configurado, mostra (mas só até end_time, já verificado acima)
-        const hasAlternative = date.show_alternative_after_start && 
-                              (date.alternative_link_female || date.alternative_link_male);
+        const hasAlternative = date.show_alternative_after_start && (date.alternative_link_female || date.alternative_link_male);
         if (hasAlternative) return true;
-        
+
         // Senão, só mostra se não passou start_time
         return !hasEventPassed(date.event_date, date.start_time);
       });
@@ -207,11 +208,9 @@ export default function GuestListRegister() {
         </div>
       </div>;
   }
-  
   if (hasNoDates && event) {
     return <NoAvailableDatesPage event={event} agency={event.agencies} />;
   }
-  
   if (error || !event) {
     return <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Alert variant="destructive" className="max-w-md">
@@ -254,27 +253,15 @@ export default function GuestListRegister() {
           </CardHeader>
 
           {/* Imagem do Evento */}
-          {event.event_image_url && (
-            <div className="px-6 pb-4">
-              <img 
-                src={event.event_image_url} 
-                alt={event.name}
-                className="w-full rounded-lg object-cover max-h-[400px]"
-              />
-            </div>
-          )}
+          {event.event_image_url && <div className="px-6 pb-4">
+              <img src={event.event_image_url} alt={event.name} className="w-full rounded-lg object-contain max-h-[600px]" />
+            </div>}
 
           <Separator />
 
           <CardContent className="pt-6 space-y-6">
             {/* Seletor de Datas */}
-            <DateSelector 
-              dates={dates} 
-              selectedDateIds={selectedDateIds} 
-              onSelectDates={setSelectedDateIds} 
-              userGender={selectedGender}
-              eventName={event.name}
-            />
+            <DateSelector dates={dates} selectedDateIds={selectedDateIds} onSelectDates={setSelectedDateIds} userGender={selectedGender} eventName={event.name} />
 
             <Separator />
 

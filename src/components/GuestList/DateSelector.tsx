@@ -137,10 +137,7 @@ export const DateSelector = ({
           // Se end_time >= start_time → mesmo dia (ex: 09h-22h)
           const ended = date.end_time && hasEventEnded(date.event_date, date.end_time, date.start_time || undefined);
           // Link alternativo visível: após início E antes do fim
-          const hasAlternative = date.show_alternative_after_start && 
-                                 hasStarted && 
-                                 !ended && 
-                                 (date.alternative_link_female || date.alternative_link_male);
+          const hasAlternative = date.show_alternative_after_start && hasStarted && !ended && (date.alternative_link_female || date.alternative_link_male);
 
           // Computar preços uma vez por data para evitar recalcular e facilitar debug
           const datePrices = getDatePrices(date);
@@ -191,7 +188,7 @@ export const DateSelector = ({
                           </span>
                           <div className="space-y-1 w-full">
                             {datePrices.map((priceInfo, idx) => <div key={idx} className="flex flex-col items-start">
-                                <span className="text-xs text-destructive-foreground">
+                                <span className="text-xs text-black">
                                   {priceInfo.label}
                                 </span>
                                 <span className="font-semibold text-base text-left px-0 py-0 text-popover-foreground">
