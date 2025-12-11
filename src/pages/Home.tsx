@@ -577,10 +577,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Recursos */}
+      {/* Recursos - CSS containment for below-the-fold optimization */}
       <section
         id="recursos"
-        className="py-16 md:py-24 px-4 bg-gradient-to-br from-background via-muted to-background scroll-mt-20"
+        className="py-16 md:py-24 px-4 bg-gradient-to-br from-background via-muted to-background scroll-mt-20 contain-content"
       >
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
@@ -813,10 +813,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Como Funciona */}
+      {/* Como Funciona - CSS containment for optimization */}
       <section
         id="como-funciona"
-        className="py-16 md:py-24 px-4 bg-gradient-to-br from-muted via-background to-muted scroll-mt-20"
+        className="py-16 md:py-24 px-4 bg-gradient-to-br from-muted via-background to-muted scroll-mt-20 contain-content"
       >
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
@@ -904,10 +904,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing - CSS containment for optimization */}
       <section
         id="precos"
-        className="py-16 md:py-24 px-4 bg-gradient-to-br from-background via-muted to-background scroll-mt-20"
+        className="py-16 md:py-24 px-4 bg-gradient-to-br from-background via-muted to-background scroll-mt-20 contain-content"
       >
         <div className="max-w-7xl mx-auto">
           <AnimatedSection>
@@ -1019,10 +1019,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* FAQ Section - CSS containment for optimization */}
       <section
         id="faq"
-        className="py-16 md:py-24 px-4 bg-gradient-to-br from-muted via-background to-muted scroll-mt-20"
+        className="py-16 md:py-24 px-4 bg-gradient-to-br from-muted via-background to-muted scroll-mt-20 contain-content"
       >
         <div className="max-w-4xl mx-auto">
           <AnimatedSection>
