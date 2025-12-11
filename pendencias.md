@@ -1,328 +1,518 @@
-# ⏳ Pendências e Próximos Passos
+# 📋 Sistema MD Agência - Status Completo
 
-## ✅ CORREÇÕES CRÍTICAS IMPLEMENTADAS
-
-### #1 - Motivo de Rejeição nos Cards ✅
-**Status:** Implementado  
-**Arquivo:** `src/pages/Admin/AdminSubmissionList.tsx`  
-**Mudança:** Movido bloco de exibição do motivo de rejeição para dentro da div `flex-1` (agora aparece corretamente no card)
-
-**Como testar:**
-1. Reprovar uma submissão com motivo específico
-2. Verificar que caixa vermelha aparece no card da submissão
-3. Verificar que texto do motivo está legível
-4. Testar em mobile (responsividade)
+**Última atualização:** 2025-12-11
 
 ---
 
-### #2 - Campo de Busca Sempre Visível ✅
-**Status:** Implementado  
-**Arquivo:** `src/pages/Admin/AdminFilters.tsx`  
-**Mudança:** Removida condição que escondia campo de busca quando nenhum evento estava selecionado
+## 📊 VISÃO GERAL DO SISTEMA
 
-**Como testar:**
-1. Abrir painel admin sem selecionar evento
-2. Verificar que campo de busca está visível e funcional
-3. Digitar nome de usuário
-4. Verificar que resultados aparecem
-5. Selecionar um evento e verificar que busca continua funcionando
+Sistema SaaS multi-tenant para gestão de divulgadoras (promoters) de eventos com:
+- Gestão de eventos e postagens
+- Submissão e aprovação de comprovantes
+- Sistema de metas e badges
+- Guest List (lista de convidados)
+- Push Notifications (PWA)
+- Relatórios e analytics
 
 ---
 
-### #3 - Correção de Posts do Evento XXXperience ✅
-**Status:** Implementado  
-**Arquivos:** `src/pages/Admin.tsx`  
-**Mudança:** Função `getAvailablePostNumbers()` agora busca posts diretamente dos dados carregados do evento via `useEventsQuery` com `includePosts: true`, ao invés de usar o array de submissões filtradas
+## ✅ FUNCIONALIDADES IMPLEMENTADAS
 
-**Como testar:**
-1. Selecionar evento "XXXperience" no painel admin
-2. Verificar que select de posts mostra **TODOS os 5 posts** (1, 2, 3, 4, 5)
-3. Selecionar cada post individualmente
-4. Verificar que submissões aparecem para cada post
-5. Verificar console logs:
-   - `📋 Posts disponíveis para evento [id]:` deve mostrar `[1, 2, 3, 4, 5]`
-   - Se não aparecer todos, verificar se evento tem posts cadastrados no banco
+### 🔐 Autenticação e Autorização
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Login/Signup por email | ✅ | `Auth.tsx` |
+| Confirmação de senha no signup | ✅ | `Auth.tsx` |
+| Toggle mostrar/ocultar senha | ✅ | `Auth.tsx` |
+| Recuperação de senha | ✅ | `Auth.tsx` |
+| Signup por token de agência | ✅ | `AgencySignup.tsx` |
+| Signup por slug de agência | ✅ | `AgencySignupBySlug.tsx` |
+| Proteção de rotas (RequireAuth) | ✅ | `RequireAuth.tsx` |
+| Proteção por papel (ProtectedRoute) | ✅ | `ProtectedRoute.tsx` |
+| Papéis: master_admin, agency_admin, user, guest | ✅ | `user_roles` table |
+| Sistema de convites para guests | ✅ | `GuestInviteDialog.tsx` |
+| Aceitar convite de guest | ✅ | `AcceptInvite.tsx` |
 
-**Diagnóstico adicional:**
-- Abrir console do navegador
-- Procurar por: `🔍 [Admin Debug] Total de posts carregados:`
-- Deve mostrar número total de posts carregados
-- Procurar por: `📋 Posts disponíveis para evento`
-- Deve listar todos os números de posts do evento selecionado
+### 👤 Perfil de Usuário
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Edição de perfil (nome, telefone, Instagram) | ✅ | `DashboardProfile.tsx` |
+| Avatar/foto de perfil | ✅ | `DashboardProfile.tsx` |
+| Faixa de seguidores | ✅ | `DashboardProfile.tsx` |
+| Gênero | ✅ | `DashboardProfile.tsx` |
+| Preferência de tema (dark/light) | ✅ | `ThemeProvider.tsx` |
 
----
+### 📅 Gestão de Eventos
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| CRUD de eventos | ✅ | `EventDialog.tsx` |
+| Interface com 5 abas (Básico, Requisitos, Config, Público, Avançado) | ✅ | `EventDialog.tsx` |
+| Requisitos múltiplos por evento | ✅ | `event_requirements` table |
+| Ativar/Desativar eventos | ✅ | `EventDialog.tsx` |
+| Agendamento automático (auto_activate_at, auto_deactivate_at) | ✅ | `auto-event-scheduler` edge function |
+| Imagem do evento | ✅ | `EventDialog.tsx` |
+| Slug do evento | ✅ | `EventDialog.tsx` |
+| Número de vagas | ✅ | `EventDialog.tsx` |
+| Setor e Produtor | ✅ | `EventDialog.tsx` |
+| Grupo do WhatsApp | ✅ | `EventDialog.tsx` |
+| Aceitar posts e/ou vendas | ✅ | `EventDialog.tsx` |
+| Gênero alvo | ✅ | `EventDialog.tsx` |
+| Notas internas | ✅ | `EventDialog.tsx` |
+| Templates de evento | ✅ | `useEventTemplates.ts` |
 
-## 🔄 PRÓXIMOS PASSOS - PWA e Push Notifications
+### 📝 Gestão de Posts/Postagens
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| CRUD de posts por evento | ✅ | `PostDialog.tsx` |
+| Tipos de post (divulgação, venda, seleção perfil) | ✅ | `PostDialog.tsx` |
+| Deadline por post | ✅ | `PostDialog.tsx` |
+| Numeração de posts | ✅ | `PostDialog.tsx` |
+| Visualização em grupos colapsáveis | ✅ | `Admin.tsx` |
+| Contadores de submissão por tipo | ✅ | `Admin.tsx` |
+| Master Posts Manager | ✅ | `MasterPostsManager.tsx` |
 
-### 📱 ITEM #6: Detecção de Plataforma Mobile + Instruções iOS
+### 📤 Submissão de Comprovantes
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Upload de screenshot de post | ✅ | `Submit.tsx` |
+| Upload de screenshot de perfil | ✅ | `Submit.tsx` |
+| Compressão de imagem client-side | ✅ | `Submit.tsx` |
+| Retry automático com exponential backoff | ✅ | `Submit.tsx` |
+| Link do Instagram (opcional) | ✅ | `Submit.tsx` |
+| Prova de venda | ✅ | `Submit.tsx` |
+| Email para ticketeira (auto-preenchimento) | ✅ | `Submit.tsx` |
+| Faixa de seguidores | ✅ | `Submit.tsx` |
+| Rate limiting (15/hora) | ✅ | `check_rate_limit()` |
+| Mensagens de erro específicas | ✅ | `Submit.tsx` |
 
-**Objetivo:** Detectar quando usuário está no iOS e não tem PWA instalado, mostrando toast com instruções de como instalar para receber push notifications.
+### ✅ Aprovação/Rejeição de Submissões
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Lista de submissões pendentes | ✅ | `AdminSubmissionList.tsx` |
+| Aprovar/Rejeitar individualmente | ✅ | `AdminSubmissionList.tsx` |
+| Aprovação em massa | ✅ | `AdminSubmissionList.tsx` |
+| Kanban de submissões | ✅ | `SubmissionKanban.tsx` |
+| Grid de cards | ✅ | `SubmissionCardsGrid.tsx` |
+| Zoom em imagens | ✅ | `SubmissionZoomDialog.tsx` |
+| Motivo de rejeição | ✅ | `AdminSubmissionList.tsx` |
+| Templates de rejeição | ✅ | `rejection_templates` table |
+| Comentários em submissões | ✅ | `SubmissionComments.tsx` |
+| Tags em submissões | ✅ | `TagManager.tsx` |
+| Logs de mudança de status | ✅ | `SubmissionAuditLog.tsx` |
+| Verificação de Instagram | ✅ | `verify-instagram-post` edge function |
+| Validação de imagem | ✅ | `validate-image` edge function |
+| Adicionar submissão manual | ✅ | `AddManualSubmissionDialog.tsx` |
 
-**Arquivos a modificar:**
-- `src/hooks/usePushNotifications.ts`
+### 🎯 Sistema de Metas
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Cálculo automático de progresso | ✅ | `check_and_update_user_goal()` |
+| Múltiplos requisitos (OR lógico) | ✅ | `event_requirements` + `check_and_update_user_goal()` |
+| Progresso visual (badge) | ✅ | `GoalProgressBadge.tsx` |
+| Notificação de meta atingida | ✅ | `notify-goal-achieved` edge function |
+| Configuração de notificações por agência | ✅ | `GoalNotificationSettings.tsx` |
+| Relatório de metas atingidas | ✅ | `GoalAchievedReport.tsx` |
+| Relatório detalhado de metas | ✅ | `DetailedGoalsReport.tsx` |
+| Migração de metas | ✅ | `MigrationUserGoalsButton.tsx` |
 
-**Implementação:**
-```typescript
-// Adicionar no início da função subscribe(), após linha 100:
+### 🏆 Sistema de Badges
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Badges por quantidade de aprovações | ✅ | `award_progression_badges()` trigger |
+| Bronze (5), Prata (10), Ouro (25), Diamante (50), Lenda (100) | ✅ | `user_badges` table |
+| Exibição de badges | ✅ | `BadgeDisplay.tsx` |
+| Notificação ao ganhar badge | ✅ | `notifications` table |
 
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-const isAndroid = /Android/i.test(navigator.userAgent);
-const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-              (window.navigator as any).standalone === true;
+### 📊 Controle de Vagas
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Contador de vagas disponíveis | ✅ | `EventSlotsCounter.tsx` |
+| Cálculo incluindo metas + aprovações manuais | ✅ | `get_event_available_slots()` |
+| Histórico de ocupação | ✅ | `event_slots_history` table |
+| Previsão de esgotamento | ✅ | `SlotExhaustionPrediction.tsx` |
+| Alerta de vagas esgotando | ✅ | `SlotExhaustionAlert.tsx` |
 
-console.log('📱 [Push] Plataforma:', { 
-  isMobile, 
-  isIOS, 
-  isAndroid, 
-  isPWA,
-  userAgent: navigator.userAgent 
-});
+### 👥 Gestão de Participantes
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Status: ativo, removido, meta batida | ✅ | `ParticipantStatusManager.tsx` |
+| Aprovação manual pela agência | ✅ | `approve_participant_manually()` |
+| Motivo de remoção | ✅ | `user_event_goals.withdrawn_reason` |
+| Ranking de promoters | ✅ | `TopPromotersRanking.tsx` |
+| Paginação (30 por página) | ✅ | `ParticipantStatusManager.tsx` |
+| Busca global | ✅ | `ParticipantStatusManager.tsx` |
+| Exibição de telefone | ✅ | `ParticipantStatusManager.tsx` |
 
-// Se for iOS sem PWA instalado, mostrar toast com instruções
-if (isIOS && !isPWA) {
-  toast.warning('Notificações no iOS', {
-    description: 'Para receber notificações no iPhone/iPad:\n1. Toque no botão 📤 (compartilhar)\n2. "Adicionar à Tela Inicial"\n3. Abra o app pela tela inicial',
-    duration: 10000
-  });
-  setLoading(false);
-  return false;
-}
-```
+### 📋 Guest List (Lista de Convidados)
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| CRUD de eventos de guest list | ✅ | `GuestListManager.tsx` |
+| Múltiplas datas por evento | ✅ | `guest_list_dates` table |
+| Preços por gênero | ✅ | `DateDialogForm.tsx` |
+| Múltiplos tipos de preço (entrada, consumível, etc.) | ✅ | `price_details` JSONB |
+| Capacidade máxima | ✅ | `guest_list_dates.max_capacity` |
+| Auto-desativação após início | ✅ | `auto-deactivate-guest-list-dates` edge function |
+| Links alternativos pós-início | ✅ | `AlternativeLinkCard.tsx` |
+| Imagem do evento | ✅ | `guest_list_dates.image_url` |
+| Página de registro público | ✅ | `GuestListRegister.tsx` |
+| Confirmação de registro | ✅ | `GuestListConfirmation.tsx` |
+| Anti-spam (honeypot) | ✅ | `AntiSpamField.tsx` |
+| Validação de registro | ✅ | `validate-guest-registration` edge function |
+| Email automático com lista | ✅ | `send-guest-list-email` edge function |
+| Analytics de conversão | ✅ | `GuestListAnalytics.tsx` |
+| Página de "sem datas" personalizada | ✅ | `NoAvailableDatesPage.tsx` |
+| Compartilhamento via WhatsApp | ✅ | `GuestListConfirmation.tsx` |
+| UTM tracking | ✅ | `guest_list_registrations` table |
+| Copiar nomes (selecionados ou todos) | ✅ | `GuestListManager.tsx` |
+| Contador de participantes por data | ✅ | `GuestListManager.tsx` |
 
-**Benefícios:**
-- Melhora UX ao educar usuários iOS
-- Evita frustração de tentar ativar notificações que não funcionarão
-- Detecta automaticamente plataforma e estado do PWA
+### 🔔 Notificações
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Sino de notificações | ✅ | `NotificationBell.tsx` |
+| Notificações in-app | ✅ | `notifications` table |
+| Push notifications (PWA) | ✅ | `usePushNotifications.ts` |
+| Configuração de preferências | ✅ | `NotificationPreferences.tsx` |
+| Push settings por usuário | ✅ | `PushNotificationSettings.tsx` |
+| Teste de push | ✅ | `PushNotificationTest.tsx` |
+| Analytics de push | ✅ | `PushNotificationAnalytics.tsx` |
+| Health dashboard push | ✅ | `PushHealthDashboard.tsx` |
+| Diagnóstico PWA | ✅ | `PWADiagnosticDashboard.tsx` |
+| Página de diagnóstico push | ✅ | `PushDiagnostic.tsx` |
+| Lembretes de deadline | ✅ | `notify-deadlines` edge function |
+| Lembretes de eventos | ✅ | `event-reminders-cron` edge function |
+| Expiração de guests | ✅ | `notify-guest-expiration` edge function |
 
-**Testes:**
-- [ ] Testar em Chrome Android (deve funcionar normalmente)
-- [ ] Testar em Safari iOS sem PWA (deve mostrar toast)
-- [ ] Testar em Safari iOS com PWA instalado (não deve mostrar toast)
-- [ ] Verificar logs no console
+### 📱 PWA
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Service Worker (Workbox) | ✅ | `src/sw.ts` |
+| Prompt de instalação | ✅ | `PWAInstallPrompt.tsx` |
+| Prompt de atualização | ✅ | `PWAUpdatePrompt.tsx` |
+| Página de instalação | ✅ | `Install.tsx` |
+| Detecção de iOS | ✅ | `usePWAInstall.ts` |
+| Offline fallback | ✅ | `src/sw.ts` |
 
-**Complexidade:** 3/10  
-**Risco:** Baixo  
-**Tempo estimado:** 10 minutos
+### 👤 Gestão de Usuários (Admin)
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Lista de usuários da agência | ✅ | `UserManagement.tsx` |
+| Editar usuário | ✅ | `UserManagement.tsx` |
+| Promover/Rebaixar papel | ✅ | `UserManagement.tsx` |
+| Deletar usuário | ✅ | `delete-user` edge function |
+| Importar usuários (CSV) | ✅ | `import-users` edge function |
+| Exportar usuários (CSV) | ✅ | `CSVImportExport.tsx` |
+| Todos os usuários (Master) | ✅ | `AllUsersManagement.tsx` |
+| Performance de usuários | ✅ | `UserPerformance.tsx` |
 
----
+### 🏢 Gestão de Agências
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Lista de agências (Master) | ✅ | `AdminManager.tsx` |
+| Criar agência | ✅ | `EditAgencyDialog.tsx` |
+| Editar agência | ✅ | `EditAgencyDialog.tsx` |
+| Card de agência | ✅ | `AgencyAdminCard.tsx` |
+| Configurações da agência | ✅ | `AgencyAdminSettings.tsx` |
+| Logo da agência | ✅ | `agency-logos` bucket |
+| OG Image | ✅ | `agency-og-images` bucket |
+| Solicitações de agência | ✅ | `AgencyRequestsManager.tsx` |
+| Aprovar/Rejeitar solicitação | ✅ | `approve-agency-request` edge function |
+| Email de solicitação | ✅ | `send-agency-request-email` edge function |
+| Trial de 10 dias | ✅ | `check-trial-expiration` edge function |
+| Extensão de trial | ✅ | `extend-trial` edge function |
+| WhatsApp de suporte por agência | ✅ | `agencies.support_whatsapp` |
+| Mensagem de convite customizada | ✅ | `agencies.invite_message_template` |
 
-### 🔍 ITEM #7: Página de Diagnóstico Automático
+### 💳 Planos e Pagamentos
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Gestão de planos | ✅ | `PlanManager.tsx` |
+| Integração Stripe | ✅ | `stripe-webhook` edge function |
+| Checkout session | ✅ | `create-checkout-session` edge function |
+| Criar produtos Stripe | ✅ | `create-stripe-products` edge function |
+| Limites por plano (eventos, influencers) | ✅ | `subscription_plans` table |
 
-**Objetivo:** Criar página `/push-diagnostic` que executa automaticamente uma bateria de testes e mostra resultados visuais sobre o estado das push notifications.
+### 📊 Relatórios e Analytics
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Estatísticas por evento | ✅ | `DashboardStats.tsx` |
+| Performance por usuário | ✅ | `UserPerformance.tsx` |
+| Relatórios financeiros | ✅ | `FinancialReports.tsx` |
+| Dashboard de conversão | ✅ | `ConversionDashboard.tsx` |
+| Analytics de referral | ✅ | `ReferralAnalytics.tsx` |
+| Insights com IA | ✅ | `AIInsights.tsx` |
+| Predição de metas (IA) | ✅ | `ai-goal-prediction` edge function |
+| Gerador de links UTM | ✅ | `UTMLinkGenerator.tsx` |
+| Segmentos de usuários | ✅ | `SegmentManager.tsx` |
 
-**Arquivo a criar:**
-- `src/pages/PushDiagnostic.tsx`
+### 🔧 Configurações do Sistema
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Configurações admin | ✅ | `AdminSettings.tsx` |
+| Timezone configurável | ✅ | `admin_settings.system_timezone` |
+| Changelog do sistema | ✅ | `ChangelogManager.tsx` |
+| FAQ por evento | ✅ | `FAQManager.tsx` |
+| Diagnóstico GTM | ✅ | `GTMDiagnostic.tsx` |
+| Menu DevTools | ✅ | `DevToolsMenu.tsx` |
+| Atalhos de teclado | ✅ | `useAdminKeyboardShortcuts.ts` |
+| Tutorial guiado (Admin) | ✅ | `AdminTutorialGuide.tsx` |
+| Tutorial guiado (User) | ✅ | `TutorialGuide.tsx` |
 
-**Implementação:**
+### 🔗 Convite de Amigos
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Botão de convite WhatsApp | ✅ | `Dashboard.tsx` |
+| Mensagem customizada por agência | ✅ | `agencies.invite_message_template` |
+| Tracking de referrals | ✅ | `referral_analytics` table |
+| Analytics de indicações | ✅ | `ReferralAnalytics.tsx` |
 
-Página deve executar os seguintes checks automaticamente:
-1. ✅ Suporte do navegador (`serviceWorker in navigator && PushManager in window`)
-2. ✅ Service Worker registrado e ativo
-3. ✅ VAPID Key configurada e válida (87-88 caracteres)
-4. ✅ Permissão de notificações (granted/denied/default)
-5. ✅ Subscription ativa no PushManager
-6. ✅ Detecção de plataforma (iOS/Android/Desktop)
-7. ✅ PWA Status (apenas para iOS)
+### 🛡️ Segurança
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| RLS em todas as tabelas | ✅ | Migrations |
+| Rate limiting | ✅ | `rate_limits` table |
+| Validação de entrada | ⚠️ | Parcial |
+| Mensagens de erro genéricas | ⚠️ | Parcial |
+| search_path em funções | ⚠️ | 1 função pendente |
 
-**UI esperada:**
-- Card com lista de checks
-- Ícones coloridos por status:
-  - 🟢 CheckCircle (verde) = Sucesso
-  - 🔴 XCircle (vermelho) = Erro
-  - 🟡 AlertCircle (amarelo) = Aviso
-  - ⚪ Loader (cinza) = Carregando
-- Badge com status (success/error/warning/pending)
-- Detalhes expandíveis (endpoint, user-agent, etc.)
-- Botão "Executar Novamente"
-- Resumo no final com recomendações
-
-**Adicionar rota:**
-```typescript
-// Em src/App.tsx:
-<Route path="/push-diagnostic" element={<PushDiagnostic />} />
-```
-
-**Benefícios:**
-- Debug mais rápido de problemas de push
-- Usuários podem compartilhar screenshot dos resultados
-- Identifica rapidamente onde está a falha
-- Reduz tickets de suporte
-
-**Testes:**
-- [ ] Acessar `/push-diagnostic`
-- [ ] Verificar que todos os checks executam automaticamente
-- [ ] Verificar cores corretas dos badges
-- [ ] Clicar em "Executar Novamente"
-- [ ] Testar em diferentes plataformas (Android, iOS, Desktop)
-- [ ] Verificar resumo e recomendações no final
-
-**Complexidade:** 6/10  
-**Risco:** Baixo (página isolada, não afeta outros componentes)  
-**Tempo estimado:** 25 minutos
-
----
-
-### 📊 ITEM #8: Logs Detalhados em usePushNotifications.ts
-
-**Objetivo:** Adicionar logs estratégicos e agrupados no hook de push notifications para facilitar debug em produção.
-
-**Arquivo a modificar:**
-- `src/hooks/usePushNotifications.ts`
-
-**Implementação:**
-
-Adicionar `console.group` e `console.log` em pontos estratégicos:
-
-```typescript
-// 1. No início do subscribe() - linha ~100
-console.group('🔔 [Push] Iniciando subscription');
-console.log('🕐 Timestamp:', new Date().toISOString());
-console.log('👤 User ID:', user?.id);
-console.log('📱 Platform:', {
-  isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-  isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
-  isAndroid: /Android/i.test(navigator.userAgent),
-  isPWA: window.matchMedia('(display-mode: standalone)').matches,
-  userAgent: navigator.userAgent
-});
-console.groupEnd();
-
-// 2. Após solicitar permissão - linha ~110
-console.group('🔔 [Push] Permissão solicitada');
-console.log('✅ Resultado:', permissionResult);
-console.log('🕐 Tempo decorrido:', (Date.now() - startTime) + 'ms');
-console.groupEnd();
-
-// 3. Após obter Service Worker - linha ~115
-console.group('🔔 [Push] Service Worker');
-console.log('✅ Registration:', registration);
-console.log('📍 Scope:', registration.scope);
-console.log('🔗 Active:', registration.active?.scriptURL);
-console.log('🔗 State:', registration.active?.state);
-console.groupEnd();
-
-// 4. Após converter VAPID key - linha ~120
-console.group('🔔 [Push] VAPID Key');
-console.log('🔐 Key Length:', convertedKey.byteLength, 'bytes');
-console.log('🔐 First 10 bytes:', Array.from(convertedKey.slice(0, 10)));
-console.log('✅ Valid:', convertedKey.byteLength === 65);
-console.groupEnd();
-
-// 5. Após criar subscription - linha ~130
-console.group('🔔 [Push] Subscription criada');
-console.log('✅ Subscription:', subscription);
-console.log('📡 Endpoint:', subscription.endpoint.substring(0, 100) + '...');
-console.log('🔑 Keys:', subscriptionJSON.keys);
-console.log('🕐 Tempo total:', (Date.now() - startTime) + 'ms');
-console.groupEnd();
-
-// 6. Em caso de erro
-console.group('❌ [Push] Erro');
-console.error('Erro completo:', error);
-console.log('📍 Onde ocorreu:', 'subscribe()');
-console.log('🕐 Timestamp:', new Date().toISOString());
-console.groupEnd();
-```
-
-**Benefícios:**
-- Facilita debug remoto
-- Logs agrupados e organizados
-- Usuários podem copiar logs e enviar
-- Identifica rapidamente em qual etapa falha
-- Informações de plataforma e timing
-
-**Testes:**
-- [ ] Abrir console do navegador
-- [ ] Ativar notificações push
-- [ ] Verificar que logs agrupados aparecem
-- [ ] Verificar informações de plataforma
-- [ ] Forçar um erro e verificar que é logado corretamente
-- [ ] Verificar timing de cada etapa
-
-**Complexidade:** 2/10  
-**Risco:** Muito Baixo (apenas adiciona logs)  
-**Tempo estimado:** 5 minutos
-
----
-
-## 📋 RESUMO DO PRÓXIMO SPRINT PWA
-
-| Item | Descrição | Arquivo(s) | Tempo | Prioridade |
-|------|-----------|-----------|-------|------------|
-| #6 | Detecção mobile iOS | usePushNotifications.ts | 10 min | 🟡 ALTA |
-| #7 | Página diagnóstico push | PushDiagnostic.tsx (novo) | 25 min | 🟡 ALTA |
-| #8 | Logs detalhados push | usePushNotifications.ts | 5 min | 🟢 MÉDIA |
-
-**Total Estimado:** ~40 minutos  
-**Risco Geral:** Baixo  
-**Impacto:** Alto (melhor UX e facilita debug)
-
-**Ordem Sugerida:**
-1. **#8** - Logs detalhados (5 min) → Facilita debug dos próximos itens
-2. **#6** - Detecção mobile (10 min) → Melhora UX imediatamente
-3. **#7** - Página diagnóstico (25 min) → Ferramenta completa de debug
-
----
-
-## 🧪 ITEM #4: Auto-preencher Email da Ticketeira
-
-**Status:** ✅ Já implementado, aguardando teste
-
-**Código implementado em:**
-- `src/pages/Submit.tsx` linha 119 (inicialização do localStorage)
-- `src/pages/Submit.tsx` linha 173 (manter valor ao trocar evento)
-- `src/pages/Submit.tsx` linha 1092 (salvar no localStorage após submissão)
-
-**Como testar:**
-1. Ir para página `/submit`
-2. Selecionar evento que tem ticketeira configurada (ex: "Circoloco")
-3. Preencher campo "E-mail para Ticketeira" com `teste@exemplo.com`
-4. Enviar submissão
-5. Enviar NOVA submissão (mesmo evento ou diferente)
-6. **Resultado esperado:** Campo deve aparecer pré-preenchido com `teste@exemplo.com`
-7. **Se trocar de evento:** Email deve permanecer (não ser limpo)
-
----
-
-## ✅ ITEM #5: Eventos Ativos em Push Notifications
-
-**Status:** ✅ Já implementado e funcionando
-
-**Código implementado em:**
-- `src/components/NotificationPreferences.tsx` linha 31 (filtro `is_active: true`)
-
-**Sem ação necessária**
-
----
-
-## 📌 NOTAS IMPORTANTES
-
-### Sobre Push Notifications no iOS:
-⚠️ **LIMITAÇÃO CRÍTICA:** Web Push no iOS **SÓ FUNCIONA** se:
-1. ✅ iOS 16.4 ou superior
-2. ✅ App instalado como PWA ("Add to Home Screen")
-3. ✅ App aberto VIA Home Screen (não pelo Safari direto)
-
-Se qualquer um desses requisitos não for atendido, push notifications **NÃO funcionarão** no iOS.
-
-### Como verificar se está configurado corretamente:
-```javascript
-// No console mobile (iOS)
-console.log('iOS Version:', /OS (\d+)_/.exec(navigator.userAgent)?.[1]);
-console.log('Is Standalone:', window.navigator.standalone);
-console.log('Display Mode:', window.matchMedia('(display-mode: standalone)').matches);
-console.log('Push Supported:', 'PushManager' in window);
-
-// Todos devem retornar true (exceto versão que deve ser >= 16)
-```
-
-### Links Úteis:
-- [Web Push for Web Apps on iOS - Apple](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/)
-- [Can I Use - Push API](https://caniuse.com/push-api)
-- [MDN - Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API)
+### ⚡ Otimizações de Performance
+| Funcionalidade | Status | Componente |
+|----------------|--------|------------|
+| Lazy loading de páginas | ✅ | `App.tsx` |
+| Code splitting (manualChunks) | ✅ | `vite.config.ts` |
+| React Query caching | ✅ | `main.tsx` |
+| Batch signed URLs | ✅ | `signedUrlService.ts` |
+| Compressão de imagens | ✅ | `Submit.tsx` |
+| Memoização de componentes | ✅ | `memoized/` folder |
+| Paginação | ✅ | `usePagination.ts` |
+| Virtualização de listas | ✅ | `useVirtualizedList.ts` |
+| Índices de banco otimizados | ✅ | Migrations |
+| Preconnect/DNS-prefetch | ✅ | `index.html` |
 
 ---
 
-**Última atualização:** 2025-01-14  
-**Próxima revisão:** Após implementação dos itens #6, #7, #8
+## ⚠️ PENDÊNCIAS E MELHORIAS
+
+### 🔴 Alta Prioridade
+
+| Item | Descrição | Status | Complexidade |
+|------|-----------|--------|--------------|
+| Email disclosure | Linha 263 em AcceptInvite.tsx expõe email | 🔴 Pendente | Fácil |
+| search_path function | `update_guest_list_events_updated_at` sem search_path | 🔴 Pendente | Fácil |
+| Eventos público expõe campos | internal_notes, ticketer_email expostos | 🔴 Pendente | Médio |
+
+### 🟡 Média Prioridade
+
+| Item | Descrição | Status | Complexidade |
+|------|-----------|--------|--------------|
+| Validação de entrada edge functions | Adicionar zod schemas | 🟡 Parcial | Médio |
+| Deletar submissões rejeitadas | Usuários poderem reenviar | 🟡 Pendente | Fácil |
+| Virtual scrolling listas grandes | Para >100 itens | 🟡 Pendente | Médio |
+| Aria-labels acessibilidade | Melhorar screen readers | 🟡 Pendente | Médio |
+
+### 🟢 Baixa Prioridade
+
+| Item | Descrição | Status | Complexidade |
+|------|-----------|--------|--------------|
+| Loading states consistentes | Skeleton em todos componentes | 🟢 Parcial | Baixo |
+| Testes automatizados | Unit/Integration tests | 🟢 Não iniciado | Alto |
+| Documentação de API | OpenAPI/Swagger | 🟢 Não iniciado | Médio |
+
+---
+
+## 🔄 EDGE FUNCTIONS IMPLEMENTADAS
+
+### Notificações
+| Função | Trigger | Descrição |
+|--------|---------|-----------|
+| `send-push-notification` | HTTP | Envia push via VAPID |
+| `notify-goal-achieved` | HTTP | Notifica meta atingida |
+| `notify-deadlines` | Cron | Avisa deadlines próximos |
+| `event-reminders-cron` | Cron | Lembretes de eventos |
+| `send-guest-invite` | HTTP | Convite por email |
+| `notify-guest-expiration` | Cron | Avisa expiração de acesso |
+
+### Automação
+| Função | Trigger | Descrição |
+|--------|---------|-----------|
+| `auto-deactivate-events` | Cron | Desativa eventos expirados |
+| `auto-deactivate-guest-list-dates` | Cron | Desativa datas passadas |
+| `auto-event-scheduler` | Cron | Ativa/desativa agendados |
+| `expire-guests` | Cron | Expira convites antigos |
+| `send-guest-list-email` | Cron | Envia lista de inscritos |
+| `refresh-signed-urls` | Cron | Renova URLs assinadas |
+| `record-slots-snapshot` | Cron | Registra histórico de vagas |
+
+### Validação
+| Função | Trigger | Descrição |
+|--------|---------|-----------|
+| `validate-image` | HTTP | Valida screenshots |
+| `validate-guest-registration` | HTTP | Anti-spam/bot |
+| `verify-instagram-post` | HTTP | Verifica link do IG |
+| `validate-push-subscriptions` | HTTP | Valida subscriptions push |
+
+### Usuários
+| Função | Trigger | Descrição |
+|--------|---------|-----------|
+| `create-agency-admin` | HTTP | Cria admin de agência |
+| `delete-user` | HTTP | Remove usuário |
+| `import-users` | HTTP | Importa usuários CSV |
+| `promote-admin` | HTTP | Promove a admin |
+| `populate-user-goals-multi-requirements` | HTTP | Recalcula metas |
+
+### Agências
+| Função | Trigger | Descrição |
+|--------|---------|-----------|
+| `approve-agency-request` | HTTP | Aprova solicitação |
+| `send-agency-request-email` | HTTP | Email de solicitação |
+| `check-trial-expiration` | Cron | Verifica trials expirados |
+| `extend-trial` | HTTP | Estende período trial |
+
+### Pagamentos
+| Função | Trigger | Descrição |
+|--------|---------|-----------|
+| `create-checkout-session` | HTTP | Inicia checkout Stripe |
+| `stripe-webhook` | HTTP | Processa eventos Stripe |
+| `create-stripe-products` | HTTP | Cria produtos no Stripe |
+
+### Analytics
+| Função | Trigger | Descrição |
+|--------|---------|-----------|
+| `track-guest-list-analytics` | HTTP | Tracking de conversão |
+| `ai-goal-prediction` | HTTP | Predição com IA |
+
+---
+
+## 📱 HOOKS CUSTOMIZADOS
+
+### Autenticação
+| Hook | Descrição |
+|------|-----------|
+| `useAuth` | Listener de auth state |
+| `useUserRole` | Papel do usuário atual |
+| `useUserRoleQuery` | Query do papel com cache |
+| `useIsGuest` | Verifica se é guest |
+
+### Dados
+| Hook | Descrição |
+|------|-----------|
+| `useDashboard` | Dados do dashboard |
+| `useDashboardData` | Dados otimizados |
+| `useEventsQuery` | Lista de eventos |
+| `useSubmissionsQuery` | Submissões |
+| `useProfilesQuery` | Perfis |
+| `useAgenciesQuery` | Agências |
+| `useAdminSettingsQuery` | Configurações |
+| `useUserGoalProgress` | Progresso de metas |
+| `useEventAvailableSlots` | Vagas disponíveis |
+| `useAllUsers` | Todos usuários |
+| `useUserManagement` | Gestão de usuários |
+| `useUserPerformance` | Performance |
+| `useFinancialReports` | Relatórios financeiros |
+| `useSubmissionCounters` | Contadores |
+| `useEventTemplates` | Templates de evento |
+| `useGuestInvites` | Convites de guest |
+| `useGuestPermissions` | Permissões de guest |
+| `useOptimizedQueries` | Queries otimizadas |
+| `useCachedData` | Cache de dados |
+| `useMutations` | Mutations consolidadas |
+
+### UI/UX
+| Hook | Descrição |
+|------|-----------|
+| `usePagination` | Paginação |
+| `useSignedUrls` | URLs assinadas (cache) |
+| `usePushNotifications` | Push notifications |
+| `usePWAInstall` | Instalação PWA |
+| `usePWAUpdate` | Atualização PWA |
+| `useVirtualizedList` | Virtualização |
+| `useMobile` | Detecção mobile |
+| `useGTM` | Google Tag Manager |
+| `useAdminKeyboardShortcuts` | Atalhos teclado |
+
+---
+
+## 🗄️ ESTRUTURA DO BANCO DE DADOS
+
+### Tabelas Principais (25+)
+- `agencies` - Agências/tenants
+- `profiles` - Perfis de usuários
+- `user_roles` - Papéis (master_admin, agency_admin, user)
+- `user_agencies` - Associação usuário-agência
+- `events` - Eventos de divulgação
+- `event_requirements` - Requisitos múltiplos
+- `posts` - Posts/postagens
+- `submissions` - Submissões/comprovantes
+- `submission_logs` - Histórico de status
+- `submission_comments` - Comentários
+- `submission_tags` - Tags
+- `user_event_goals` - Metas por usuário
+- `user_badges` - Badges conquistados
+- `notifications` - Notificações in-app
+- `notification_preferences` - Preferências
+- `notification_logs` - Logs de push
+- `push_subscriptions` - Subscriptions push
+- `agency_guests` - Convidados temporários
+- `guest_event_permissions` - Permissões por evento
+- `guest_audit_log` - Auditoria de guests
+- `guest_list_events` - Eventos de guest list
+- `guest_list_dates` - Datas/preços
+- `guest_list_registrations` - Inscrições
+- `guest_list_analytics` - Analytics
+- `admin_settings` - Configurações
+- `rate_limits` - Rate limiting
+- `referral_analytics` - Indicações
+- `subscriptions` - Assinaturas Stripe
+- `subscription_plans` - Planos
+- `event_slots_history` - Histórico vagas
+- `system_changelog` - Changelog
+
+### Funções SQL Principais (40+)
+- `check_and_update_user_goal()` - Cálculo de metas
+- `get_event_available_slots()` - Vagas disponíveis
+- `get_top_promoters_ranking()` - Ranking
+- `approve_participant_manually()` - Aprovação manual
+- `update_participation_status()` - Status participante
+- `is_agency_admin_for()` - Verifica admin
+- `is_current_user_master_admin()` - Verifica master
+- `check_rate_limit()` - Rate limiting
+- `award_progression_badges()` - Trigger de badges
+- E muitas outras...
+
+---
+
+## 📝 NOTAS IMPORTANTES
+
+### Push Notifications no iOS
+⚠️ **LIMITAÇÃO:** Web Push no iOS só funciona se:
+1. iOS 16.4 ou superior
+2. App instalado como PWA
+3. App aberto via Home Screen
+
+### Timezone
+Sistema configurado para `America/Sao_Paulo` (BRT).
+Funções de timezone em `src/lib/dateUtils.ts`.
+
+### Tipos de Submissão
+- `divulgacao` - Posts de divulgação (contam como posts)
+- `sale` - Comprovantes de venda (contam como sales)
+- `selecao_perfil` - Seleção de perfil (NÃO conta para metas)
+
+### Caching
+- React Query: staleTime 2min global, 10s para dados críticos
+- Signed URLs: cache local + localStorage
+- Service Worker: precaching de assets
+
+---
+
+## 📚 LINKS ÚTEIS
+
+- [Documentação Lovable](https://docs.lovable.dev)
+- [Documentação Supabase](https://supabase.com/docs)
+- [Web Push iOS](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/)
+- [Shadcn/UI](https://ui.shadcn.com)
+- [TailwindCSS](https://tailwindcss.com/docs)
+
+---
+
+**Última atualização:** 2025-12-11
