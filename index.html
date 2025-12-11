@@ -14,8 +14,7 @@
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://connect.facebook.net">
     
-    <!-- Preload critical hero image for faster LCP -->
-    <link rel="preload" as="image" href="/src/assets/hero-bg.jpg" fetchpriority="high">
+    <!-- Note: Hero image preload moved to component level for proper Vite hash handling -->
     
     <!-- Critical CSS for immediate first paint -->
     <style>
