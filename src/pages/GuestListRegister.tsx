@@ -230,12 +230,12 @@ export default function GuestListRegister() {
         <Card className="border-2">
           <CardHeader className="space-y-4">
             <div className="space-y-2">
-              <CardTitle className="text-3xl font-bold text-center">
-                {event.name}
-              </CardTitle>
               <CardDescription className="text-center font-bold text-xl">
                 {event.agencies?.name}
               </CardDescription>
+              <CardTitle className="text-3xl font-bold text-center">
+                {event.name}
+              </CardTitle>
             </div>
 
             {/* Localização */}
