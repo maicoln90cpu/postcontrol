@@ -100,8 +100,21 @@ const Home = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Defer plans loading - pricing section is below the fold
   useEffect(() => {
-    loadPlans();
+    const deferLoadPlans = () => {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => loadPlans(), { timeout: 3000 });
+      } else {
+        setTimeout(loadPlans, 1500);
+      }
+    };
+    
+    if (document.readyState === 'complete') {
+      deferLoadPlans();
+    } else {
+      window.addEventListener('load', deferLoadPlans, { once: true });
+    }
   }, []);
 
   const loadPlans = async () => {
