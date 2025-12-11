@@ -47,6 +47,13 @@ export type Database = {
             referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "admin_settings_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       agencies: {
@@ -172,6 +179,13 @@ export type Database = {
             referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agency_goal_notifications_config_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       agency_guests: {
@@ -238,6 +252,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_guests_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
             referencedColumns: ["id"]
           },
         ]
@@ -478,6 +499,13 @@ export type Database = {
             referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_templates_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       events: {
@@ -589,6 +617,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
             referencedColumns: ["id"]
           },
         ]
@@ -890,6 +925,13 @@ export type Database = {
             referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guest_list_events_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       guest_list_registrations: {
@@ -1124,6 +1166,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "posts_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "posts_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -1184,6 +1233,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
             referencedColumns: ["id"]
           },
         ]
@@ -1324,6 +1380,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_analytics_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
             referencedColumns: ["id"]
           },
           {
@@ -1540,6 +1603,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "submissions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "submissions_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -1648,6 +1718,13 @@ export type Database = {
             referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "subscriptions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       suggestions: {
@@ -1690,6 +1767,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggestions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
             referencedColumns: ["id"]
           },
         ]
@@ -1764,6 +1848,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_agencies_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
             referencedColumns: ["id"]
           },
           {
@@ -1902,6 +1993,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_event_goals_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_event_goals_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
@@ -1970,6 +2068,13 @@ export type Database = {
             referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_segments_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "public_agency_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -1989,6 +2094,42 @@ export type Database = {
           status: Database["public"]["Enums"]["request_status"] | null
           updated_at: string | null
           user_id: string | null
+        }
+        Relationships: []
+      }
+      public_agency_info: {
+        Row: {
+          id: string | null
+          instagram_url: string | null
+          logo_url: string | null
+          name: string | null
+          og_image_url: string | null
+          slug: string | null
+          tickets_group_url: string | null
+          website_url: string | null
+          whatsapp_group_url: string | null
+        }
+        Insert: {
+          id?: string | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          name?: string | null
+          og_image_url?: string | null
+          slug?: string | null
+          tickets_group_url?: string | null
+          website_url?: string | null
+          whatsapp_group_url?: string | null
+        }
+        Update: {
+          id?: string | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          name?: string | null
+          og_image_url?: string | null
+          slug?: string | null
+          tickets_group_url?: string | null
+          website_url?: string | null
+          whatsapp_group_url?: string | null
         }
         Relationships: []
       }
