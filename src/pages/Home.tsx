@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, startTransition } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -89,19 +89,26 @@ const Home = () => {
   const textY = useTransform(scrollY, [0, 500], [0, animationsReady ? -50 : 0]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
-  // OTIMIZAÇÃO CLS: Definir dimensões apenas após hidratação
+  // OTIMIZAÇÃO CLS + TBT: Definir dimensões após hidratação, usando startTransition para reduzir blocking
   useEffect(() => {
-    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    setIsHydrated(true);
+    // Use startTransition to mark these as non-urgent updates (reduces TBT)
+    startTransition(() => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      setIsHydrated(true);
+    });
     
     // Defer animations until after first paint to improve Speed Index
-    const timer = setTimeout(() => setAnimationsReady(true), 100);
+    const timer = setTimeout(() => {
+      startTransition(() => setAnimationsReady(true));
+    }, 100);
     
     const handleResize = () => {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      startTransition(() => {
+        setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      });
     };
     
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
     return () => {
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
@@ -132,7 +139,9 @@ const Home = () => {
       .eq("is_visible", true)
       .order("display_order", { ascending: true });
 
-    setPlans(data || []);
+    startTransition(() => {
+      setPlans(data || []);
+    });
   };
 
   const scrollToSection = (sectionId: string) => {
