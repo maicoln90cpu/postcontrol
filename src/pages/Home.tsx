@@ -392,14 +392,20 @@ const Home = () => {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 px-4">
-        {/* Parallax Background */}
+        {/* Parallax Background with LCP-optimized image */}
         <motion.div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${heroBg})`,
-            y: backgroundY,
-          }}
+          className="absolute inset-0"
+          style={{ y: backgroundY }}
         >
+          {/* LCP Image - using img tag for fetchpriority support */}
+          <img 
+            src={heroBg} 
+            alt="" 
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
           {/* Gradiente Pulsante */}
           <motion.div
             className="absolute inset-0"
