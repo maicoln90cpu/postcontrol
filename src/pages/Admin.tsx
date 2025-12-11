@@ -27,7 +27,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 // 🆕 SPRINT 2 + CACHE: Importar hook de contadores com cache
 import { useSubmissionCountsByEvent, useSubmissionCountsByPost, useApprovedSalesCount } from "@/hooks/useSubmissionCounters";
-import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon } from "lucide-react";
+import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
 import { useNavigate, Link } from "react-router-dom";
@@ -94,6 +94,9 @@ const GoalNotificationSettings = lazy(() => import("@/components/GoalNotificatio
 const EventSlotsCounter = lazy(() => import("@/components/EventSlotsCounter").then(m => ({
   default: m.EventSlotsCounter
 })));
+const VirtualizedEventList = lazy(() => import("@/components/VirtualizedEventList").then(m => ({
+  default: m.VirtualizedEventList
+})));
 const SlotExhaustionPrediction = lazy(() => import("@/components/SlotExhaustionPrediction").then(m => ({
   default: m.SlotExhaustionPrediction
 })));
@@ -157,6 +160,10 @@ const Admin = () => {
   const [addSubmissionDialogOpen, setAddSubmissionDialogOpen] = useState(false);
   const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  
+  // ✅ FASE 3: Loading states para botões de eventos
+  const [isDuplicatingEvent, setIsDuplicatingEvent] = useState<string | null>(null);
+  const [isDeletingEvent, setIsDeletingEvent] = useState<string | null>(null);
   const [postToDelete, setPostToDelete] = useState<{
     id: string;
     submissionsCount: number;
@@ -989,15 +996,19 @@ const Admin = () => {
     return filtered;
   }, [posts, postEventFilter, postEventActiveFilter, events]);
   const handleDeleteEvent = async (eventId: string) => {
+    setIsDeletingEvent(eventId);
     try {
       await deleteEventMutation.mutateAsync(eventId);
       refetchEvents();
       setEventToDelete(null);
     } catch (error) {
       console.error("Error deleting event:", error);
+    } finally {
+      setIsDeletingEvent(null);
     }
   };
   const handleDuplicateEvent = async (event: any) => {
+    setIsDuplicatingEvent(event.id);
     try {
       // ✅ ITEM 6 FASE 2: Incluir agency_id, created_by e todos os campos importantes
       const {
@@ -1068,6 +1079,8 @@ const Admin = () => {
     } catch (error) {
       console.error("Error duplicating event:", error);
       toast.error("Erro ao duplicar evento");
+    } finally {
+      setIsDuplicatingEvent(null);
     }
   };
   const handleDeletePost = async () => {
@@ -1836,13 +1849,56 @@ const Admin = () => {
             </div>
 
             <Card className="p-6">
-              {filteredEvents.length === 0 ? <p className="text-muted-foreground text-center py-8">
+              {filteredEvents.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
                   {eventActiveFilter === "all" ? "Nenhum evento cadastrado ainda" : "Nenhum evento encontrado com este filtro"}
-                </p> : <div className="space-y-4">
-                  {filteredEvents.map(event => <Card key={event.id} className="p-4">
+                </p>
+              ) : filteredEvents.length > 15 ? (
+                // ✅ FASE 3: Virtualização para listas com mais de 15 eventos
+                <Suspense fallback={<Skeleton className="h-[600px] w-full" />}>
+                  <VirtualizedEventList
+                    events={filteredEvents}
+                    submissionsByEvent={submissionsByEvent}
+                    isReadOnly={isReadOnly}
+                    isDuplicatingEvent={isDuplicatingEvent}
+                    isDeletingEvent={isDeletingEvent}
+                    onEdit={(event) => {
+                      setSelectedEvent(event);
+                      setEventDialogOpen(true);
+                    }}
+                    onDuplicate={handleDuplicateEvent}
+                    onDelete={setEventToDelete}
+                    onCopyUrl={copyEventUrl}
+                    agencySlug={currentAgency?.slug}
+                  />
+                </Suspense>
+              ) : (
+                <div className="space-y-4">
+                  {filteredEvents.map(event => <Card 
+                      key={event.id} 
+                      className={cn(
+                        "p-4 transition-all duration-200",
+                        event.is_active 
+                          ? "border-l-4 border-l-green-500 bg-card" 
+                          : "border-l-4 border-l-muted opacity-70 bg-muted/30"
+                      )}
+                    >
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                         <div className="flex-1 w-full">
-                          <h3 className="font-bold text-lg">{event.title}</h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-lg">{event.title}</h3>
+                            <Badge 
+                              variant={event.is_active ? "default" : "secondary"} 
+                              className={cn(
+                                "text-xs px-2 py-0.5",
+                                event.is_active 
+                                  ? "bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30" 
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {event.is_active ? "✓ Ativo" : "Inativo"}
+                            </Badge>
+                          </div>
                           {event.event_date && <p className="text-sm text-muted-foreground mt-1">
                               📅 {new Date(event.event_date).toLocaleString("pt-BR")}
                             </p>}
@@ -1862,22 +1918,50 @@ const Admin = () => {
                           {event.description && <p className="text-muted-foreground mt-2">{event.description}</p>}
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                          <Button variant="ghost" size="sm" onClick={() => {
-                      setSelectedEvent(event);
-                      setEventDialogOpen(true);
-                    }} className="flex-1 sm:flex-initial" disabled={isReadOnly}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedEvent(event);
+                              setEventDialogOpen(true);
+                            }} 
+                            className="flex-1 sm:flex-initial" 
+                            disabled={isReadOnly}
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDuplicateEvent(event)} className="flex-1 sm:flex-initial" title="Duplicar evento" disabled={isReadOnly}>
-                            <Copy className="h-4 w-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleDuplicateEvent(event)} 
+                            className="flex-1 sm:flex-initial" 
+                            title="Duplicar evento" 
+                            disabled={isReadOnly || isDuplicatingEvent === event.id}
+                          >
+                            {isDuplicatingEvent === event.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setEventToDelete(event.id)} className="text-destructive hover:text-destructive flex-1 sm:flex-initial" disabled={isReadOnly}>
-                            <Trash2 className="h-4 w-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setEventToDelete(event.id)} 
+                            className="text-destructive hover:text-destructive flex-1 sm:flex-initial" 
+                            disabled={isReadOnly || isDeletingEvent === event.id}
+                          >
+                            {isDeletingEvent === event.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </div>
                       </div>
                     </Card>)}
-                </div>}
+                </div>
+              )}
             </Card>
 
             {/* Controle de Vagas - Grid Completo */}
