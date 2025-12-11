@@ -68,14 +68,16 @@ export const useGTM = () => {
       }
     };
 
-    // OTIMIZAÇÃO: Adiar carregamento do GTM para não bloquear First Paint
+    // OTIMIZAÇÃO: Adiar carregamento do GTM significativamente para reduzir JS execution time
     const deferGTMLoad = () => {
-      // Usar requestIdleCallback se disponível, senão setTimeout
-      if ('requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(() => loadGTM(), { timeout: 3000 });
-      } else {
-        setTimeout(loadGTM, 2000);
-      }
+      // Aguardar 3s após load para não competir com interatividade inicial
+      setTimeout(() => {
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(() => loadGTM(), { timeout: 5000 });
+        } else {
+          setTimeout(loadGTM, 1000);
+        }
+      }, 3000);
     };
 
     // Aguardar página carregar antes de iniciar GTM
