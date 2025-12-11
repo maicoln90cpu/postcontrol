@@ -41,9 +41,22 @@ const PageLoader = () => (
 const App = () => {
   useAuth(); // Inicializa o listener de autenticação
   
-  // Inicializa cache do timezone do sistema
+  // Inicializa cache do timezone do sistema após página ficar interativa
   useEffect(() => {
-    getSystemTimezone();
+    // Defer timezone fetch to not block initial interactivity
+    const deferTimezoneInit = () => {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => getSystemTimezone(), { timeout: 2000 });
+      } else {
+        setTimeout(() => getSystemTimezone(), 1000);
+      }
+    };
+    
+    if (document.readyState === 'complete') {
+      deferTimezoneInit();
+    } else {
+      window.addEventListener('load', deferTimezoneInit, { once: true });
+    }
   }, []);
   
   return (
