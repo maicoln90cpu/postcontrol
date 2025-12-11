@@ -2119,6 +2119,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_submission_counts_by_event: {
+        Args: { p_event_id?: string; p_user_ids: string[] }
+        Returns: {
+          submission_count: number
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -75,6 +75,7 @@ export const useSubmissionsQuery = ({
         const userIds = Array.from(new Set(submissions.map(s => s.user_id)));
 
         // ✅ FASE 1: Usar RPC para contagem em batch (1 query ao invés de N)
+        // ✅ FIX: Filtrar contagem por evento quando eventId está selecionado
         const [profilesData, countsResult] = await Promise.all([
           // Buscar perfis
           supabase
@@ -83,9 +84,12 @@ export const useSubmissionsQuery = ({
             .in('id', userIds)
             .then(res => res.data || []),
           
-          // ✅ NOVA RPC: Contagem em batch via SQL
+          // ✅ RPC: Contagem em batch via SQL - filtra por evento se selecionado
           supabase
-            .rpc('get_user_submission_counts', { p_user_ids: userIds })
+            .rpc('get_user_submission_counts_by_event', { 
+              p_user_ids: userIds,
+              p_event_id: eventId || null // null = todos os eventos
+            })
             .then(res => {
               if (res.error) {
                 logger.error('[Submissions] RPC counts error:', res.error);
@@ -95,7 +99,7 @@ export const useSubmissionsQuery = ({
               res.data?.forEach((row: { user_id: string; submission_count: number }) => {
                 counts[row.user_id] = row.submission_count;
               });
-              logger.info('[Submissions] User counts loaded:', Object.keys(counts).length);
+              logger.info('[Submissions] User counts loaded:', Object.keys(counts).length, 'eventId:', eventId || 'all');
               return counts;
             })
         ]);
