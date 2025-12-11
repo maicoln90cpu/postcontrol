@@ -1,9 +1,11 @@
 /**
  * Event Service
  * Handles all event-related data operations
+ * ✅ FASE 1 AUDIT: Logs convertidos para logger.error
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import type {
   Event,
   EventInsert,
@@ -52,7 +54,7 @@ export async function getEvents(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching events:', error);
+    logger.error('Error fetching events:', error);
     return {
       data: null,
       error: error as Error,
@@ -87,7 +89,7 @@ export async function getEventById(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching event:', error);
+    logger.error('Error fetching event:', error);
     return {
       data: null,
       error: error as Error,
@@ -117,7 +119,7 @@ export async function getEventBySlug(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching event by slug:', error);
+    logger.error('Error fetching event by slug:', error);
     return {
       data: null,
       error: error as Error,
@@ -147,7 +149,7 @@ export async function createEvent(
       error: null,
     };
   } catch (error) {
-    console.error('Error creating event:', error);
+    logger.error('Error creating event:', error);
     return {
       data: null,
       error: error as Error,
@@ -180,7 +182,7 @@ export async function updateEvent(
       error: null,
     };
   } catch (error) {
-    console.error('Error updating event:', error);
+    logger.error('Error updating event:', error);
     return {
       data: null,
       error: error as Error,
@@ -201,7 +203,7 @@ export async function toggleEventStatus(
   try {
     return await updateEvent(id, { is_active: isActive });
   } catch (error) {
-    console.error('Error toggling event status:', error);
+    logger.error('Error toggling event status:', error);
     return {
       data: null,
       error: error as Error,
@@ -225,7 +227,7 @@ export async function deleteEvent(id: string): Promise<ServiceResponse<null>> {
       error: null,
     };
   } catch (error) {
-    console.error('Error deleting event:', error);
+    logger.error('Error deleting event:', error);
     return {
       data: null,
       error: error as Error,
@@ -256,7 +258,7 @@ export async function getEventPosts(
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching event posts:', error);
+    logger.error('Error fetching event posts:', error);
     return {
       data: null,
       error: error as Error,
@@ -286,7 +288,7 @@ export async function createPost(
       error: null,
     };
   } catch (error) {
-    console.error('Error creating post:', error);
+    logger.error('Error creating post:', error);
     return {
       data: null,
       error: error as Error,
@@ -319,7 +321,7 @@ export async function updatePost(
       error: null,
     };
   } catch (error) {
-    console.error('Error updating post:', error);
+    logger.error('Error updating post:', error);
     return {
       data: null,
       error: error as Error,
@@ -343,7 +345,7 @@ export async function deletePost(id: string): Promise<ServiceResponse<null>> {
       error: null,
     };
   } catch (error) {
-    console.error('Error deleting post:', error);
+    logger.error('Error deleting post:', error);
     return {
       data: null,
       error: error as Error,
@@ -362,7 +364,7 @@ export async function getActiveEventsByAgency(
   try {
     return await getEvents({ agencyId, isActive: true });
   } catch (error) {
-    console.error('Error fetching active events by agency:', error);
+    logger.error('Error fetching active events by agency:', error);
     return {
       data: null,
       error: error as Error,
@@ -418,7 +420,7 @@ export async function getEventStats(eventId: string): Promise<
       error: null,
     };
   } catch (error) {
-    console.error('Error fetching event stats:', error);
+    logger.error('Error fetching event stats:', error);
     return {
       data: null,
       error: error as Error,

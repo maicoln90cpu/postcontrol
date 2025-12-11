@@ -2080,6 +2080,52 @@ export type Database = {
           total_slots: number
         }[]
       }
+      get_events_with_posts: {
+        Args: { p_agency_id?: string; p_is_active?: boolean }
+        Returns: {
+          event_accept_posts: boolean
+          event_accept_sales: boolean
+          event_agency_id: string
+          event_auto_activate_at: string
+          event_auto_deactivate_at: string
+          event_created_at: string
+          event_created_by: string
+          event_date: string
+          event_description: string
+          event_event_image_url: string
+          event_event_purpose: string
+          event_event_slug: string
+          event_id: string
+          event_internal_notes: string
+          event_is_active: boolean
+          event_is_approximate_total: boolean
+          event_location: string
+          event_numero_de_vagas: number
+          event_producer_name: string
+          event_require_instagram_link: boolean
+          event_require_post_screenshot: boolean
+          event_require_profile_screenshot: boolean
+          event_required_posts: number
+          event_required_sales: number
+          event_setor: string
+          event_target_gender: string[]
+          event_ticketer_email: string
+          event_title: string
+          event_total_required_posts: number
+          event_updated_at: string
+          event_whatsapp_group_title: string
+          event_whatsapp_group_url: string
+          post_agency_id: string
+          post_created_at: string
+          post_created_by: string
+          post_deadline: string
+          post_event_id: string
+          post_id: string
+          post_post_number: number
+          post_post_type: string
+          post_updated_at: string
+        }[]
+      }
       get_submission_counts_by_event: {
         Args: { p_agency_id: string }
         Returns: {
