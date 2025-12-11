@@ -159,4 +159,26 @@ All colors MUST be HSL.
     content-visibility: auto;
     contain-intrinsic-size: auto 300px;
   }
+
+  /* ✅ OTIMIZAÇÃO TBT: CSS containment to reduce layout/style recalculation */
+  .contain-strict {
+    contain: strict;
+  }
+  
+  .contain-content {
+    contain: content;
+  }
+  
+  .contain-paint {
+    contain: paint;
+  }
+
+  /* ✅ OTIMIZAÇÃO: will-change for animated elements to optimize compositing */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
 }
