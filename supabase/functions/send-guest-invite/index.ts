@@ -43,12 +43,91 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // ========== AUTHENTICATION CHECK ==========
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("❌ Missing Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Não autorizado - token ausente" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Create client with user's JWT to validate authentication
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error("❌ Invalid JWT token:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Token inválido ou expirado" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("✅ Authenticated user:", user.id);
 
     const { guestId }: SendGuestInviteRequest = await req.json();
 
-    console.log("Sending guest invite for:", guestId);
+    if (!guestId || typeof guestId !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "guestId inválido" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("📧 Sending guest invite for:", guestId);
+
+    // Use service role for data operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // ========== AUTHORIZATION CHECK ==========
+    // First get the guest to find agency_id
+    const { data: guestCheck, error: guestCheckError } = await supabase
+      .from("agency_guests")
+      .select("agency_id")
+      .eq("id", guestId)
+      .single();
+
+    if (guestCheckError || !guestCheck) {
+      console.error("❌ Guest not found:", guestCheckError?.message);
+      return new Response(
+        JSON.stringify({ error: "Convite não encontrado" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Check if user is agency admin or master admin
+    const { data: userRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["agency_admin", "master_admin"])
+      .maybeSingle();
+
+    const { data: userProfile } = await supabase
+      .from("profiles")
+      .select("agency_id")
+      .eq("id", user.id)
+      .single();
+
+    const isMasterAdmin = userRole?.role === "master_admin";
+    const isAgencyAdmin = userRole?.role === "agency_admin" && userProfile?.agency_id === guestCheck.agency_id;
+
+    if (!isMasterAdmin && !isAgencyAdmin) {
+      console.error("❌ User not authorized for this agency:", user.id);
+      return new Response(
+        JSON.stringify({ error: "Sem permissão para enviar convites desta agência" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("✅ Authorization passed - user is", isMasterAdmin ? "master_admin" : "agency_admin");
 
     // Buscar dados do convite
     const { data: guest, error: guestError } = await supabase
