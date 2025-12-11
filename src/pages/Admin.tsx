@@ -1795,9 +1795,7 @@ const Admin = () => {
             <TabsTrigger value="statistics" className="text-xs sm:text-sm py-2">
               Estatísticas
             </TabsTrigger>
-            <TabsTrigger value="push-analytics" className="text-xs sm:text-sm py-2">
-              Push
-            </TabsTrigger>
+            {/* Push tab desativada - sistema push desabilitado */}
             <TabsTrigger id="settings-tab" value="settings" className="text-xs sm:text-sm py-2">
               Configurações
             </TabsTrigger>
@@ -2656,11 +2654,7 @@ const Admin = () => {
             </Tabs>
           </TabsContent>
 
-          <TabsContent value="push-analytics" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <PushNotificationAnalytics />
-            </Suspense>
-          </TabsContent>
+          {/* Push analytics desativado - sistema push desabilitado */}
 
           <TabsContent value="settings" className="space-y-6">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>

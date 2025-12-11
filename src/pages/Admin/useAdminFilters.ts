@@ -75,7 +75,10 @@ export const useAdminFilters = () => {
     const newParams = new URLSearchParams(searchParams);
     
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === '' || value === 'all' || value === false) {
+      // ✅ FIX: Manter 'all' explícito para status, para que "Todos os status" funcione
+      if (key === 'status' && value === 'all') {
+        newParams.set(key, 'all');
+      } else if (value === '' || value === 'all' || value === false) {
         newParams.delete(key);
       } else {
         newParams.set(key, value.toString());
