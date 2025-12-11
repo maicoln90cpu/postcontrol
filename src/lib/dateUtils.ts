@@ -28,7 +28,7 @@ export async function getSystemTimezone(): Promise<string> {
       .select('setting_value')
       .eq('setting_key', 'system_timezone')
       .is('agency_id', null)
-      .single();
+      .maybeSingle();
     
     cachedTimezone = data?.setting_value || DEFAULT_TIMEZONE;
     cacheTimestamp = now;
