@@ -89,22 +89,37 @@ const Home = () => {
   const textY = useTransform(scrollY, [0, 500], [0, animationsReady ? -50 : 0]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
-  // OTIMIZAÇÃO CLS + TBT: Definir dimensões após hidratação, usando startTransition para reduzir blocking
+  // OTIMIZAÇÃO CLS + TBT + FID: Usar requestIdleCallback para yield ao main thread
   useEffect(() => {
-    // Use startTransition to mark these as non-urgent updates (reduces TBT)
-    startTransition(() => {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-      setIsHydrated(true);
-    });
+    // Yield to main thread before state updates to reduce FID
+    const scheduleUpdate = (callback: () => void) => {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(callback, { timeout: 50 });
+      } else {
+        setTimeout(callback, 0);
+      }
+    };
     
-    // Defer animations until after first paint to improve Speed Index
-    const timer = setTimeout(() => {
-      startTransition(() => setAnimationsReady(true));
-    }, 100);
-    
-    const handleResize = () => {
+    // Use startTransition + yield pattern to minimize blocking
+    scheduleUpdate(() => {
       startTransition(() => {
         setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+        setIsHydrated(true);
+      });
+    });
+    
+    // Further defer animations to reduce longest task duration (FID optimization)
+    const timer = setTimeout(() => {
+      scheduleUpdate(() => {
+        startTransition(() => setAnimationsReady(true));
+      });
+    }, 150);
+    
+    const handleResize = () => {
+      scheduleUpdate(() => {
+        startTransition(() => {
+          setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+        });
       });
     };
     
