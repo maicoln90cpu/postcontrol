@@ -15,13 +15,15 @@
 
 // Dashboard types
 export type {
-  Submission as DashboardSubmission,
+  Submission as DashboardSubmissionBase,
   Event as DashboardEvent,
   Profile as DashboardProfile,
   EventStats,
+  DashboardSubmission,
   SubmissionWithImage,
   DashboardFilters,
   DashboardData,
+  DashboardUIState,
 } from './dashboard';
 
 // Admin types
