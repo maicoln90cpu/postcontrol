@@ -22,6 +22,7 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 
 /**
  * Event statistics for dashboard display
+ * Single source of truth - used by useDashboard and all dashboard components
  */
 export interface EventStats {
   /** Unique event identifier */
@@ -39,22 +40,38 @@ export interface EventStats {
 }
 
 /**
- * Submission with enriched data for display
+ * Submission with enriched data for display (includes nested post/event data)
  */
-export interface SubmissionWithImage extends Omit<Submission, 'screenshot_path' | 'screenshot_url'> {
-  /** Signed URL for screenshot display */
-  screenshot_url?: string;
-  /** Storage path for screenshot (optional) */
+export interface DashboardSubmission {
+  id: string;
+  submitted_at: string;
+  screenshot_url: string | null;
   screenshot_path?: string | null;
-  /** Post data with event information */
-  posts?: {
+  status: string;
+  rejection_reason?: string | null;
+  submission_type?: string | null;
+  posts: {
     post_number: number;
+    deadline: string;
+    event_id: string;
     post_type?: string | null;
-    events?: {
+    events: {
       title: string;
-    };
-  };
+      required_posts: number | null;
+      id: string;
+      is_active: boolean;
+      agency_id: string | null;
+      total_required_posts: number | null;
+      is_approximate_total: boolean | null;
+    } | null;
+  } | null;
 }
+
+/**
+ * Alias for backward compatibility
+ * @deprecated Use DashboardSubmission instead
+ */
+export type SubmissionWithImage = DashboardSubmission;
 
 /**
  * Dashboard filter state
@@ -65,31 +82,37 @@ export interface DashboardFilters {
 }
 
 /**
- * Dashboard data aggregation
+ * Dashboard data from useDashboard hook
  */
 export interface DashboardData {
   /** User profile information */
   profile: Profile | null;
-  /** User role in system */
-  role: 'user' | 'agency_admin' | 'master_admin';
-  /** Is user an agency admin */
-  isAgencyAdmin: boolean;
-  /** Is user a master admin */
-  isMasterAdmin: boolean;
-  /** Active agency ID */
-  currentAgencyId: string | null;
+  /** User roles array */
+  roles: string[];
   /** All user submissions */
-  submissions: Submission[];
+  submissions: DashboardSubmission[];
   /** Active events for user */
   events: Event[];
   /** Event completion statistics */
   eventStats: EventStats[];
-  /** Number of approved submissions */
-  approvedCount: number;
-  /** Total submission count */
-  totalSubmissions: number;
-  /** Number of active events */
-  activeEventsCount: number;
-  /** Date of last submission */
-  lastSubmissionDate: string | null;
+  /** Is user a master admin */
+  isMasterAdmin: boolean;
+  /** Is user an agency admin */
+  isAgencyAdmin: boolean;
+  /** Whether user has agencies linked */
+  hasAgencies: boolean;
+  /** User's agency IDs */
+  userAgencyIds: string[];
+}
+
+/**
+ * Dashboard local UI state (consolidated)
+ */
+export interface DashboardUIState {
+  selectedAgencyId: string;
+  selectedGender: string;
+  instagram: string;
+  newPassword: string;
+  confirmPassword: string;
+  submissionToDelete: { id: string; status: string } | null;
 }
