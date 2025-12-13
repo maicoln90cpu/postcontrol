@@ -46,8 +46,10 @@ import { useAdminState } from "./Admin/hooks/useAdminState";
 // ✅ FASE 6.1: Importar hook de queries consolidado
 import { useAdminQueries } from "./Admin/hooks/useAdminQueries";
 
-// ✅ Sprint 2B: Mutations consolidadas (queries agora vêm do useAdminQueries)
-import { useUpdateSubmissionStatusMutation, useBulkUpdateSubmissionStatusMutation, useDeleteEventMutation, useDeleteSubmissionMutation } from "@/hooks/consolidated";
+// ✅ FASE 6.2: Importar hook de mutations consolidado
+import { useAdminMutations } from "./Admin/hooks/useAdminMutations";
+
+// ✅ FASE 6.2: Mutations agora vêm do useAdminMutations
 import { useQueryClient } from "@tanstack/react-query";
 import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
@@ -338,11 +340,38 @@ const Admin = () => {
   const loadingEvents = eventsLoading;
   const loadingSubmissions = submissionsLoading;
 
-  // ✅ Sprint 2B: Usar mutations consolidadas
-  const updateStatusMutation = useUpdateSubmissionStatusMutation();
-  const bulkUpdateStatusMutation = useBulkUpdateSubmissionStatusMutation();
-  const deleteEventMutation = useDeleteEventMutation();
-  const deleteSubmissionMutation = useDeleteSubmissionMutation();
+  // ✅ FASE 6.2: Hook consolidado de mutations
+  const adminMutations = useAdminMutations({
+    userId: user?.id,
+    refetchEvents,
+    refetchSubmissions,
+    setEventToDelete,
+    setPostToDelete,
+    setSubmissionToDelete,
+    setIsDuplicatingEvent,
+    setIsDeletingEvent,
+    clearSelectedSubmissions,
+  });
+
+  const {
+    updateStatusMutation,
+    bulkUpdateStatusMutation,
+    deleteEventMutation,
+    deleteSubmissionMutation,
+    handleApproveSubmission,
+    handleRejectSubmission: handleRejectSubmissionDirect,
+    handleStatusChange,
+    handleBulkApprove,
+    handleDeleteEvent,
+    handleDuplicateEvent,
+    handleDeletePost,
+    handleDeletePostClick,
+    handleDeleteSubmission,
+    invalidateAllCaches,
+    isApprovingSubmission,
+    isBulkApproving,
+    isDeletingSubmission,
+  } = adminMutations;
 
   // Trial state management
   const [trialInfo, setTrialInfo] = useState<{
@@ -626,28 +655,7 @@ const Admin = () => {
     });
   }, []);
 
-  // ✅ Sprint 2B: Substituir handleApproveSubmission para usar mutation consolidada
-  const handleApproveSubmission = async (submissionId: string) => {
-    try {
-      await updateStatusMutation.mutateAsync({
-        submissionId,
-        status: "approved",
-        userId: user?.id || ""
-      });
-
-      // Confetti ao aprovar
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: {
-          y: 0.6
-        }
-      });
-      refetchSubmissions();
-    } catch (error) {
-      console.error("Exception:", error);
-    }
-  };
+  // ✅ FASE 6.2: handleApproveSubmission vem do useAdminMutations
   const handleRejectSubmission = async (submissionId: string) => {
     setSelectedSubmissionForRejection(submissionId);
     setRejectionReason("");
@@ -714,69 +722,13 @@ const Admin = () => {
     value: "outro",
     label: "Outro (especificar abaixo)"
   }];
-  const handleStatusChange = async (submissionId: string, newStatus: string) => {
-    try {
-      await updateStatusMutation.mutateAsync({
-        submissionId,
-        status: newStatus as "approved" | "rejected" | "pending",
-        userId: user?.id || ""
-      });
-      refetchSubmissions();
-    } catch (error) {
-      console.error("Exception:", error);
-    }
+  // ✅ FASE 6.2: handleStatusChange vem do useAdminMutations (com wrapper para compatibilidade)
+  const handleStatusChangeWrapper = (submissionId: string, newStatus: string) => {
+    handleStatusChange(submissionId, newStatus as "approved" | "rejected" | "pending");
   };
 
-  /**
-   * 🔴 FASE 1: Aprovação em massa otimizada
-   * ANTES: Usava Promise.all com múltiplas mutations individuais
-   *        - 10 submissões = 10 queries SQL separadas
-   *        - Lock contention no PostgreSQL
-   *        - Erro 57014 (timeout) com 20+ submissões
-   *        - Não invalidava cache corretamente
-   *
-   * DEPOIS: Usa bulk mutation com query única
-   *        - 10 submissões = 1 query SQL (UPDATE ... WHERE id IN (...))
-   *        - 20-30x mais rápido
-   *        - Sem lock contention
-   *        - Invalida cache apenas 1 vez
-   *        - Toast com progresso
-   *        - Limpa seleção após sucesso
-   */
-  const handleBulkApprove = async () => {
-    const ids = Array.from(selectedSubmissions);
-    if (ids.length === 0) {
-      toast.error("Selecione pelo menos uma submissão");
-      return;
-    }
-    try {
-      logger.info(`🚀 [Bulk Approve] Iniciando aprovação em massa de ${ids.length} submissões...`);
-      toast.loading(`Aprovando ${ids.length} submissões...`, {
-        id: "bulk-approve"
-      });
-
-      // ✅ Usar bulk mutation ao invés de Promise.all
-      await bulkUpdateStatusMutation.mutateAsync({
-        submissionIds: ids,
-        status: "approved",
-        userId: user?.id || ""
-      });
-      toast.success(`${ids.length} submissões aprovadas com sucesso`, {
-        id: "bulk-approve"
-      });
-
-      // ✅ Limpar seleção após sucesso
-      setSelectedSubmissions(new Set());
-
-      // ✅ Refetch acontece automaticamente via invalidateQueries na mutation
-      logger.info(`✅ [Bulk Approve] Concluído`);
-    } catch (error) {
-      logger.error("❌ [Bulk Approve] Erro:", error);
-      toast.error("Erro ao aprovar submissões em massa", {
-        id: "bulk-approve"
-      });
-    }
-  };
+  // ✅ FASE 6.2: handleBulkApprove vem do useAdminMutations (com wrapper para botão)
+  const handleBulkApproveClick = () => handleBulkApprove(selectedSubmissions);
   // ✅ FASE 5.4: toggleSubmissionSelection vem do useAdminState
   const toggleSelectAll = () => {
     if (selectedSubmissions.size === getPaginatedSubmissions.length && getPaginatedSubmissions.length > 0) {
@@ -924,142 +876,10 @@ const Admin = () => {
     }
     return filtered;
   }, [posts, postEventFilter, postEventActiveFilter, events]);
-  const handleDeleteEvent = async (eventId: string) => {
-    setIsDeletingEvent(eventId);
-    try {
-      await deleteEventMutation.mutateAsync(eventId);
-      refetchEvents();
-      setEventToDelete(null);
-    } catch (error) {
-      console.error("Error deleting event:", error);
-    } finally {
-      setIsDeletingEvent(null);
-    }
-  };
-  const handleDuplicateEvent = async (event: any) => {
-    setIsDuplicatingEvent(event.id);
-    try {
-      // ✅ ITEM 6 FASE 2: Incluir agency_id, created_by e todos os campos importantes
-      const {
-        data: newEvent,
-        error
-      } = await sb.from("events").insert({
-        title: `${event.title} - Cópia`,
-        description: event.description,
-        event_date: event.event_date,
-        location: event.location,
-        setor: event.setor,
-        numero_de_vagas: event.numero_de_vagas,
-        required_posts: event.required_posts,
-        required_sales: event.required_sales,
-        is_active: false,
-        // Criar inativo por padrão
-        require_instagram_link: event.require_instagram_link,
-        event_image_url: event.event_image_url,
-        agency_id: event.agency_id,
-        // ✅ Copiar agency_id
-        created_by: user?.id || event.created_by,
-        // ✅ Usar usuário atual
-        event_purpose: event.event_purpose,
-        whatsapp_group_url: event.whatsapp_group_url,
-        whatsapp_group_title: event.whatsapp_group_title,
-        accept_posts: event.accept_posts,
-        accept_sales: event.accept_sales,
-        require_profile_screenshot: event.require_profile_screenshot,
-        require_post_screenshot: event.require_post_screenshot,
-        target_gender: event.target_gender,
-        internal_notes: event.internal_notes,
-        total_required_posts: event.total_required_posts,
-        is_approximate_total: event.is_approximate_total
-      }).select().single();
-      if (error) throw error;
-
-      // ✅ Duplicar requisitos
-      const {
-        data: requirements
-      } = await sb.from("event_requirements").select("*").eq("event_id", event.id);
-      if (requirements && requirements.length > 0) {
-        const newRequirements = requirements.map((req: any) => ({
-          event_id: newEvent.id,
-          required_posts: req.required_posts,
-          required_sales: req.required_sales,
-          description: req.description,
-          display_order: req.display_order
-        }));
-        await sb.from("event_requirements").insert(newRequirements);
-      }
-
-      // ✅ ITEM 6 FASE 2: Duplicar FAQs também
-      const {
-        data: faqs
-      } = await sb.from("event_faqs").select("*").eq("event_id", event.id);
-      if (faqs && faqs.length > 0) {
-        const newFaqs = faqs.map((faq: any) => ({
-          event_id: newEvent.id,
-          question: faq.question,
-          answer: faq.answer,
-          is_visible: faq.is_visible,
-          display_order: faq.display_order
-        }));
-        await sb.from("event_faqs").insert(newFaqs);
-      }
-      toast.success("Evento duplicado com sucesso! Requisitos e FAQs foram copiados.");
-      refetchEvents();
-    } catch (error) {
-      console.error("Error duplicating event:", error);
-      toast.error("Erro ao duplicar evento");
-    } finally {
-      setIsDuplicatingEvent(null);
-    }
-  };
-  const handleDeletePost = async () => {
-    if (!postToDelete) return;
-    try {
-      // Deletar todas as submissões associadas primeiro
-      const {
-        error: submissionsError
-      } = await sb.from("submissions").delete().eq("post_id", postToDelete.id);
-      if (submissionsError) throw submissionsError;
-
-      // Depois deletar o post
-      const {
-        error: postError
-      } = await sb.from("posts").delete().eq("id", postToDelete.id);
-      if (postError) throw postError;
-      const submissionsText = postToDelete.submissionsCount === 1 ? "1 submissão foi deletada" : `${postToDelete.submissionsCount} submissões foram deletadas`;
-      toast.success(`Postagem deletada com sucesso${postToDelete.submissionsCount > 0 ? `. ${submissionsText}` : ""}`);
-      refetchEvents();
-      refetchSubmissions();
-      setPostToDelete(null);
-    } catch (error) {
-      console.error("Error deleting post:", error);
-      toast.error("Erro ao deletar postagem");
-    }
-  };
-  const handleDeletePostClick = async (postId: string) => {
-    // Verificar quantas submissões estão associadas
-    const {
-      data: submissions,
-      count
-    } = await sb.from("submissions").select("id", {
-      count: "exact",
-      head: false
-    }).eq("post_id", postId);
-    setPostToDelete({
-      id: postId,
-      submissionsCount: count || 0
-    });
-  };
-  const handleDeleteSubmission = async () => {
-    if (!submissionToDelete) return;
-    try {
-      await deleteSubmissionMutation.mutateAsync(submissionToDelete);
-      refetchSubmissions();
-      setSubmissionToDelete(null);
-    } catch (error) {
-      console.error("Error deleting submission:", error);
-    }
-  };
+  // ✅ FASE 6.2: Handlers de evento, post e submission vêm do useAdminMutations
+  // Wrappers para compatibilidade com assinaturas sem parâmetros em dialogs
+  const handleDeletePostWrapper = () => handleDeletePost(postToDelete!);
+  const handleDeleteSubmissionWrapper = () => handleDeleteSubmission(submissionToDelete!);
 
   // ✅ FASE 6.1: getAvailablePostNumbers já vem do useAdminQueries
 
@@ -1588,7 +1408,7 @@ const Admin = () => {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Carregando submissões...</p>
               </Card> : <>
-                {selectedSubmissions.size > 0 && <Button onClick={handleBulkApprove} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto mb-4">
+                {selectedSubmissions.size > 0 && <Button onClick={handleBulkApproveClick} className="bg-green-500 hover:bg-green-600 w-full sm:w-auto mb-4">
                     <CheckCheck className="mr-2 h-4 w-4" />
                     Aprovar {selectedSubmissions.size}
                   </Button>}
@@ -1829,7 +1649,7 @@ const Admin = () => {
                                       <label className="text-sm text-muted-foreground mb-1 block">
                                         Status da Submissão:
                                       </label>
-                                      <Select value={submission.status} onValueChange={newStatus => handleStatusChange(submission.id, newStatus)}>
+                                      <Select value={submission.status} onValueChange={newStatus => handleStatusChangeWrapper(submission.id, newStatus)}>
                                         <SelectTrigger className="w-full">
                                           <SelectValue />
                                         </SelectTrigger>
@@ -1989,11 +1809,11 @@ const Admin = () => {
         // Delete Post Dialog
         postToDelete={postToDelete}
         setPostToDelete={setPostToDelete}
-        onDeletePost={handleDeletePost}
+        onDeletePost={handleDeletePostWrapper}
         // Delete Submission Dialog
         submissionToDelete={submissionToDelete}
         setSubmissionToDelete={setSubmissionToDelete}
-        onDeleteSubmission={handleDeleteSubmission}
+        onDeleteSubmission={handleDeleteSubmissionWrapper}
         // Image Zoom Dialog
         selectedImageForZoom={selectedImageForZoom}
         setSelectedImageForZoom={setSelectedImageForZoom}
