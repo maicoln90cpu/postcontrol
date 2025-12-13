@@ -15,8 +15,8 @@ Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
 |------|-----------|--------|------------------|
 | **1** | Criar Hooks Consolidados | ✅ Concluída | 5 hooks |
 | **2** | Criar Componentes de Tab | ✅ Concluída | 5 tabs + index |
-| **3** | Criar Componentes Compartilhados | 🔜 Próxima | AdminHeader, AdminStatsCards, AdminDialogs |
-| **4** | Refatorar Admin.tsx Principal | ⏳ Pendente | Orquestrador ~400 linhas |
+| **3** | Criar Componentes Compartilhados | ✅ Concluída | 3 componentes + index |
+| **4** | Refatorar Admin.tsx Principal | 🔜 Próxima | Orquestrador ~400 linhas |
 | **5** | Testes e Validação | ⏳ Pendente | - |
 
 ---
@@ -51,27 +51,37 @@ Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
 
 ---
 
-### 🔜 FASE 3: Componentes Compartilhados (PRÓXIMA)
+### ✅ FASE 3: Componentes Compartilhados (CONCLUÍDA)
 
 **Localização:** `src/pages/Admin/components/`
 
-| Arquivo | Estimativa | Responsabilidade |
-|---------|------------|------------------|
-| `AdminHeader.tsx` | ~100 linhas | Header com avatar, trial banners, slot alerts, agency indicator |
-| `AdminStatsCards.tsx` | ~80 linhas | Cards de estatísticas (eventos, posts, submissões, usuários, vendas) |
-| `AdminDialogs.tsx` | ~200 linhas | Todos os dialogs (Event, Post, Rejection, Audit, Delete, Zoom, Export) |
+| Arquivo | Linhas | Responsabilidade |
+|---------|--------|------------------|
+| `AdminHeader.tsx` | ~260 | Header com avatar, trial banners, slot alerts, agency indicator, navegação |
+| `AdminStatsCards.tsx` | ~80 | Cards de estatísticas (eventos, posts, submissões, usuários, vendas) |
+| `AdminDialogs.tsx` | ~420 | Todos os dialogs (Event, Post, Rejection, Audit, Delete, Zoom, Export, Suggestion, ColumnSelection) |
+| `index.ts` | ~5 | Re-exports de todos os componentes |
 
 ---
 
-### ⏳ FASE 4: Orquestrador Principal (PENDENTE)
+### 🔜 FASE 4: Orquestrador Principal (PRÓXIMA)
 
 **Arquivo:** `src/pages/Admin.tsx`
 
-Após as fases anteriores, o Admin.tsx será refatorado para:
+O Admin.tsx será refatorado para:
 - Usar todos os hooks da Fase 1
 - Renderizar os tabs da Fase 2
 - Usar componentes compartilhados da Fase 3
 - Conter apenas lógica de orquestração (~400 linhas)
+
+**Passos:**
+1. Importar hooks consolidados de `./Admin/hooks`
+2. Importar tabs de `./Admin/tabs`
+3. Importar componentes de `./Admin/components`
+4. Remover estados locais (já em useAdminState)
+5. Remover queries inline (já em useAdminQueries)
+6. Remover mutations inline (já em useAdminMutations)
+7. Orquestrar passagem de props entre componentes
 
 ---
 
@@ -81,11 +91,19 @@ Após as fases anteriores, o Admin.tsx será refatorado para:
 - [ ] Verificar hot reload performance
 - [ ] Validar memory usage
 - [ ] Verificar code splitting
+- [ ] Testar navegação entre abas
+- [ ] Testar dialogs (Event, Post, Rejection, etc.)
+- [ ] Testar aprovação/rejeição de submissões
+- [ ] Testar exportação de dados
 
 ---
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **FASE 3 Refatoração Admin.tsx**: Criados 3 componentes compartilhados em src/pages/Admin/components/:
+  - `AdminHeader.tsx`: Header completo com avatar, trial banners, slot alerts, agency indicator e navegação
+  - `AdminStatsCards.tsx`: Cards de estatísticas com ícones e gradientes
+  - `AdminDialogs.tsx`: Todos os dialogs consolidados (Event, Post, Rejection, Audit, Delete, Zoom, Export, Suggestion, ColumnSelection)
 - [x] [FRONT] 2024-12-13 – **FASE 2 Refatoração Admin.tsx**: Criados 5 componentes de Tab em src/pages/Admin/tabs/:
   - `AdminEventsTab.tsx`: Lista de eventos com filtros, virtualização e controle de vagas
   - `AdminPostsTab.tsx`: Postagens com grupos colapsáveis por evento e badges de tipo
