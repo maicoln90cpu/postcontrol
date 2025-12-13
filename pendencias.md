@@ -1,6 +1,18 @@
 # 📋 Sistema MD Agência - Status Completo
 
-**Última atualização:** 2025-12-11
+**Última atualização:** 2025-12-13
+
+---
+
+## 📝 HISTÓRICO DE MUDANÇAS RECENTES
+
+- [x] [FRONT] 2024-12-13 – Refatorado Dashboard.tsx de 917 para 410 linhas, extraindo DashboardHeader.tsx, DashboardInviteCard.tsx, useDashboardAvatar.ts, useDashboardMutations.ts
+- [x] [FRONT] 2024-12-13 – Consolidados tipos em src/types/dashboard.ts (DashboardSubmission, EventStats, DashboardUIState)
+- [x] [FRONT] 2024-12-13 – Removidos console.logs de produção, substituídos por logger.info()
+- [x] [FRONT] 2024-12-13 – Adicionado filtro por quantidade mínima de posts no ParticipantStatusManager
+- [x] [FRONT] 2024-12-13 – Exibindo vagas aprovadas manualmente pela agência no EventRequirementsDisplay
+- [x] [FRONT] 2024-12-13 – Refatorado layout mobile do DetailedGoalsReport (cards em mobile, tabela em desktop)
+- [x] [DB] 2024-12-13 – Corrigida contagem incorreta de posts no evento TimeWarp recalculando user_event_goals
 
 ---
 

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Target, Users } from "lucide-react";
+import { CheckCircle, Target, Users, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -49,6 +49,23 @@ export const EventRequirementsDisplay = ({ eventId, variant = "full" }: EventReq
       );
 
       return requirementsWithCount;
+    },
+    enabled: !!eventId,
+  });
+
+  // Query para buscar aprovados manualmente (que NÃO bateram meta técnica)
+  const { data: manualApprovedCount } = useQuery({
+    queryKey: ["manual-approved-count", eventId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("user_event_goals")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("manual_approval", true)
+        .eq("goal_achieved", false);
+
+      if (error) throw error;
+      return count || 0;
     },
     enabled: !!eventId,
   });
@@ -111,14 +128,24 @@ export const EventRequirementsDisplay = ({ eventId, variant = "full" }: EventReq
                 Opção {index + 1}: {req.required_posts} posts + {req.required_sales} vendas
               </span>
             </div>
-            {req.users_achieved > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                <Users className="w-3 h-3 mr-1" />
-                {req.users_achieved}
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {req.users_achieved > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  <Users className="w-3 h-3 mr-1" />
+                  {req.users_achieved}
+                </Badge>
+              )}
+            </div>
           </div>
         ))}
+        {manualApprovedCount !== undefined && manualApprovedCount > 0 && (
+          <div className="flex items-center justify-end p-2">
+            <Badge variant="outline" className="bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs">
+              <Award className="w-3 h-3 mr-1" />
+              {manualApprovedCount} aprovadas pela agência
+            </Badge>
+          </div>
+        )}
       </div>
     );
   }
@@ -175,6 +202,18 @@ export const EventRequirementsDisplay = ({ eventId, variant = "full" }: EventReq
             </div>
           </div>
         ))}
+
+        {/* Mostrar aprovados manualmente */}
+        {manualApprovedCount !== undefined && manualApprovedCount > 0 && (
+          <div className="p-3 bg-violet-500/10 rounded-md border border-violet-500/20">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+              <p className="text-sm text-violet-700 dark:text-violet-300">
+                <strong>{manualApprovedCount}</strong> vaga(s) ocupada(s) por aprovação da agência
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="p-3 bg-blue-500/10 rounded-md border border-blue-500/20">
           <p className="text-xs text-blue-700 dark:text-blue-300">

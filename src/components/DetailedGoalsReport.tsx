@@ -162,6 +162,61 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
     );
   };
 
+  // Mobile Card Component
+  const MobilePromoterCard = ({ promoter }: { promoter: PromoterStats }) => (
+    <div className="p-4 border rounded-lg space-y-3">
+      <div className="flex items-center gap-3">
+        <Avatar className="h-10 w-10 shrink-0">
+          <AvatarImage src={promoter.avatarUrl || undefined} />
+          <AvatarFallback className="text-xs">
+            {promoter.fullName
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate">{promoter.fullName}</p>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {getApprovalBadge(promoter)}
+            {promoter.goalAchieved ? (
+              <span className="text-[10px] text-green-600 dark:text-green-400">Técnica</span>
+            ) : promoter.manualApproval ? (
+              <span className="text-[10px] text-violet-600 dark:text-violet-400">Manual</span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="p-2 bg-blue-500/10 rounded-md">
+          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{promoter.divulgacaoCount}</p>
+          <p className="text-[10px] text-muted-foreground">Divulg.</p>
+        </div>
+        <div className="p-2 bg-purple-500/10 rounded-md">
+          <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{promoter.selecaoPerfilCount}</p>
+          <p className="text-[10px] text-muted-foreground">Seleção</p>
+        </div>
+        <div className="p-2 bg-green-500/10 rounded-md">
+          <p className="text-lg font-bold text-green-600 dark:text-green-400">{promoter.salesCount}</p>
+          <p className="text-[10px] text-muted-foreground">Vendas</p>
+        </div>
+      </div>
+
+      <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t">
+        <span>
+          Meta: {promoter.requiredPosts > 0 ? `${promoter.requiredPosts}P` : ''}
+          {promoter.requiredPosts > 0 && promoter.requiredSales > 0 ? ' + ' : ''}
+          {promoter.requiredSales > 0 ? `${promoter.requiredSales}V` : ''}
+          {promoter.requiredPosts === 0 && promoter.requiredSales === 0 ? 'Sem meta' : ''}
+        </span>
+        <span>Total Posts: {promoter.totalPosts}</span>
+      </div>
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -187,7 +242,15 @@ export const DetailedGoalsReport = ({ agencyId, eventId }: DetailedGoalsReportPr
               </p>
             </div>
 
-            <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
+            {/* Mobile: Cards */}
+            <div className="block md:hidden space-y-3">
+              {paginatedStats?.map((promoter) => (
+                <MobilePromoterCard key={promoter.userId} promoter={promoter} />
+              ))}
+            </div>
+
+            {/* Desktop: Table */}
+            <div className="hidden md:block rounded-md border overflow-x-auto">
               <Table className="min-w-[750px] text-xs sm:text-sm">
                 <TableHeader>
                   <TableRow>

@@ -57,6 +57,7 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [minPosts, setMinPosts] = useState<number>(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
@@ -164,8 +165,13 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
       );
     }
 
+    // Filtro por quantidade mínima de posts
+    if (minPosts > 0) {
+      filtered = filtered.filter(p => p.current_posts >= minPosts);
+    }
+
     setFilteredParticipants(filtered);
-  }, [filter, searchTerm, participants]);
+  }, [filter, searchTerm, participants, minPosts]);
 
   const {
     paginatedItems: paginatedParticipants,
@@ -349,6 +355,17 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
                 <SelectItem value="withdrawn">Removidas</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="w-full sm:w-32">
+            <Label htmlFor="minPosts">Mín. Posts</Label>
+            <Input
+              id="minPosts"
+              type="number"
+              min={0}
+              placeholder="0"
+              value={minPosts || ""}
+              onChange={(e) => setMinPosts(parseInt(e.target.value) || 0)}
+            />
           </div>
         </div>
 
