@@ -48,7 +48,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **3** | Criar Componentes Compartilhados | ✅ Concluída | 3 componentes |
 | **4** | Tabs Adicionais | ✅ Concluída | +3 tabs simples |
 | **5** | Integração no Admin.tsx | 🟡 Parcial | 5 tabs simples OK |
-| **5.1** | Integrar AdminEventsTab | ⏳ Pendente | - |
+| **5.1** | Integrar AdminEventsTab | ✅ Concluída | -145 linhas |
 | **5.2** | Integrar AdminPostsTab | ⏳ Pendente | - |
 | **5.3** | Integrar AdminStatsTab | ⏳ Pendente | - |
 | **5.4** | Integrar useAdminState | ⏳ Pendente | - |
@@ -120,14 +120,16 @@ Para de fato reduzir Admin.tsx de 2902 para ~800 linhas:
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **SUB-FASE 5.1 AdminEventsTab Integrada**:
+  - Substituído TabsContent inline de Eventos (168 linhas) por `<AdminEventsTab />`
+  - Admin.tsx reduzido de 2902 para ~2757 linhas (-145 linhas)
+  - Handlers passados via props: onNewEvent, onEditEvent, onDuplicateEvent, onDeleteEvent, onCopyEventUrl
 - [x] [FRONT] 2024-12-13 – **FASE 6 Testes e Validação (Concluída)**:
   - Usuário confirmou todas as funcionalidades operando normalmente
   - Navegação entre abas, CRUD de dados, filtros e exports funcionando
 - [x] [FRONT] 2024-12-13 – **FASE 5 Refatoração Admin.tsx (Parcialmente Concluída)**:
   - Integrados 5 tabs SIMPLES: AdminUsersTab, AdminGuestsTab, AdminGuestListTab, AdminAuditTab, AdminSettingsTab
-  - **Pendente:** Tabs principais (Events, Posts, Stats) e hooks não conectados
-  - **Análise:** Admin.tsx reduziu apenas 14 linhas (2916→2902) - componentes criados mas não integrados
-  - **Próximos passos:** Sub-fases 5.1-5.6 para integração real
+  - **Próximos passos:** Sub-fases 5.2-5.6 para integração restante
 - [x] [FRONT] 2024-12-13 – **FASE 4 Refatoração Admin.tsx**: Criados 3 tabs adicionais
 - [x] [FRONT] 2024-12-13 – **FASE 3 Refatoração Admin.tsx**: Criados 3 componentes compartilhados
 - [x] [FRONT] 2024-12-13 – **FASE 2 Refatoração Admin.tsx**: Criados 5 tabs iniciais
