@@ -37,6 +37,9 @@ import { AdminDialogs } from "./Admin/components/AdminDialogs";
 // ✅ FASE 5.6: Importar componente de header consolidado
 import { AdminHeader } from "./Admin/components/AdminHeader";
 
+// ✅ FASE 5.7: Importar componente de stats cards consolidado
+import { AdminStatsCards } from "./Admin/components/AdminStatsCards";
+
 // ✅ FASE 5.4: Importar hook de estado consolidado
 import { useAdminState } from "./Admin/hooks/useAdminState";
 
@@ -1562,68 +1565,11 @@ const Admin = () => {
       />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats */}
-        <div id="stats-cards" className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Eventos Totais</p>
-                <p className="text-2xl font-bold">{agencyFilteredStats.events}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-secondary rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Postagens</p>
-                <p className="text-2xl font-bold">{agencyFilteredStats.posts}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-accent to-primary rounded-lg flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Submissões</p>
-                <p className="text-2xl font-bold">{agencyFilteredStats.submissions}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Usuários</p>
-                <p className="text-2xl font-bold">{agencyFilteredStats.users}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Vendas Totais</p>
-                <p className="text-2xl font-bold">{loadingSalesCount ? "..." : agencyFilteredStats.sales}</p>
-              </div>
-            </div>
-          </Card>
-        </div>
+        {/* ✅ FASE 5.7: Stats Cards refatorados */}
+        <AdminStatsCards 
+          stats={agencyFilteredStats} 
+          loadingSalesCount={loadingSalesCount} 
+        />
 
         {/* Main Content */}
         <Tabs defaultValue="events" className="space-y-6" onValueChange={value => {
