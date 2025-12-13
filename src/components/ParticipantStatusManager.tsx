@@ -327,9 +327,14 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
   return (
     <Card className="p-6">
       <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold">Gerenciar Participantes</h3>
-          <p className="text-sm text-muted-foreground">Evento: {eventTitle}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Gerenciar Participantes</h3>
+            <p className="text-sm text-muted-foreground">Evento: {eventTitle}</p>
+          </div>
+          <Badge variant="secondary" className="text-sm">
+            {filteredParticipants.length} participante{filteredParticipants.length !== 1 ? 's' : ''}
+          </Badge>
         </div>
 
         {/* Filtros */}
