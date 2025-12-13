@@ -6,6 +6,13 @@
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **FASE 1 Refatoração Admin.tsx**: Criados 5 hooks consolidados em src/pages/Admin/hooks/:
+  - `useAdminState.ts`: Centraliza ~50 useState em categorias (dialogs, selection, deletion, rejection, zoom, ui, statsFilter, loading)
+  - `useAdminQueries.ts`: Consolida queries de eventos, submissões e contadores com helpers memoizados
+  - `useAdminMutations.ts`: Centraliza mutations de aprovação, rejeição, deleção de eventos/posts/submissões
+  - `useAdminAgency.ts`: Encapsula lógica de agência, trial status, profile e cache invalidation
+  - `useAdminHandlers.ts`: Agrupa handlers de zoom, exportação Excel e constantes (colunas, templates)
+- [x] [FRONT] 2024-12-13 – Adicionado contador de participantes filtrados no ParticipantStatusManager
 - [x] [FRONT] 2024-12-13 – Refatorado Dashboard.tsx de 917 para 410 linhas, extraindo DashboardHeader.tsx, DashboardInviteCard.tsx, useDashboardAvatar.ts, useDashboardMutations.ts
 - [x] [FRONT] 2024-12-13 – Consolidados tipos em src/types/dashboard.ts (DashboardSubmission, EventStats, DashboardUIState)
 - [x] [FRONT] 2024-12-13 – Removidos console.logs de produção, substituídos por logger.info()
