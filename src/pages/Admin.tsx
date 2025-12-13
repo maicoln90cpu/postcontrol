@@ -31,6 +31,9 @@ import {
   AdminStatsTab
 } from "./Admin/tabs";
 
+// ✅ FASE 5.4: Importar hook de estado consolidado
+import { useAdminState } from "./Admin/hooks/useAdminState";
+
 // ✅ Sprint 2B: Importar hooks consolidados
 import { useEventsQuery, useSubmissionsQuery, useUpdateSubmissionStatusMutation, useBulkUpdateSubmissionStatusMutation,
 // 🔴 FASE 1: Import bulk mutation
@@ -155,54 +158,73 @@ const Admin = () => {
     isMasterAdmin
   } = useUserRoleQuery();
   const navigate = useNavigate();
+  
+  // ✅ FASE 5.4: Hook consolidado de estados (substituindo ~30 useState)
+  const adminState = useAdminState();
+  const {
+    dialogs: {
+      eventDialogOpen, setEventDialogOpen,
+      postDialogOpen, setPostDialogOpen,
+      suggestionDialogOpen, setSuggestionDialogOpen,
+      addSubmissionDialogOpen, setAddSubmissionDialogOpen,
+      rejectionDialogOpen, setRejectionDialogOpen,
+      zoomDialogOpen, setZoomDialogOpen,
+      showColumnSelectionDialog, setShowColumnSelectionDialog,
+    },
+    selection: {
+      selectedEvent, setSelectedEvent,
+      selectedPost, setSelectedPost,
+      selectedSubmissions, setSelectedSubmissions,
+      selectedSubmissionForRejection, setSelectedSubmissionForRejection,
+      selectedEventForPrediction, setSelectedEventForPrediction,
+      selectedEventForRanking, setSelectedEventForRanking,
+      selectedExportColumns, setSelectedExportColumns,
+      toggleSubmissionSelection,
+      clearSelectedSubmissions,
+      selectAllSubmissions,
+    },
+    deletion: {
+      eventToDelete, setEventToDelete,
+      postToDelete, setPostToDelete,
+      submissionToDelete, setSubmissionToDelete,
+    },
+    rejection: {
+      rejectionReason, setRejectionReason,
+      rejectionTemplate, setRejectionTemplate,
+      openRejectionDialog,
+      resetRejectionState,
+    },
+    zoom: {
+      zoomSubmissionIndex, setZoomSubmissionIndex,
+      selectedImageForZoom, setSelectedImageForZoom,
+    },
+    ui: {
+      activeTab, setActiveTab,
+      collapsedEvents, setCollapsedEvents,
+      toggleCollapsedEvent,
+      initializeCollapsedEvents,
+      focusedSubmissionIndex, setFocusedSubmissionIndex,
+      expandedComments, toggleExpandedComment,
+      auditLogSubmissionId, setAuditLogSubmissionId,
+      debouncedSearch, setDebouncedSearch,
+    },
+    statsFilter: {
+      globalStatsEventFilter, setGlobalStatsEventFilter,
+      globalSelectedEventId, setGlobalSelectedEventId,
+    },
+    loading: {
+      isDuplicatingEvent, setIsDuplicatingEvent,
+      isDeletingEvent, setIsDeletingEvent,
+    },
+  } = adminState;
+
+  // Estados que permanecem locais (específicos de dados/UI não consolidáveis)
   const [currentAgency, setCurrentAgency] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [agencySlug, setAgencySlug] = useState<string>("");
-  const [eventDialogOpen, setEventDialogOpen] = useState(false);
-  const [postDialogOpen, setPostDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [selectedPost, setSelectedPost] = useState<any>(null);
-  const [selectedEventForPrediction, setSelectedEventForPrediction] = useState<string | null>(null);
-  const [selectedEventForRanking, setSelectedEventForRanking] = useState<string | null>(null);
-
-  // ✅ FASE 1: Estados globais únicos para filtros de Estatísticas
-  const [globalStatsEventFilter, setGlobalStatsEventFilter] = useState<'active' | 'inactive' | 'all'>('active');
-  const [globalSelectedEventId, setGlobalSelectedEventId] = useState<string>('all');
-  const [suggestionDialogOpen, setSuggestionDialogOpen] = useState(false); // ✅ ITEM 5 FASE 2
-  const [addSubmissionDialogOpen, setAddSubmissionDialogOpen] = useState(false);
-  const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
-  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-  
-  // ✅ FASE 3: Loading states para botões de eventos
-  const [isDuplicatingEvent, setIsDuplicatingEvent] = useState<string | null>(null);
-  const [isDeletingEvent, setIsDeletingEvent] = useState<string | null>(null);
-  const [postToDelete, setPostToDelete] = useState<{
-    id: string;
-    submissionsCount: number;
-  } | null>(null);
-  const [submissionToDelete, setSubmissionToDelete] = useState<string | null>(null);
-  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
-  const [selectedSubmissionForRejection, setSelectedSubmissionForRejection] = useState<string | null>(null);
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [rejectionTemplate, setRejectionTemplate] = useState("");
-  const [auditLogSubmissionId, setAuditLogSubmissionId] = useState<string | null>(null);
   const [rejectionTemplatesFromDB, setRejectionTemplatesFromDB] = useState<any[]>([]);
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  const [selectedImageForZoom, setSelectedImageForZoom] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [usersCount, setUsersCount] = useState(0);
-  const [zoomDialogOpen, setZoomDialogOpen] = useState(false);
-  const [zoomSubmissionIndex, setZoomSubmissionIndex] = useState(0);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  // ✅ Estado para controlar eventos colapsados na tab Postagens
-  const [collapsedEvents, setCollapsedEvents] = useState<Set<string>>(new Set());
-
-  // ✅ FASE 3: Estado para índice focado (navegação por teclado)
-  const [focusedSubmissionIndex, setFocusedSubmissionIndex] = useState(-1);
-
-  // ✅ FASE 3: Estado para controlar tab ativa (para atalhos)
-  const [activeTab, setActiveTab] = useState("events");
 
   // ✅ SPRINT 1: Persistir índice de zoom entre filtros
   useEffect(() => {
@@ -264,9 +286,7 @@ const Admin = () => {
     clearFilters // ✅ ITEM 3 FASE 1: Adicionar clearFilters
   } = useAdminFilters();
 
-  // ✅ ITEM 1: Estados locais para popup de seleção de colunas
-  const [showColumnSelectionDialog, setShowColumnSelectionDialog] = useState(false);
-  const [selectedExportColumns, setSelectedExportColumns] = useState<string[]>([]);
+  // ✅ FASE 5.4: showColumnSelectionDialog e selectedExportColumns vêm do useAdminState
 
   // ✅ Sprint 2B: Usar hooks consolidados ao invés de states locais + chamadas diretas
   const {
@@ -844,15 +864,7 @@ const Admin = () => {
       });
     }
   };
-  const toggleSubmissionSelection = (submissionId: string) => {
-    const newSet = new Set(selectedSubmissions);
-    if (newSet.has(submissionId)) {
-      newSet.delete(submissionId);
-    } else {
-      newSet.add(submissionId);
-    }
-    setSelectedSubmissions(newSet);
-  };
+  // ✅ FASE 5.4: toggleSubmissionSelection vem do useAdminState
   const toggleSelectAll = () => {
     if (selectedSubmissions.size === getPaginatedSubmissions.length && getPaginatedSubmissions.length > 0) {
       setSelectedSubmissions(new Set());
@@ -2194,15 +2206,7 @@ const Admin = () => {
 
                               {/* Seção de Comentários */}
                               <div className="border-t pt-4">
-                                <Button variant="ghost" size="sm" onClick={() => {
-                          const newExpanded = new Set(expandedComments);
-                          if (newExpanded.has(submission.id)) {
-                            newExpanded.delete(submission.id);
-                          } else {
-                            newExpanded.add(submission.id);
-                          }
-                          setExpandedComments(newExpanded);
-                        }} className="mb-3">
+                                <Button variant="ghost" size="sm" onClick={() => toggleExpandedComment(submission.id)} className="mb-3">
                                   {expandedComments.has(submission.id) ? "Ocultar" : "Mostrar"} Comentários
                                 </Button>
 

@@ -13,7 +13,8 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 
 | Métrica | Antes | Depois | Diferença |
 |---------|-------|--------|-----------|
-| **Admin.tsx** | 2916 linhas | 2482 linhas | -434 linhas |
+| **Admin.tsx** | 2916 linhas | 2493 linhas | -423 linhas |
+| **useState no Admin** | ~50 useState | ~6 useState | -44 useState |
 | **Arquivos criados** | 0 | 19 arquivos | +19 novos |
 | **Estrutura** | Monolítico | Organizado em pastas | ✅ Melhor |
 
@@ -32,7 +33,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ❌ `AdminHeader` - criado mas NÃO substituiu código inline
 - ❌ `AdminStatsCards` - criado mas NÃO substituiu código inline
 - ❌ `AdminDialogs` - criado mas NÃO substituiu código inline
-- ❌ `useAdminState` - criado mas NÃO substituiu os ~50 useState
+- ✅ `useAdminState` - criado e INTEGRADO (Fase 5.4) - substituiu ~30 useState
 - ❌ Demais hooks - criados mas NÃO conectados
 
 **Conclusão:** A estrutura de pastas está excelente, mas o Admin.tsx ainda contém código duplicado. Os componentes foram criados mas não conectados.
@@ -51,7 +52,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **5.1** | Integrar AdminEventsTab | ✅ Concluída | -145 linhas |
 | **5.2** | Integrar AdminPostsTab | ✅ Concluída | -123 linhas |
 | **5.3** | Integrar AdminStatsTab | ✅ Concluída | -149 linhas |
-| **5.4** | Integrar useAdminState | ⏳ Pendente | - |
+| **5.4** | Integrar useAdminState | ✅ Concluída | -30 useState consolidados |
 | **5.5** | Integrar AdminHeader | ⏳ Pendente | - |
 | **5.6** | Integrar AdminDialogs | ⏳ Pendente | - |
 | **6** | Testes e Validação | ✅ Concluída | Funcionando |
