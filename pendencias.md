@@ -49,7 +49,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **4** | Tabs Adicionais | ✅ Concluída | +3 tabs simples |
 | **5** | Integração no Admin.tsx | 🟡 Parcial | 5 tabs simples OK |
 | **5.1** | Integrar AdminEventsTab | ✅ Concluída | -145 linhas |
-| **5.2** | Integrar AdminPostsTab | ⏳ Pendente | - |
+| **5.2** | Integrar AdminPostsTab | ✅ Concluída | -123 linhas |
 | **5.3** | Integrar AdminStatsTab | ⏳ Pendente | - |
 | **5.4** | Integrar useAdminState | ⏳ Pendente | - |
 | **5.5** | Integrar AdminHeader | ⏳ Pendente | - |
@@ -120,6 +120,10 @@ Para de fato reduzir Admin.tsx de 2902 para ~800 linhas:
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **SUB-FASE 5.2 AdminPostsTab Integrada**:
+  - Substituído TabsContent inline de Postagens (157 linhas) por `<AdminPostsTab />`
+  - Admin.tsx reduzido de ~2757 para ~2634 linhas (-123 linhas)
+  - Props: filteredPosts, collapsedEvents, onToggleCollapse, onNewPost, onEditPost, onDeletePost, getEventMetrics
 - [x] [FRONT] 2024-12-13 – **SUB-FASE 5.1 AdminEventsTab Integrada**:
   - Substituído TabsContent inline de Eventos (168 linhas) por `<AdminEventsTab />`
   - Admin.tsx reduzido de 2902 para ~2757 linhas (-145 linhas)
