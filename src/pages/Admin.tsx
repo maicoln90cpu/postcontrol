@@ -26,7 +26,8 @@ import {
   AdminAuditTab, 
   AdminSettingsTab, 
   AdminGuestListTab,
-  AdminEventsTab 
+  AdminEventsTab,
+  AdminPostsTab
 } from "./Admin/tabs";
 
 // ✅ Sprint 2B: Importar hooks consolidados
@@ -1842,164 +1843,41 @@ const Admin = () => {
             onCopyEventUrl={copyEventUrl}
           />
 
-          <TabsContent value="posts" className="space-y-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold">Gerenciar Postagens</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {filteredPosts.length} postage{filteredPosts.length !== 1 ? "ns" : "m"} encontrada
-                    {filteredPosts.length !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  {/* ✅ FASE 3: Filtro de status do evento */}
-                  <Select value={postEventActiveFilter} onValueChange={setPostEventActiveFilter}>
-                    <SelectTrigger className="w-full sm:w-[200px]">
-                      <SelectValue placeholder="Status do evento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="active">✅ Eventos Ativos</SelectItem>
-                      <SelectItem value="inactive">⏸️ Eventos Inativos</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={postEventFilter} onValueChange={setPostEventFilter}>
-                    <SelectTrigger className="w-full sm:w-64">
-                      <SelectValue placeholder="Filtrar por evento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os eventos</SelectItem>
-                      {/* ✅ ITEM 4: Filtrar eventos baseado no postEventActiveFilter */}
-                      {events.filter(event => {
-                      if (postEventActiveFilter === "all") return true;
-                      if (postEventActiveFilter === "active") return event.is_active === true;
-                      if (postEventActiveFilter === "inactive") return event.is_active === false;
-                      return true;
-                    }).map(event => <SelectItem key={event.id} value={event.id}>
-                            {/* ✅ ITEM 4: Adicionar badge visual de status */}
-                            <span className="flex items-center gap-2">
-                              <span className={event.is_active ? "text-green-600" : "text-gray-400"}>●</span>
-                              {event.title}
-                            </span>
-                          </SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Button className="bg-gradient-primary w-full sm:w-auto" onClick={() => {
-                  setSelectedPost(null);
-                  setPostDialogOpen(true);
-                }} disabled={isReadOnly}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nova Postagem
-                  </Button>
-                  {isReadOnly && <span className="text-xs text-red-500">⚠️ Assine para editar</span>}
-                </div>
-              </div>
-            </div>
-
-            <Card className="p-1">
-              {loadingEvents ? <div className="space-y-4 p-4">
-                  {[1, 2, 3].map(i => <div key={i} className="space-y-3">
-                      <Skeleton className="h-10 w-full" />
-                      <div className="pl-6 space-y-2">
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                      </div>
-                    </div>)}
-                </div> : filteredPosts.length === 0 ? <p className="text-muted-foreground text-center py-8">
-                  {postEventFilter === "all" ? "Nenhuma postagem cadastrada ainda" : "Nenhuma postagem para este evento"}
-                </p> : <div className="space-y-2">
-                  {(() => {
-                // Agrupar posts por evento
-                const postsByEvent: Record<string, typeof filteredPosts> = {};
-                filteredPosts.forEach(post => {
-                  const eventTitle = getEventTitle(post);
-                  if (!postsByEvent[eventTitle]) {
-                    postsByEvent[eventTitle] = [];
-                  }
-                  postsByEvent[eventTitle].push(post);
-                });
-                return Object.entries(postsByEvent).map(([eventTitle, eventPosts]) => {
-                  const eventId = eventPosts[0]?.event_id;
-                  const isCollapsed = collapsedEvents.has(eventId);
-                  const metrics = getEventMetrics(eventId);
-                  return <Collapsible key={eventTitle} open={!isCollapsed} onOpenChange={open => {
-                    setCollapsedEvents(prev => {
-                      const newSet = new Set(prev);
-                      if (open) {
-                        newSet.delete(eventId);
-                      } else {
-                        newSet.add(eventId);
-                      }
-                      return newSet;
-                    });
-                  }}>
-                          <CollapsibleTrigger className="w-full">
-                            <div className="flex items-center gap-2 px-3 py-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer">
-                              <ChevronRight className={cn("h-4 w-4 text-primary transition-transform shrink-0", !isCollapsed && "rotate-90")} />
-                              <Calendar className="h-4 w-4 text-primary shrink-0" />
-                              <h3 className="font-semibold text-sm sm:text-lg text-left truncate">{eventTitle}</h3>
-                              
-                              {/* Badges: Contagem por tipo de post */}
-                              <div className="flex gap-1 shrink-0 flex-wrap">
-                                {metrics.postsByType.divulgacao > 0 && <Badge variant="outline" className="text-xs" title="Divulgação">
-                                    📢 {metrics.postsByType.divulgacao}
-                                  </Badge>}
-                                {metrics.postsByType.comprovante > 0 && <Badge variant="outline" className="text-xs" title="Comprovante de Venda">
-                                    💰 {metrics.postsByType.comprovante}
-                                  </Badge>}
-                                {metrics.postsByType.selecao > 0 && <Badge variant="outline" className="text-xs" title="Seleção de Perfil">
-                                    👤 {metrics.postsByType.selecao}
-                                  </Badge>}
-                              </div>
-                              
-                              {/* Badge: Total de submissões */}
-                              <Badge variant="secondary" className="text-xs shrink-0">
-                                {metrics.totalSubmissions} submissões
-                              </Badge>
-                            </div>
-                          </CollapsibleTrigger>
-                          
-                          <CollapsibleContent>
-                            {/* Lista de posts do evento */}
-                            <div className="space-y-2 pl-3 sm:pl-6 border-l-2 border-primary/20 mt-2 mb-4">
-                              {eventPosts.sort((a, b) => a.post_number - b.post_number).map(post => <Card key={post.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
-                                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <h4 className="font-bold text-sm sm:text-base break-words">{formatPostName(post.post_type, post.post_number)}</h4>
-                                        {/* Badge com contador de submissões */}
-                                        <Badge variant="secondary" className="text-xs shrink-0">
-                                          {submissionsByPost[post.id] || 0} submiss
-                                          {(submissionsByPost[post.id] || 0) === 1 ? "ão" : "ões"}
-                                        </Badge>
-                                      </div>
-                                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
-                                        Prazo: {new Date(post.deadline).toLocaleString("pt-BR")}
-                                      </p>
-                                    </div>
-                                    <div className="flex gap-2 shrink-0">
-                                      <Button variant="ghost" size="sm" onClick={() => {
-                                setSelectedPost(post);
-                                setPostDialogOpen(true);
-                              }} disabled={isReadOnly}>
-                                        <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
-                                      </Button>
-                                      <Button variant="ghost" size="sm" onClick={() => handleDeletePostClick(post.id)} className="text-destructive hover:text-destructive" disabled={isReadOnly}>
-                                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </Card>)}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>;
-                });
-              })()}
-                </div>}
-            </Card>
-          </TabsContent>
+          {/* ✅ FASE 5.2: Tab de Postagens integrada */}
+          <AdminPostsTab
+            posts={allPosts}
+            events={events || []}
+            filteredPosts={filteredPosts}
+            collapsedEvents={collapsedEvents}
+            submissionsByPost={submissionsByPost}
+            isReadOnly={isReadOnly}
+            loadingEvents={loadingEvents}
+            postEventFilter={postEventFilter}
+            postEventActiveFilter={postEventActiveFilter}
+            onToggleCollapse={(eventId) => {
+              setCollapsedEvents(prev => {
+                const newSet = new Set(prev);
+                if (newSet.has(eventId)) {
+                  newSet.delete(eventId);
+                } else {
+                  newSet.add(eventId);
+                }
+                return newSet;
+              });
+            }}
+            onNewPost={() => {
+              setSelectedPost(null);
+              setPostDialogOpen(true);
+            }}
+            onEditPost={(post) => {
+              setSelectedPost(post);
+              setPostDialogOpen(true);
+            }}
+            onDeletePost={handleDeletePostClick}
+            onPostEventFilterChange={setPostEventFilter}
+            onPostEventActiveFilterChange={setPostEventActiveFilter}
+            getEventMetrics={getEventMetrics}
+          />
 
           <TabsContent value="submissions" className="space-y-6">
             {/* ✅ FASE 3: Dica de atalhos de teclado */}
