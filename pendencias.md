@@ -13,7 +13,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 
 | Métrica | Antes | Depois | Diferença |
 |---------|-------|--------|-----------|
-| **Admin.tsx** | 2916 linhas | 2902 linhas | -14 linhas |
+| **Admin.tsx** | 2916 linhas | 2482 linhas | -434 linhas |
 | **Arquivos criados** | 0 | 19 arquivos | +19 novos |
 | **Estrutura** | Monolítico | Organizado em pastas | ✅ Melhor |
 
@@ -26,9 +26,9 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ✅ 5 tabs simples integrados (Users, Guests, GuestList, Audit, Settings)
 
 **O que NÃO foi integrado:**
-- ❌ `AdminEventsTab` - criado mas NÃO substituiu código inline
-- ❌ `AdminPostsTab` - criado mas NÃO substituiu código inline
-- ❌ `AdminStatsTab` - criado mas NÃO substituiu código inline
+- ✅ `AdminEventsTab` - criado e INTEGRADO (Fase 5.1)
+- ✅ `AdminPostsTab` - criado e INTEGRADO (Fase 5.2)
+- ✅ `AdminStatsTab` - criado e INTEGRADO (Fase 5.3)
 - ❌ `AdminHeader` - criado mas NÃO substituiu código inline
 - ❌ `AdminStatsCards` - criado mas NÃO substituiu código inline
 - ❌ `AdminDialogs` - criado mas NÃO substituiu código inline
@@ -50,7 +50,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **5** | Integração no Admin.tsx | 🟡 Parcial | 5 tabs simples OK |
 | **5.1** | Integrar AdminEventsTab | ✅ Concluída | -145 linhas |
 | **5.2** | Integrar AdminPostsTab | ✅ Concluída | -123 linhas |
-| **5.3** | Integrar AdminStatsTab | ⏳ Pendente | - |
+| **5.3** | Integrar AdminStatsTab | ✅ Concluída | -149 linhas |
 | **5.4** | Integrar useAdminState | ⏳ Pendente | - |
 | **5.5** | Integrar AdminHeader | ⏳ Pendente | - |
 | **5.6** | Integrar AdminDialogs | ⏳ Pendente | - |
