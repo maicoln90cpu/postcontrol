@@ -13,11 +13,12 @@ Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
 
 | Fase | Descrição | Status | Arquivos Criados |
 |------|-----------|--------|------------------|
-| **1** | Criar Hooks Consolidados | ✅ Concluída | 5 hooks |
-| **2** | Criar Componentes de Tab | ✅ Concluída | 5 tabs + index |
+| **1** | Criar Hooks Consolidados | ✅ Concluída | 5 hooks + index |
+| **2** | Criar Componentes de Tab | ✅ Concluída | 5 tabs iniciais + index |
 | **3** | Criar Componentes Compartilhados | ✅ Concluída | 3 componentes + index |
-| **4** | Refatorar Admin.tsx Principal | 🔜 Próxima | Orquestrador ~400 linhas |
-| **5** | Testes e Validação | ⏳ Pendente | - |
+| **4** | Tabs Adicionais e Integração | 🟡 Parcial | +3 tabs (Users, Guests, Audit) |
+| **5** | Refatorar Admin.tsx Principal | ⏳ Pendente | Orquestrador ~400 linhas |
+| **6** | Testes e Validação | ⏳ Pendente | - |
 
 ---
 
@@ -47,7 +48,10 @@ Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
 | `AdminStatsTab.tsx` | ~220 | Tab de Estatísticas com sub-abas (Stats, Performance, Reports, Analytics, UTM) |
 | `AdminSettingsTab.tsx` | ~50 | Tab de Configurações (Master vs Agency) |
 | `AdminGuestListTab.tsx` | ~30 | Tab de Guest List (wrapper do GuestListManager) |
-| `index.ts` | ~10 | Re-exports de todos os tabs |
+| `AdminUsersTab.tsx` | ~25 | Tab de Usuários (wrapper do MemoizedUserManagement) |
+| `AdminGuestsTab.tsx` | ~25 | Tab de Convidados (wrapper do GuestManager) |
+| `AdminAuditTab.tsx` | ~25 | Tab de Auditoria (wrapper do GuestAuditLog) |
+| `index.ts` | ~15 | Re-exports de todos os tabs |
 
 ---
 
@@ -64,13 +68,28 @@ Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
 
 ---
 
-### 🔜 FASE 4: Orquestrador Principal (PRÓXIMA)
+### 🟡 FASE 4: Tabs Adicionais e Integração (PARCIAL)
+
+**Novos arquivos criados:**
+- `AdminUsersTab.tsx` - Wrapper para MemoizedUserManagement
+- `AdminGuestsTab.tsx` - Wrapper para GuestManager  
+- `AdminAuditTab.tsx` - Wrapper para GuestAuditLog
+
+**Pendente:**
+- [ ] Criar AdminSubmissionsTab (mais complexa - exige adaptação de props)
+- [ ] Integrar todos os tabs no Admin.tsx principal
+
+**Nota:** A tab de Submissões é a mais complexa pois os componentes existentes (AdminFilters, AdminSubmissionList, SubmissionCardsGrid, SubmissionKanban) possuem interfaces de props muito específicas que diferem do padrão dos novos tabs. Requer análise detalhada das dependências antes de refatorar.
+
+---
+
+### ⏳ FASE 5: Refatorar Admin.tsx Principal (PENDENTE)
 
 **Arquivo:** `src/pages/Admin.tsx`
 
 O Admin.tsx será refatorado para:
 - Usar todos os hooks da Fase 1
-- Renderizar os tabs da Fase 2
+- Renderizar os tabs das Fases 2 e 4
 - Usar componentes compartilhados da Fase 3
 - Conter apenas lógica de orquestração (~400 linhas)
 
@@ -83,9 +102,13 @@ O Admin.tsx será refatorado para:
 6. Remover mutations inline (já em useAdminMutations)
 7. Orquestrar passagem de props entre componentes
 
+**Bloqueadores:**
+- Tab de Submissões precisa ser criada/adaptada primeiro
+- Testar compatibilidade de props entre hooks e tabs
+
 ---
 
-### ⏳ FASE 5: Testes e Validação (PENDENTE)
+### ⏳ FASE 6: Testes e Validação (PENDENTE)
 
 - [ ] Testar todas as funcionalidades existentes
 - [ ] Verificar hot reload performance
@@ -100,6 +123,11 @@ O Admin.tsx será refatorado para:
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **FASE 4 Refatoração Admin.tsx (Parcial)**: Criados 3 tabs adicionais em src/pages/Admin/tabs/:
+  - `AdminUsersTab.tsx`: Wrapper para MemoizedUserManagement
+  - `AdminGuestsTab.tsx`: Wrapper para GuestManager
+  - `AdminAuditTab.tsx`: Wrapper para GuestAuditLog
+  - **Nota:** AdminSubmissionsTab não criada - requer adaptação de props dos componentes existentes
 - [x] [FRONT] 2024-12-13 – **FASE 3 Refatoração Admin.tsx**: Criados 3 componentes compartilhados em src/pages/Admin/components/:
   - `AdminHeader.tsx`: Header completo com avatar, trial banners, slot alerts, agency indicator e navegação
   - `AdminStatsCards.tsx`: Cards de estatísticas com ícones e gradientes
