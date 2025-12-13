@@ -4,8 +4,94 @@
 
 ---
 
+## 🏗️ REFATORAÇÃO ADMIN.tsx - PLANO COMPLETO
+
+### Objetivo
+Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
+
+### Fases do Projeto
+
+| Fase | Descrição | Status | Arquivos Criados |
+|------|-----------|--------|------------------|
+| **1** | Criar Hooks Consolidados | ✅ Concluída | 5 hooks |
+| **2** | Criar Componentes de Tab | ✅ Concluída | 5 tabs + index |
+| **3** | Criar Componentes Compartilhados | 🔜 Próxima | AdminHeader, AdminStatsCards, AdminDialogs |
+| **4** | Refatorar Admin.tsx Principal | ⏳ Pendente | Orquestrador ~400 linhas |
+| **5** | Testes e Validação | ⏳ Pendente | - |
+
+---
+
+### ✅ FASE 1: Hooks Consolidados (CONCLUÍDA)
+
+**Localização:** `src/pages/Admin/hooks/`
+
+| Arquivo | Linhas | Responsabilidade |
+|---------|--------|------------------|
+| `useAdminState.ts` | ~150 | Centraliza ~50 useState em categorias (dialogs, selection, deletion, rejection, zoom, ui, statsFilter, loading) |
+| `useAdminQueries.ts` | ~100 | Consolida queries de eventos, submissões e contadores com helpers memoizados |
+| `useAdminMutations.ts` | ~120 | Centraliza mutations de aprovação, rejeição, deleção de eventos/posts/submissões |
+| `useAdminAgency.ts` | ~100 | Encapsula lógica de agência, trial status, profile e cache invalidation |
+| `useAdminHandlers.ts` | ~200 | Agrupa handlers de zoom, exportação Excel e constantes (colunas, templates) |
+| `index.ts` | ~20 | Re-exports de todos os hooks |
+
+---
+
+### ✅ FASE 2: Componentes de Tab (CONCLUÍDA)
+
+**Localização:** `src/pages/Admin/tabs/`
+
+| Arquivo | Linhas | Responsabilidade |
+|---------|--------|------------------|
+| `AdminEventsTab.tsx` | ~230 | Tab de Eventos com lista, filtros, virtualização e controle de vagas |
+| `AdminPostsTab.tsx` | ~200 | Tab de Postagens com grupos colapsáveis por evento |
+| `AdminStatsTab.tsx` | ~220 | Tab de Estatísticas com sub-abas (Stats, Performance, Reports, Analytics, UTM) |
+| `AdminSettingsTab.tsx` | ~50 | Tab de Configurações (Master vs Agency) |
+| `AdminGuestListTab.tsx` | ~30 | Tab de Guest List (wrapper do GuestListManager) |
+| `index.ts` | ~10 | Re-exports de todos os tabs |
+
+---
+
+### 🔜 FASE 3: Componentes Compartilhados (PRÓXIMA)
+
+**Localização:** `src/pages/Admin/components/`
+
+| Arquivo | Estimativa | Responsabilidade |
+|---------|------------|------------------|
+| `AdminHeader.tsx` | ~100 linhas | Header com avatar, trial banners, slot alerts, agency indicator |
+| `AdminStatsCards.tsx` | ~80 linhas | Cards de estatísticas (eventos, posts, submissões, usuários, vendas) |
+| `AdminDialogs.tsx` | ~200 linhas | Todos os dialogs (Event, Post, Rejection, Audit, Delete, Zoom, Export) |
+
+---
+
+### ⏳ FASE 4: Orquestrador Principal (PENDENTE)
+
+**Arquivo:** `src/pages/Admin.tsx`
+
+Após as fases anteriores, o Admin.tsx será refatorado para:
+- Usar todos os hooks da Fase 1
+- Renderizar os tabs da Fase 2
+- Usar componentes compartilhados da Fase 3
+- Conter apenas lógica de orquestração (~400 linhas)
+
+---
+
+### ⏳ FASE 5: Testes e Validação (PENDENTE)
+
+- [ ] Testar todas as funcionalidades existentes
+- [ ] Verificar hot reload performance
+- [ ] Validar memory usage
+- [ ] Verificar code splitting
+
+---
+
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **FASE 2 Refatoração Admin.tsx**: Criados 5 componentes de Tab em src/pages/Admin/tabs/:
+  - `AdminEventsTab.tsx`: Lista de eventos com filtros, virtualização e controle de vagas
+  - `AdminPostsTab.tsx`: Postagens com grupos colapsáveis por evento e badges de tipo
+  - `AdminStatsTab.tsx`: Estatísticas unificadas com sub-abas (Stats, Performance, Reports, Analytics, UTM)
+  - `AdminSettingsTab.tsx`: Configurações com suporte Master/Agency
+  - `AdminGuestListTab.tsx`: Wrapper para GuestListManager
 - [x] [FRONT] 2024-12-13 – **FASE 1 Refatoração Admin.tsx**: Criados 5 hooks consolidados em src/pages/Admin/hooks/:
   - `useAdminState.ts`: Centraliza ~50 useState em categorias (dialogs, selection, deletion, rejection, zoom, ui, statsFilter, loading)
   - `useAdminQueries.ts`: Consolida queries de eventos, submissões e contadores com helpers memoizados
