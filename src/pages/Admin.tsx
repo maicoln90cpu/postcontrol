@@ -31,6 +31,9 @@ import {
   AdminStatsTab
 } from "./Admin/tabs";
 
+// ✅ FASE 5.5: Importar componente de diálogos consolidado
+import { AdminDialogs } from "./Admin/components/AdminDialogs";
+
 // ✅ FASE 5.4: Importar hook de estado consolidado
 import { useAdminState } from "./Admin/hooks/useAdminState";
 
@@ -2286,208 +2289,84 @@ const Admin = () => {
         </Tabs>
       </div>
 
-      <Suspense fallback={null}>
-        <EventDialog open={eventDialogOpen} onOpenChange={open => {
-        setEventDialogOpen(open);
-        if (!open) setSelectedEvent(null);
-      }} onEventCreated={() => {
-        refetchEvents();
-        if (submissionEventFilter !== "all") refetchSubmissions();
-      }} event={selectedEvent} />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <PostDialog open={postDialogOpen} onOpenChange={open => {
-        setPostDialogOpen(open);
-        if (!open) setSelectedPost(null);
-      }} onPostCreated={() => {
-        refetchEvents();
-        if (submissionEventFilter !== "all") refetchSubmissions();
-      }} post={selectedPost} />
-      </Suspense>
-
-      {/* Rejection Dialog */}
-      <Dialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rejeitar Submissão</DialogTitle>
-            <DialogDescription>Informe o motivo da rejeição para que o usuário possa corrigir</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="template">Template de Resposta</Label>
-              <Select value={rejectionTemplate} onValueChange={value => {
-              setRejectionTemplate(value);
-              if (value === "custom") {
-                setRejectionReason("");
-              } else {
-                const template = rejectionTemplatesFromDB.find(t => t.id === value);
-                if (template) {
-                  setRejectionReason(template.message);
-                }
-              }
-            }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um template (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Template customizado</SelectItem>
-                  {rejectionTemplatesFromDB.map(template => <SelectItem key={template.id} value={template.id}>
-                      {template.title}
-                    </SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="reason">Motivo da Rejeição</Label>
-              <Textarea id="reason" placeholder="Descreva o motivo da rejeição..." value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} rows={4} className="min-h-24" />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectionDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={confirmRejection}>
-              Confirmar Rejeição
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Audit Log Dialog */}
-      <Dialog open={!!auditLogSubmissionId} onOpenChange={open => !open && setAuditLogSubmissionId(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Histórico de Alterações</DialogTitle>
-            <DialogDescription>Visualize todas as mudanças de status desta submissão</DialogDescription>
-          </DialogHeader>
-
-          {auditLogSubmissionId && <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-              <SubmissionAuditLog submissionId={auditLogSubmissionId} />
-            </Suspense>}
-
-          <DialogFooter>
-            <Button onClick={() => setAuditLogSubmissionId(null)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!eventToDelete} onOpenChange={open => !open && setEventToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir evento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O evento e todos os seus dados relacionados serão permanentemente
-              excluídos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => eventToDelete && handleDeleteEvent(eventToDelete)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!postToDelete} onOpenChange={open => !open && setPostToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir postagem?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A postagem será permanentemente excluída.
-              {postToDelete && postToDelete.submissionsCount > 0 && <span className="block mt-2 font-semibold text-destructive">
-                  ⚠️ Atenção: {postToDelete.submissionsCount} submissão(ões) associada(s) também será(ão) deletada(s).
-                </span>}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeletePost} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir{" "}
-              {postToDelete && postToDelete.submissionsCount > 0 ? `tudo (${postToDelete.submissionsCount} submissão${postToDelete.submissionsCount > 1 ? "ões" : ""})` : ""}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!submissionToDelete} onOpenChange={open => !open && setSubmissionToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir submissão?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A submissão será permanentemente excluída do sistema.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSubmission} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Dialog de Zoom nas Imagens */}
-      <Dialog open={!!selectedImageForZoom} onOpenChange={() => setSelectedImageForZoom(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
-          <DialogHeader>
-            <DialogTitle>Imagem da Submissão</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center w-full h-full">
-            {selectedImageForZoom && <img src={selectedImageForZoom} alt="Screenshot ampliado" className="max-w-full max-h-[85vh] object-contain rounded" />}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Manual Submission Dialog */}
-      <Suspense fallback={null}>
-        <AddManualSubmissionDialog open={addSubmissionDialogOpen} onOpenChange={setAddSubmissionDialogOpen} onSuccess={() => {
-        refetchSubmissions();
-        toast.success("Submissão adicionada com sucesso!");
-      }} selectedEventId={submissionEventFilter !== "all" ? submissionEventFilter : undefined} />
-      </Suspense>
-
-      {/* Zoom Dialog com navegação */}
-      {getPaginatedSubmissions.length > 0 && zoomSubmissionIndex < getPaginatedSubmissions.length && getPaginatedSubmissions[zoomSubmissionIndex] && <SubmissionZoomDialog open={zoomDialogOpen} onOpenChange={setZoomDialogOpen} submission={getPaginatedSubmissions[zoomSubmissionIndex] as any} onApprove={handleApproveSubmission} onReject={handleRejectSubmission} onNext={handleZoomNext} onPrevious={handleZoomPrevious} hasNext={zoomSubmissionIndex < getPaginatedSubmissions.length - 1} hasPrevious={zoomSubmissionIndex > 0} />}
-
-      {/* ✅ ITEM 5 FASE 2: Dialog de Sugestões */}
-      <Suspense fallback={null}>
-        <SuggestionDialog open={suggestionDialogOpen} onOpenChange={setSuggestionDialogOpen} userId={user?.id || ""} agencyId={currentAgency?.id} />
-      </Suspense>
-
-      {/* ✅ ITEM 1: Dialog de seleção de colunas para exportação */}
-      <AlertDialog open={showColumnSelectionDialog} onOpenChange={setShowColumnSelectionDialog}>
-        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Selecione as colunas para exportar</AlertDialogTitle>
-            <AlertDialogDescription>Escolha quais informações deseja incluir no relatório Excel</AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
-            {availableExportColumns.map(col => <div key={col.key} className="flex items-center space-x-2">
-                <input type="checkbox" id={col.key} checked={selectedExportColumns.includes(col.key)} onChange={e => {
-              if (e.target.checked) {
-                setSelectedExportColumns([...selectedExportColumns, col.key]);
-              } else {
-                setSelectedExportColumns(selectedExportColumns.filter(k => k !== col.key));
-              }
-            }} className="h-4 w-4 rounded border-gray-300" />
-                <label htmlFor={col.key} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  {col.label}
-                </label>
-              </div>)}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={executeExport} disabled={selectedExportColumns.length === 0}>
-              Exportar ({selectedExportColumns.length} coluna{selectedExportColumns.length !== 1 ? "s" : ""})
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* ✅ FASE 5.5: Componente consolidado de diálogos */}
+      <AdminDialogs
+        // Event Dialog
+        eventDialogOpen={eventDialogOpen}
+        setEventDialogOpen={setEventDialogOpen}
+        selectedEvent={selectedEvent}
+        setSelectedEvent={setSelectedEvent}
+        onEventCreated={() => {
+          refetchEvents();
+          if (submissionEventFilter !== "all") refetchSubmissions();
+        }}
+        // Post Dialog
+        postDialogOpen={postDialogOpen}
+        setPostDialogOpen={setPostDialogOpen}
+        selectedPost={selectedPost}
+        setSelectedPost={setSelectedPost}
+        onPostCreated={() => {
+          refetchEvents();
+          if (submissionEventFilter !== "all") refetchSubmissions();
+        }}
+        // Rejection Dialog
+        rejectionDialogOpen={rejectionDialogOpen}
+        setRejectionDialogOpen={setRejectionDialogOpen}
+        rejectionReason={rejectionReason}
+        setRejectionReason={setRejectionReason}
+        rejectionTemplate={rejectionTemplate}
+        setRejectionTemplate={setRejectionTemplate}
+        rejectionTemplatesFromDB={rejectionTemplatesFromDB}
+        onConfirmRejection={confirmRejection}
+        // Audit Log Dialog
+        auditLogSubmissionId={auditLogSubmissionId}
+        setAuditLogSubmissionId={setAuditLogSubmissionId}
+        // Delete Event Dialog
+        eventToDelete={eventToDelete}
+        setEventToDelete={setEventToDelete}
+        onDeleteEvent={handleDeleteEvent}
+        // Delete Post Dialog
+        postToDelete={postToDelete}
+        setPostToDelete={setPostToDelete}
+        onDeletePost={handleDeletePost}
+        // Delete Submission Dialog
+        submissionToDelete={submissionToDelete}
+        setSubmissionToDelete={setSubmissionToDelete}
+        onDeleteSubmission={handleDeleteSubmission}
+        // Image Zoom Dialog
+        selectedImageForZoom={selectedImageForZoom}
+        setSelectedImageForZoom={setSelectedImageForZoom}
+        // Manual Submission Dialog
+        addSubmissionDialogOpen={addSubmissionDialogOpen}
+        setAddSubmissionDialogOpen={setAddSubmissionDialogOpen}
+        onSubmissionSuccess={() => {
+          refetchSubmissions();
+          toast.success("Submissão adicionada com sucesso!");
+        }}
+        submissionEventFilter={submissionEventFilter}
+        // Zoom Dialog
+        zoomDialogOpen={zoomDialogOpen}
+        setZoomDialogOpen={setZoomDialogOpen}
+        zoomSubmission={getPaginatedSubmissions.length > 0 && zoomSubmissionIndex < getPaginatedSubmissions.length ? getPaginatedSubmissions[zoomSubmissionIndex] : null}
+        onZoomApprove={handleApproveSubmission}
+        onZoomReject={handleRejectSubmission}
+        onZoomNext={handleZoomNext}
+        onZoomPrevious={handleZoomPrevious}
+        hasNext={zoomSubmissionIndex < getPaginatedSubmissions.length - 1}
+        hasPrevious={zoomSubmissionIndex > 0}
+        // Suggestion Dialog
+        suggestionDialogOpen={suggestionDialogOpen}
+        setSuggestionDialogOpen={setSuggestionDialogOpen}
+        userId={user?.id || ""}
+        agencyId={currentAgency?.id}
+        // Column Selection Dialog
+        showColumnSelectionDialog={showColumnSelectionDialog}
+        setShowColumnSelectionDialog={setShowColumnSelectionDialog}
+        availableExportColumns={availableExportColumns}
+        selectedExportColumns={selectedExportColumns}
+        setSelectedExportColumns={setSelectedExportColumns}
+        onExecuteExport={executeExport}
+      />
     </div>;
 };
 export default Admin;
