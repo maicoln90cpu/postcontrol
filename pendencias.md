@@ -13,7 +13,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 
 | Métrica | Antes | Depois | Diferença |
 |---------|-------|--------|-----------|
-| **Admin.tsx** | 2916 linhas | ~1882 linhas | -1034 linhas |
+| **Admin.tsx** | 2916 linhas | ~2033 linhas | -883 linhas |
 | **useState no Admin** | ~50 useState | ~6 useState | -44 useState |
 | **Arquivos criados** | 0 | 19 arquivos | +19 novos |
 | **Estrutura** | Monolítico | Organizado em pastas | ✅ Melhor |
@@ -26,7 +26,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ✅ 3 componentes criados (`AdminHeader`, `AdminStatsCards`, `AdminDialogs`)
 - ✅ 5 tabs simples integrados (Users, Guests, GuestList, Audit, Settings)
 
-**O que NÃO foi integrado:**
+**O que foi integrado:**
 - ✅ `AdminEventsTab` - criado e INTEGRADO (Fase 5.1)
 - ✅ `AdminPostsTab` - criado e INTEGRADO (Fase 5.2)
 - ✅ `AdminStatsTab` - criado e INTEGRADO (Fase 5.3)
@@ -34,9 +34,14 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ✅ `AdminStatsCards` - criado e INTEGRADO (Fase 5.7) - substituiu ~58 linhas de stats cards
 - ✅ `AdminDialogs` - criado e INTEGRADO (Fase 5.5) - substituiu ~200 linhas de diálogos
 - ✅ `useAdminState` - criado e INTEGRADO (Fase 5.4) - substituiu ~30 useState
-- ❌ Demais hooks - criados mas NÃO conectados
+- ✅ `useAdminQueries` - criado e INTEGRADO (Fase 6.1) - substituiu ~50 linhas de queries
 
-**Conclusão:** Fase 5 concluída! Admin.tsx reduzido de 2916 para ~1882 linhas (-35.4%). Restam otimizações de hooks adicionais (Fase 6).
+**Próximos passos (Fase 6.2+):**
+- ❌ `useAdminMutations` - criado mas NÃO conectado
+- ❌ `useAdminAgency` - criado mas NÃO conectado
+- ❌ `useAdminHandlers` - criado mas NÃO conectado
+
+**Conclusão:** Fase 6.1 concluída! Admin.tsx reduzido de 2916 para ~2033 linhas (-30.3%). Restam otimizações de hooks adicionais (Fase 6.2+).
 
 ---
 
@@ -48,7 +53,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **2** | Criar Componentes de Tab | ✅ Concluída | 5 tabs iniciais |
 | **3** | Criar Componentes Compartilhados | ✅ Concluída | 3 componentes |
 | **4** | Tabs Adicionais | ✅ Concluída | +3 tabs simples |
-| **5** | Integração no Admin.tsx | 🟡 Parcial | 5 tabs simples OK |
+| **5** | Integração no Admin.tsx | ✅ Concluída | Tabs e componentes |
 | **5.1** | Integrar AdminEventsTab | ✅ Concluída | -145 linhas |
 | **5.2** | Integrar AdminPostsTab | ✅ Concluída | -123 linhas |
 | **5.3** | Integrar AdminStatsTab | ✅ Concluída | -149 linhas |
@@ -57,20 +62,9 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **5.6** | Integrar AdminHeader | ✅ Concluída | -167 linhas (header) |
 | **5.7** | Integrar AdminStatsCards | ✅ Concluída | -58 linhas (stats cards) |
 | **6** | Testes e Validação | ✅ Concluída | Funcionando |
-
----
-
-### ✅ FASE 6: Testes e Validação (CONCLUÍDA)
-
-**Resultado:** Usuário confirmou que todas as funcionalidades estão operando normalmente.
-
-- [x] Navegação entre todas as abas
-- [x] Tab Usuários funcionando
-- [x] Tab Convidados funcionando
-- [x] Tab Guest List funcionando
-- [x] Tab Auditoria funcionando
-- [x] Tab Configurações funcionando
-- [x] Demais tabs funcionando (Eventos, Postagens, Submissões, Estatísticas)
+| **6.1** | Integrar useAdminQueries | ✅ Concluída | -50 linhas (queries) |
+| **6.2** | Integrar useAdminMutations | 🔲 Pendente | ~30 linhas estimadas |
+| **6.3** | Integrar useAdminAgency | 🔲 Pendente | ~80 linhas estimadas |
 
 ---
 
@@ -122,6 +116,11 @@ Para de fato reduzir Admin.tsx de 2902 para ~800 linhas:
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **FASE 6.1 useAdminQueries Integrado**:
+  - Substituídas ~50 linhas de queries duplicadas por `useAdminQueries` hook
+  - Consolidou useEventsQuery, useSubmissionsQuery, useSubmissionCounters em único hook
+  - Admin.tsx reduzido de ~2084 para ~2033 linhas (-51 linhas)
+  - Removidos imports não utilizados
 - [x] [FRONT] 2024-12-13 – **SUB-FASE 5.2 AdminPostsTab Integrada**:
   - Substituído TabsContent inline de Postagens (157 linhas) por `<AdminPostsTab />`
   - Admin.tsx reduzido de ~2757 para ~2634 linhas (-123 linhas)

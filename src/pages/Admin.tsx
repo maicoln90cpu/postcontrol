@@ -43,14 +43,12 @@ import { AdminStatsCards } from "./Admin/components/AdminStatsCards";
 // ✅ FASE 5.4: Importar hook de estado consolidado
 import { useAdminState } from "./Admin/hooks/useAdminState";
 
-// ✅ Sprint 2B: Importar hooks consolidados
-import { useEventsQuery, useSubmissionsQuery, useUpdateSubmissionStatusMutation, useBulkUpdateSubmissionStatusMutation,
-// 🔴 FASE 1: Import bulk mutation
-useDeleteEventMutation, useDeleteSubmissionMutation } from "@/hooks/consolidated";
-import { useQueryClient } from "@tanstack/react-query";
+// ✅ FASE 6.1: Importar hook de queries consolidado
+import { useAdminQueries } from "./Admin/hooks/useAdminQueries";
 
-// 🆕 SPRINT 2 + CACHE: Importar hook de contadores com cache
-import { useSubmissionCountsByEvent, useSubmissionCountsByPost, useApprovedSalesCount } from "@/hooks/useSubmissionCounters";
+// ✅ Sprint 2B: Mutations consolidadas (queries agora vêm do useAdminQueries)
+import { useUpdateSubmissionStatusMutation, useBulkUpdateSubmissionStatusMutation, useDeleteEventMutation, useDeleteSubmissionMutation } from "@/hooks/consolidated";
+import { useQueryClient } from "@tanstack/react-query";
 import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUserRoleQuery } from "@/hooks/useUserRoleQuery";
@@ -297,127 +295,54 @@ const Admin = () => {
 
   // ✅ FASE 5.4: showColumnSelectionDialog e selectedExportColumns vêm do useAdminState
 
-  // ✅ Sprint 2B: Usar hooks consolidados ao invés de states locais + chamadas diretas
-  const {
-    data: eventsData,
-    isLoading: eventsLoading,
-    refetch: refetchEvents
-  } = useEventsQuery({
+  // ✅ FASE 6.1: Hook consolidado de queries (substitui ~95 linhas de código)
+  const adminQueries = useAdminQueries({
     agencyId: currentAgency?.id,
-    isActive: undefined,
-    // ✅ Buscar TODOS os eventos (ativos + inativos)
-    includePosts: true,
-    enabled: !!user && (isAgencyAdmin || isMasterAdmin)
+    userId: user?.id,
+    isAgencyAdmin,
+    isMasterAdmin,
+    submissionEventFilter,
+    submissionStatusFilter,
+    postTypeFilter,
+    searchTerm,
+    submissionActiveFilter,
+    submissionPostFilter,
+    currentPage,
+    itemsPerPage,
   });
 
-  // Debug: Verificar eventos carregados (incluindo inativos)
-  const events = eventsData?.events || [];
-  const allPosts = eventsData?.posts || []; // 🆕 CORREÇÃO #3: Extrair posts do eventsData
-  logger.info("🔍 [Admin Debug] Total de eventos carregados:", events.length);
-  logger.info("🔍 [Admin Debug] Total de posts carregados:", allPosts.length);
-  logger.info("🔍 [Admin Debug] Eventos:", events.map(e => ({
-    title: e.title,
-    active: e.is_active,
-    id: e.id
-  })));
-
-  // 🆕 SPRINT 2 + CACHE: Buscar contadores com React Query (cache de 5 minutos)
   const {
-    data: submissionsByEvent = {},
-    isLoading: loadingEventCounters
-  } = useSubmissionCountsByEvent(currentAgency?.id, !!user && (isAgencyAdmin || isMasterAdmin));
-  const {
-    data: submissionsByPost = {},
-    isLoading: loadingPostCounters
-  } = useSubmissionCountsByPost(currentAgency?.id, !!user && (isAgencyAdmin || isMasterAdmin));
-  const {
-    data: approvedSalesCount = 0,
-    isLoading: loadingSalesCount
-  } = useApprovedSalesCount(currentAgency?.id, !!currentAgency?.id);
-  const loadingCounters = loadingEventCounters || loadingPostCounters;
-  logger.info("📊 [Admin] Contadores carregados do cache:", {
+    events,
+    eventsLoading,
+    refetchEvents,
+    eventsById,
+    posts: allPosts,
+    submissions,
+    submissionsCount,
+    submissionsLoading,
+    refetchSubmissions,
+    totalPages,
+    pendingCount,
     submissionsByEvent,
     submissionsByPost,
     approvedSalesCount,
     loadingCounters,
-    loadingSalesCount
-  });
+    loadingSalesCount,
+    getEventTitle,
+    getEventMetrics,
+    getAvailablePostNumbers,
+  } = adminQueries;
 
-  // ✅ Inicializar TODOS os eventos como colapsados ao carregar dados
-  useEffect(() => {
-    if (events.length > 0 && collapsedEvents.size === 0) {
-      setCollapsedEvents(new Set(events.map(e => e.id)));
-    }
-  }, [events.length]);
-
-  // ✅ Função memoizada para calcular métricas do evento (contagem por tipo de post)
-  const getEventMetrics = useCallback((eventId: string) => {
-    const eventPosts = allPosts.filter((p: any) => p.event_id === eventId);
-
-    // Contar posts por tipo
-    const postsByType = {
-      comprovante: eventPosts.filter((p: any) => p.post_type === 'sale').length,
-      divulgacao: eventPosts.filter((p: any) => p.post_type === 'divulgacao').length,
-      selecao: eventPosts.filter((p: any) => p.post_type === 'selecao_perfil').length
-    };
-
-    // Somar submissões de todos os posts do evento
-    const totalSubmissions = eventPosts.reduce((sum: number, post: any) => sum + (submissionsByPost[post.id] || 0), 0);
-    return {
-      postsByType,
-      totalSubmissions,
-      totalPosts: eventPosts.length
-    };
-  }, [allPosts, submissionsByPost]);
-  const {
-    data: submissionsData,
-    isLoading: submissionsLoading,
-    refetch: refetchSubmissions
-  } = useSubmissionsQuery({
-    agencyId: currentAgency?.id,
-    eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
-    status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined,
-    // 🆕 CORREÇÃO 1: Filtro de status no backend
-    postType: postTypeFilter !== "all" ? postTypeFilter : undefined,
-    // 🆕 CORREÇÃO 1: Filtro de tipo de post no backend
-    searchTerm: searchTerm || undefined,
-    // 🆕 CORREÇÃO 1: Busca textual no backend
-    isActive: submissionActiveFilter === "all" ? undefined : submissionActiveFilter === "active",
-    // 🆕 Filtro por status ativo do evento
-    postNumber: submissionPostFilter !== "all" ? parseInt(submissionPostFilter) : undefined,
-    // 🆕 Filtro por número do post
-    enrichProfiles: true,
-    itemsPerPage: 50,
-    // 🔴 ITEM 2: Reduzido de 10000 para 50 (performance crítica)
-    page: currentPage,
-    // 🔴 ITEM 2: Usar currentPage para paginação real
-    enabled: !!user && (isAgencyAdmin || isMasterAdmin) && !!currentAgency
-  });
-
-  // ✅ Sprint 2B: Usar mutations consolidadas
-  const updateStatusMutation = useUpdateSubmissionStatusMutation();
-  const bulkUpdateStatusMutation = useBulkUpdateSubmissionStatusMutation(); // 🔴 FASE 1: Bulk mutation
-  const deleteEventMutation = useDeleteEventMutation();
-  const deleteSubmissionMutation = useDeleteSubmissionMutation();
-
-  // Extrair posts e submissions dos dados do hook
-  const posts = eventsData?.posts || [];
-  const submissions = submissionsData?.data || [];
+  // ✅ Alias para compatibilidade
+  const posts = allPosts;
   const loadingEvents = eventsLoading;
   const loadingSubmissions = submissionsLoading;
 
-  // 🆕 CORREÇÃO 3: Logs de debug expandidos
-  logger.info("🔍 [Admin Debug] Total de submissões carregadas:", submissions.length);
-  logger.info("🔍 [Admin Debug] Total count do backend:", submissionsData?.count);
-  logger.info("🔍 [Admin Debug] Filtros enviados ao backend:", {
-    agencyId: currentAgency?.id,
-    eventId: submissionEventFilter !== "all" ? submissionEventFilter : undefined,
-    status: submissionStatusFilter !== "all" ? submissionStatusFilter : undefined,
-    postType: postTypeFilter !== "all" ? postTypeFilter : undefined,
-    searchTerm: searchTerm || undefined
-  });
-  logger.info("🔍 [Admin Debug] Agência atual:", currentAgency?.name);
-  logger.info("🔍 [Admin Debug] Página atual:", currentPage);
+  // ✅ Sprint 2B: Usar mutations consolidadas
+  const updateStatusMutation = useUpdateSubmissionStatusMutation();
+  const bulkUpdateStatusMutation = useBulkUpdateSubmissionStatusMutation();
+  const deleteEventMutation = useDeleteEventMutation();
+  const deleteSubmissionMutation = useDeleteSubmissionMutation();
 
   // Trial state management
   const [trialInfo, setTrialInfo] = useState<{
@@ -428,27 +353,6 @@ const Admin = () => {
 
   // Compute read-only mode based on trial expiration
   const isReadOnly = trialInfo?.expired || false;
-
-  // ✅ FASE 2: Map memoizado para lookups O(1) de eventos
-  const eventsById = useMemo(() => {
-    const map = new Map();
-    events.forEach(event => map.set(event.id, event));
-    return map;
-  }, [events]);
-
-  // ✅ ITEM 10: Helper memoizado com useCallback para evitar re-renders
-  const getEventTitle = useCallback((post: any): string => {
-    // Método 1: Tentar pelo objeto events
-    if (post.events?.title) return post.events.title;
-    if (Array.isArray(post.events) && post.events[0]?.title) return post.events[0].title;
-
-    // Método 2: Lookup O(1) usando Map
-    if (post.event_id) {
-      const foundEvent = eventsById.get(post.event_id);
-      if (foundEvent) return foundEvent.title;
-    }
-    return "Evento não encontrado";
-  }, [eventsById]);
 
   // Debounce para busca
   useEffect(() => {
@@ -914,13 +818,7 @@ const Admin = () => {
     return getFilteredSubmissions;
   }, [getFilteredSubmissions]);
 
-  // ✅ SPRINT 2: Usar count real do backend para totalPages
-  const totalPages = Math.ceil((submissionsData?.count || 0) / itemsPerPage);
-
-  // ✅ FASE 3: Contador de pendentes para badge na tab
-  const pendingCount = useMemo(() => {
-    return submissions.filter((s: any) => s.status === 'pending').length;
-  }, [submissions]);
+  // ✅ FASE 6.1: totalPages e pendingCount já vêm do useAdminQueries
 
   // ✅ FASE 3: Integrar atalhos de teclado
   useAdminKeyboardShortcuts({
@@ -969,8 +867,7 @@ const Admin = () => {
       return {
         events: events.length,
         posts: posts.length,
-        submissions: submissionsData?.count || 0,
-        // ✅ SPRINT 1: Usar count real do backend
+        submissions: submissionsCount || 0,
         users: usersCount,
         sales: approvedSalesCount
       };
@@ -979,12 +876,11 @@ const Admin = () => {
     return {
       events: events.filter(e => e.agency_id === agencyId).length,
       posts: posts.filter(p => p.agency_id === agencyId).length,
-      submissions: submissionsData?.count || 0,
-      // 🆕 CORREÇÃO 2: Usar count real do backend (já filtrado por agencyId)
+      submissions: submissionsCount || 0,
       users: usersCount,
       sales: approvedSalesCount
     };
-  }, [events, posts, submissions, usersCount, currentAgency, submissionsData?.count, approvedSalesCount]);
+  }, [events, posts, submissionsCount, usersCount, currentAgency, approvedSalesCount]);
 
   // ✅ Item 9: Filtrar eventos por ativo/inativo
   // ✅ Item 7: Ordenar eventos por data
@@ -1165,24 +1061,7 @@ const Admin = () => {
     }
   };
 
-  // 🆕 CORREÇÃO #3: Buscar posts diretamente dos dados carregados do evento
-  const getAvailablePostNumbers = () => {
-    if (!submissionEventFilter || submissionEventFilter === "all") {
-      return [];
-    }
-
-    // Filtrar posts do evento selecionado
-    const eventPosts = allPosts.filter(p => p.event_id === submissionEventFilter);
-    if (!eventPosts || eventPosts.length === 0) {
-      logger.warn(`⚠️ Nenhum post encontrado para o evento ${submissionEventFilter}`);
-      return [];
-    }
-
-    // Retornar TODOS os post_numbers do evento (ordenados)
-    const postNumbers = eventPosts.map(p => p.post_number).filter((num): num is number => num !== null && num !== undefined).sort((a, b) => a - b);
-    logger.info(`📋 Posts disponíveis para evento ${submissionEventFilter}:`, postNumbers);
-    return postNumbers;
-  };
+  // ✅ FASE 6.1: getAvailablePostNumbers já vem do useAdminQueries
 
   // ✅ ITEM 1: Definir colunas disponíveis para exportação
   const availableExportColumns = [{
@@ -1536,7 +1415,7 @@ const Admin = () => {
       console.error("Erro ao exportar:", error);
       toast.error("Erro ao exportar submissões");
     }
-  }, [submissionEventFilter, events, selectedExportColumns, availableExportColumns, submissionPostFilter, dateFilterStart, dateFilterEnd, submissionsData]);
+  }, [submissionEventFilter, events, selectedExportColumns, availableExportColumns, submissionPostFilter, dateFilterStart, dateFilterEnd, submissions, submissionsCount]);
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -1689,7 +1568,7 @@ const Admin = () => {
             {/* ✅ Sprint 3A: Usar componente AdminFilters refatorado */}
             <AdminFilters submissionActiveFilter={submissionActiveFilter} // ✅ ITEM 5: Novo filtro
           submissionEventFilter={submissionEventFilter} submissionPostFilter={submissionPostFilter} submissionStatusFilter={submissionStatusFilter} postTypeFilter={postTypeFilter} searchTerm={searchTerm} dateFilterStart={dateFilterStart} dateFilterEnd={dateFilterEnd} kanbanView={kanbanView} cardsGridView={cardsGridView} events={events} submissions={submissions} allPosts={allPosts} onSubmissionActiveFilterChange={setSubmissionActiveFilter} // ✅ ITEM 5: Handler
-          onSubmissionEventFilterChange={setSubmissionEventFilter} onSubmissionPostFilterChange={setSubmissionPostFilter} onSubmissionStatusFilterChange={setSubmissionStatusFilter} onPostTypeFilterChange={setPostTypeFilter} onSearchTermChange={setSearchTerm} onDateFilterStartChange={setDateFilterStart} onDateFilterEndChange={setDateFilterEnd} onKanbanViewToggle={() => setKanbanView(!kanbanView)} onCardsGridViewToggle={() => setCardsGridView(!cardsGridView)} onExport={handleExportToExcel} filteredCount={getPaginatedSubmissions.length} totalCount={submissionsData?.count || 0} isLoadingSubmissions={loadingSubmissions} />
+          onSubmissionEventFilterChange={setSubmissionEventFilter} onSubmissionPostFilterChange={setSubmissionPostFilter} onSubmissionStatusFilterChange={setSubmissionStatusFilter} onPostTypeFilterChange={setPostTypeFilter} onSearchTermChange={setSearchTerm} onDateFilterStartChange={setDateFilterStart} onDateFilterEndChange={setDateFilterEnd} onKanbanViewToggle={() => setKanbanView(!kanbanView)} onCardsGridViewToggle={() => setCardsGridView(!cardsGridView)} onExport={handleExportToExcel} filteredCount={getPaginatedSubmissions.length} totalCount={submissionsCount || 0} isLoadingSubmissions={loadingSubmissions} />
 
             {/* ✅ SPRINT 2: Indicador de filtros ativos */}
             {(submissionStatusFilter !== "all" && submissionStatusFilter !== "pending" || postTypeFilter !== "all" || debouncedSearch || submissionEventFilter !== "all" || submissionActiveFilter !== "all") &&
@@ -1697,7 +1576,7 @@ const Admin = () => {
           <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md mb-4">
                 <span className="text-sm font-medium">🔍 Filtros ativos:</span>
                 <span className="text-sm text-muted-foreground">
-                  {submissionsData?.count || 0} resultado(s) encontrado(s)
+                  {submissionsCount || 0} resultado(s) encontrado(s)
                 </span>
               </div>}
 
@@ -2007,8 +1886,8 @@ const Admin = () => {
                       {totalPages > 1 && <div className="flex items-center justify-between mt-6 pt-4 border-t">
                           <div className="text-sm text-muted-foreground">
                             Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
-                            {Math.min(currentPage * itemsPerPage, submissionsData?.count || 0)} de{" "}
-                            {submissionsData?.count || 0} submissões
+                            {Math.min(currentPage * itemsPerPage, submissionsCount || 0)} de{" "}
+                            {submissionsCount || 0} submissões
                           </div>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
