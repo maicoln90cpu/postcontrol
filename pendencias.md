@@ -13,7 +13,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 
 | Métrica | Antes | Depois | Diferença |
 |---------|-------|--------|-----------|
-| **Admin.tsx** | 2916 linhas | ~2110 linhas | -806 linhas |
+| **Admin.tsx** | 2916 linhas | ~1940 linhas | -976 linhas |
 | **useState no Admin** | ~50 useState | ~6 useState | -44 useState |
 | **Arquivos criados** | 0 | 19 arquivos | +19 novos |
 | **Estrutura** | Monolítico | Organizado em pastas | ✅ Melhor |
@@ -30,13 +30,13 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ✅ `AdminEventsTab` - criado e INTEGRADO (Fase 5.1)
 - ✅ `AdminPostsTab` - criado e INTEGRADO (Fase 5.2)
 - ✅ `AdminStatsTab` - criado e INTEGRADO (Fase 5.3)
-- ❌ `AdminHeader` - criado mas NÃO substituiu código inline
+- ✅ `AdminHeader` - criado e INTEGRADO (Fase 5.6) - substituiu ~177 linhas de header
 - ❌ `AdminStatsCards` - criado mas NÃO substituiu código inline
 - ✅ `AdminDialogs` - criado e INTEGRADO (Fase 5.5) - substituiu ~200 linhas de diálogos
 - ✅ `useAdminState` - criado e INTEGRADO (Fase 5.4) - substituiu ~30 useState
 - ❌ Demais hooks - criados mas NÃO conectados
 
-**Conclusão:** A estrutura de pastas está excelente. AdminDialogs integrado. Restam AdminHeader e demais hooks para completar refatoração.
+**Conclusão:** Header e Dialogs integrados. Admin.tsx reduzido de 2916 para ~1940 linhas (-33%). Restam AdminStatsCards e hooks adicionais.
 
 ---
 
@@ -54,7 +54,8 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **5.3** | Integrar AdminStatsTab | ✅ Concluída | -149 linhas |
 | **5.4** | Integrar useAdminState | ✅ Concluída | -30 useState consolidados |
 | **5.5** | Integrar AdminDialogs | ✅ Concluída | -127 linhas (diálogos) |
-| **5.6** | Integrar AdminHeader | ⏳ Pendente | - |
+| **5.6** | Integrar AdminHeader | ✅ Concluída | -167 linhas (header) |
+| **5.7** | Integrar AdminStatsCards | ⏳ Pendente | - |
 | **6** | Testes e Validação | ✅ Concluída | Funcionando |
 
 ---
