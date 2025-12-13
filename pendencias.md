@@ -13,7 +13,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 
 | Métrica | Antes | Depois | Diferença |
 |---------|-------|--------|-----------|
-| **Admin.tsx** | 2916 linhas | ~2033 linhas | -883 linhas |
+| **Admin.tsx** | 2916 linhas | ~1853 linhas | -1063 linhas |
 | **useState no Admin** | ~50 useState | ~6 useState | -44 useState |
 | **Arquivos criados** | 0 | 19 arquivos | +19 novos |
 | **Estrutura** | Monolítico | Organizado em pastas | ✅ Melhor |
@@ -35,13 +35,13 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ✅ `AdminDialogs` - criado e INTEGRADO (Fase 5.5) - substituiu ~200 linhas de diálogos
 - ✅ `useAdminState` - criado e INTEGRADO (Fase 5.4) - substituiu ~30 useState
 - ✅ `useAdminQueries` - criado e INTEGRADO (Fase 6.1) - substituiu ~50 linhas de queries
+- ✅ `useAdminMutations` - criado e INTEGRADO (Fase 6.2) - substituiu ~180 linhas de handlers
 
-**Próximos passos (Fase 6.2+):**
-- ❌ `useAdminMutations` - criado mas NÃO conectado
+**Próximos passos (Fase 6.3+):**
 - ❌ `useAdminAgency` - criado mas NÃO conectado
 - ❌ `useAdminHandlers` - criado mas NÃO conectado
 
-**Conclusão:** Fase 6.1 concluída! Admin.tsx reduzido de 2916 para ~2033 linhas (-30.3%). Restam otimizações de hooks adicionais (Fase 6.2+).
+**Conclusão:** Fase 6.2 concluída! Admin.tsx reduzido de 2916 para ~1853 linhas (-36.5%). Restam otimizações de hooks adicionais (Fase 6.3+).
 
 ---
 
@@ -63,7 +63,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **5.7** | Integrar AdminStatsCards | ✅ Concluída | -58 linhas (stats cards) |
 | **6** | Testes e Validação | ✅ Concluída | Funcionando |
 | **6.1** | Integrar useAdminQueries | ✅ Concluída | -50 linhas (queries) |
-| **6.2** | Integrar useAdminMutations | 🔲 Pendente | ~30 linhas estimadas |
+| **6.2** | Integrar useAdminMutations | ✅ Concluída | -180 linhas (handlers) |
 | **6.3** | Integrar useAdminAgency | 🔲 Pendente | ~80 linhas estimadas |
 
 ---
@@ -116,6 +116,11 @@ Para de fato reduzir Admin.tsx de 2902 para ~800 linhas:
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-13 – **FASE 6.2 useAdminMutations Integrado**:
+  - Substituídas ~180 linhas de handlers duplicados por `useAdminMutations` hook
+  - Consolidou handleApproveSubmission, handleBulkApprove, handleDeleteEvent, handleDuplicateEvent, handleDeletePost, handleDeleteSubmission
+  - Admin.tsx reduzido de ~2033 para ~1853 linhas (-180 linhas)
+  - Wrappers criados para compatibilidade de assinaturas de funções
 - [x] [FRONT] 2024-12-13 – **FASE 6.1 useAdminQueries Integrado**:
   - Substituídas ~50 linhas de queries duplicadas por `useAdminQueries` hook
   - Consolidou useEventsQuery, useSubmissionsQuery, useSubmissionCounters em único hook
