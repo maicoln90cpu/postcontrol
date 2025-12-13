@@ -27,7 +27,8 @@ import {
   AdminSettingsTab, 
   AdminGuestListTab,
   AdminEventsTab,
-  AdminPostsTab
+  AdminPostsTab,
+  AdminStatsTab
 } from "./Admin/tabs";
 
 // ✅ Sprint 2B: Importar hooks consolidados
@@ -2259,166 +2260,17 @@ const Admin = () => {
           <AdminGuestListTab />
           <AdminAuditTab agencyId={currentAgency?.id} />
 
-          <TabsContent value="statistics" className="space-y-6">
-            {/* ✅ FASE 1: Card de Filtros Global (usado por todas as sub-abas) */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Filtros Globais</CardTitle>
-                <CardDescription>Selecione o status e evento para todas as estatísticas abaixo</CardDescription>
-              </CardHeader>
-              <CardContent className="flex gap-4 flex-wrap">
-                <Select value={globalStatsEventFilter} onValueChange={(value: 'active' | 'inactive' | 'all') => {
-                setGlobalStatsEventFilter(value);
-                setGlobalSelectedEventId('all'); // Reset event selection when filter changes
-              }}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Status do evento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Eventos Ativos</SelectItem>
-                    <SelectItem value="inactive">Eventos Inativos</SelectItem>
-                    <SelectItem value="all">Todos os Eventos</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={globalSelectedEventId} onValueChange={setGlobalSelectedEventId}>
-                  <SelectTrigger className="w-80">
-                    <SelectValue placeholder="Selecione um evento (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os Eventos</SelectItem>
-                    {filteredEvents.filter(e => {
-                    if (globalStatsEventFilter === 'active') return e.is_active;
-                    if (globalStatsEventFilter === 'inactive') return !e.is_active;
-                    return true;
-                  }).map(event => <SelectItem key={event.id} value={event.id}>
-                        {event.title} {!event.is_active && '(Inativo)'}
-                      </SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            <Tabs defaultValue="events-stats" className="space-y-6">
-              <TabsList className="grid w-full max-w-4xl grid-cols-1 sm:grid-cols-5 gap-1 h-auto">
-                <TabsTrigger value="events-stats" className="text-xs sm:text-sm whitespace-normal py-2">
-                  Estatísticas por Evento
-                </TabsTrigger>
-                <TabsTrigger value="user-performance" className="text-xs sm:text-sm whitespace-normal py-2">
-                  Desempenho por Usuário
-                </TabsTrigger>
-                <TabsTrigger value="reports" className="text-xs sm:text-sm whitespace-normal py-2">
-                  Relatórios
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="text-xs sm:text-sm whitespace-normal py-2">
-                  Analytics
-                </TabsTrigger>
-                <TabsTrigger value="utm-generator" className="text-xs sm:text-sm whitespace-normal py-2">
-                  Gerador UTM
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="events-stats" className="space-y-4">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <MemoizedDashboardStats eventId={globalSelectedEventId === 'all' ? undefined : globalSelectedEventId} />
-                </Suspense>
-              </TabsContent>
-
-              <TabsContent value="user-performance" className="space-y-4">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <MemoizedUserPerformance eventId={globalSelectedEventId === 'all' ? undefined : globalSelectedEventId} />
-                </Suspense>
-              </TabsContent>
-
-              <TabsContent value="reports" className="space-y-6">
-                {/* Renderizar relatórios apenas quando evento estiver selecionado */}
-                {globalSelectedEventId !== 'all' && <div className="space-y-6">
-                    {/* Slot Exhaustion Prediction */}
-                    {filteredEvents.find(e => e.id === globalSelectedEventId)?.numero_de_vagas && <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            🤖 Previsão Detalhada de Esgotamento (IA)
-                          </CardTitle>
-                          <CardDescription>
-                            Análise inteligente sobre quando as vagas do evento devem se esgotar
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                            <SlotExhaustionPrediction eventId={globalSelectedEventId} eventTitle={filteredEvents.find(e => e.id === globalSelectedEventId)?.title || ""} />
-                          </Suspense>
-                        </CardContent>
-                      </Card>}
-
-                    {/* Top Promoters Ranking */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          🏆 Ranking de Divulgadoras
-                        </CardTitle>
-                        <CardDescription>
-                          Top 10 divulgadoras com melhor desempenho neste evento
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-                          <TopPromotersRanking eventId={globalSelectedEventId} limit={10} />
-                        </Suspense>
-                      </CardContent>
-                    </Card>
-
-                    {/* Relatório Detalhado de Metas por Tipo */}
-                    {profile?.agency_id && <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                        <DetailedGoalsReport agencyId={profile.agency_id} eventId={globalSelectedEventId} />
-                      </Suspense>}
-
-                    {/* Divulgadoras que bateram meta */}
-                    {profile?.agency_id && <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                        <GoalAchievedReport agencyId={profile.agency_id} eventId={globalSelectedEventId} />
-                      </Suspense>}
-
-                    {/* Gerenciador de Status de Participantes */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          👥 Gerenciar Participantes
-                        </CardTitle>
-                        <CardDescription>
-                          Marcar divulgadoras como removidas/ativas do evento
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                          <ParticipantStatusManager eventId={globalSelectedEventId} eventTitle={filteredEvents.find(e => e.id === globalSelectedEventId)?.title || ""} />
-                        </Suspense>
-                      </CardContent>
-                    </Card>
-                  </div>}
-
-              </TabsContent>
-
-              {/* Nova aba Analytics */}
-              <TabsContent value="analytics" className="space-y-6">
-                {currentAgency && <div className="space-y-4">
-                    <h3 className="text-xl font-bold flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5" />
-                      📊 Analytics de Indicações
-                    </h3>
-
-                    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                      <ReferralAnalytics agencyId={currentAgency.id} eventId={globalSelectedEventId === 'all' ? undefined : globalSelectedEventId} />
-                    </Suspense>
-                  </div>}
-              </TabsContent>
-
-              {/* Nova aba Gerador UTM */}
-              <TabsContent value="utm-generator" className="space-y-6">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <UTMLinkGenerator />
-                </Suspense>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
+          {/* ✅ FASE 5.3: AdminStatsTab integrado */}
+          <AdminStatsTab
+            events={events}
+            filteredEvents={filteredEvents}
+            globalStatsEventFilter={globalStatsEventFilter}
+            globalSelectedEventId={globalSelectedEventId}
+            agencyId={currentAgency?.id}
+            profileAgencyId={profile?.agency_id}
+            onFilterChange={setGlobalStatsEventFilter}
+            onEventChange={setGlobalSelectedEventId}
+          />
 
           {/* Push analytics desativado - sistema push desabilitado */}
 
