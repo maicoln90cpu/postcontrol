@@ -121,16 +121,15 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
         full_name: profile?.full_name || "Sem nome",
         avatar_url: profile?.avatar_url || null,
         phone: profile?.phone || null,
-        current_posts: g.current_posts || 0,
-        current_sales: g.current_sales || 0,
-        required_posts: g.required_posts || 0,
-        required_sales: g.required_sales || 0,
-        goal_achieved: g.goal_achieved || false,
+        current_posts: g.current_posts ?? 0,
+        current_sales: g.current_sales ?? 0,
+        required_posts: g.required_posts ?? 0,
+        required_sales: g.required_sales ?? 0,
+        goal_achieved: g.goal_achieved === true,
         participation_status: g.participation_status || "active",
         withdrawn_reason: g.withdrawn_reason || null,
         withdrawn_at: g.withdrawn_at || null,
-        // These fields may not exist yet if migration not applied
-        manual_approval: g.manual_approval || false,
+        manual_approval: g.manual_approval === true,
         manual_approval_reason: g.manual_approval_reason || null,
       };
     });
@@ -152,11 +151,15 @@ export const ParticipantStatusManager = ({ eventId, eventTitle }: ParticipantSta
     } else if (filter === "withdrawn") {
       filtered = filtered.filter(p => p.participation_status === "withdrawn");
     } else if (filter === "goal_achieved") {
-      filtered = filtered.filter(p => p.goal_achieved);
+      filtered = filtered.filter(p => p.goal_achieved === true);
     } else if (filter === "manual_approved") {
-      filtered = filtered.filter(p => p.manual_approval && !p.goal_achieved);
+      filtered = filtered.filter(p => p.manual_approval === true && p.goal_achieved !== true);
     } else if (filter === "in_progress") {
-      filtered = filtered.filter(p => !p.goal_achieved && !p.manual_approval);
+      filtered = filtered.filter(p => 
+        p.goal_achieved !== true && 
+        p.manual_approval !== true && 
+        p.participation_status === "active"
+      );
     }
 
     if (searchTerm) {

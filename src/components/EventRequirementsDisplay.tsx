@@ -54,20 +54,23 @@ export const EventRequirementsDisplay = ({ eventId, variant = "full" }: EventReq
   });
 
   // Query para buscar aprovados manualmente (que NÃO bateram meta técnica)
-  const { data: manualApprovedCount } = useQuery({
+  const { data: manualApprovedCount = 0 } = useQuery({
     queryKey: ["manual-approved-count", eventId],
     queryFn: async () => {
       const { count, error } = await supabase
         .from("user_event_goals")
         .select("*", { count: "exact", head: true })
         .eq("event_id", eventId)
-        .eq("manual_approval", true)
-        .eq("goal_achieved", false);
+        .eq("manual_approval", true);
 
-      if (error) throw error;
-      return count || 0;
+      if (error) {
+        console.error("Error fetching manual approved count:", error);
+        return 0;
+      }
+      return count ?? 0;
     },
     enabled: !!eventId,
+    staleTime: 30000,
   });
 
   if (isLoading) {
@@ -138,7 +141,7 @@ export const EventRequirementsDisplay = ({ eventId, variant = "full" }: EventReq
             </div>
           </div>
         ))}
-        {manualApprovedCount !== undefined && manualApprovedCount > 0 && (
+  {manualApprovedCount > 0 && (
           <div className="flex items-center justify-end p-2">
             <Badge variant="outline" className="bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs">
               <Award className="w-3 h-3 mr-1" />
@@ -204,7 +207,7 @@ export const EventRequirementsDisplay = ({ eventId, variant = "full" }: EventReq
         ))}
 
         {/* Mostrar aprovados manualmente */}
-        {manualApprovedCount !== undefined && manualApprovedCount > 0 && (
+        {manualApprovedCount > 0 && (
           <div className="p-3 bg-violet-500/10 rounded-md border border-violet-500/20">
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-violet-600 dark:text-violet-400" />
