@@ -19,6 +19,15 @@ import { AdminEventList } from "./Admin/AdminEventList";
 import { useAdminFilters } from "./Admin/useAdminFilters";
 import { SubmissionCardsGrid } from "@/components/SubmissionCardsGrid";
 
+// ✅ FASE 5: Importar tabs refatorados
+import { 
+  AdminUsersTab, 
+  AdminGuestsTab, 
+  AdminAuditTab, 
+  AdminSettingsTab, 
+  AdminGuestListTab 
+} from "./Admin/tabs";
+
 // ✅ Sprint 2B: Importar hooks consolidados
 import { useEventsQuery, useSubmissionsQuery, useUpdateSubmissionStatusMutation, useBulkUpdateSubmissionStatusMutation,
 // 🔴 FASE 1: Import bulk mutation
@@ -2509,29 +2518,11 @@ const Admin = () => {
               </>}
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <MemoizedUserManagement />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="guests" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              {currentAgency && <GuestManager agencyId={currentAgency.id} />}
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="guest-lists" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <GuestListManager />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="audit" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              {currentAgency && <GuestAuditLog agencyId={currentAgency.id} />}
-            </Suspense>
-          </TabsContent>
+          {/* ✅ FASE 5: Tabs refatorados */}
+          <AdminUsersTab />
+          <AdminGuestsTab agencyId={currentAgency?.id} />
+          <AdminGuestListTab />
+          <AdminAuditTab agencyId={currentAgency?.id} />
 
           <TabsContent value="statistics" className="space-y-6">
             {/* ✅ FASE 1: Card de Filtros Global (usado por todas as sub-abas) */}
@@ -2696,16 +2687,11 @@ const Admin = () => {
 
           {/* Push analytics desativado - sistema push desabilitado */}
 
-          <TabsContent value="settings" className="space-y-6">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              {isMasterAdmin ? <MemoizedAdminSettings isMasterAdmin={true} /> : <AgencyAdminSettings />}
-            </Suspense>
-
-            {/* Goal Notification Settings */}
-            {currentAgency && <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-                <GoalNotificationSettings agencyId={currentAgency.id} />
-              </Suspense>}
-          </TabsContent>
+          {/* ✅ FASE 5: Tab de Settings refatorado */}
+          <AdminSettingsTab 
+            isMasterAdmin={isMasterAdmin || false} 
+            currentAgencyId={currentAgency?.id} 
+          />
         </Tabs>
       </div>
 
