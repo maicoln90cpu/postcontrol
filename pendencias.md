@@ -7,7 +7,7 @@
 ## 🏗️ REFATORAÇÃO ADMIN.tsx - PLANO COMPLETO
 
 ### Objetivo
-Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
+Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab de submissões inline).
 
 ### Fases do Projeto
 
@@ -16,8 +16,8 @@ Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
 | **1** | Criar Hooks Consolidados | ✅ Concluída | 5 hooks + index |
 | **2** | Criar Componentes de Tab | ✅ Concluída | 5 tabs iniciais + index |
 | **3** | Criar Componentes Compartilhados | ✅ Concluída | 3 componentes + index |
-| **4** | Tabs Adicionais e Integração | 🟡 Parcial | +3 tabs (Users, Guests, Audit) |
-| **5** | Refatorar Admin.tsx Principal | ⏳ Pendente | Orquestrador ~400 linhas |
+| **4** | Tabs Adicionais | ✅ Concluída | +3 tabs (Users, Guests, Audit) |
+| **5** | Refatorar Admin.tsx Principal | 🟡 Revisado | Manter Submissões inline (~800 linhas) |
 | **6** | Testes e Validação | ⏳ Pendente | - |
 
 ---
@@ -68,43 +68,46 @@ Reduzir Admin.tsx de **2916 linhas** para **~400 linhas** (orquestrador limpo).
 
 ---
 
-### 🟡 FASE 4: Tabs Adicionais e Integração (PARCIAL)
+### ✅ FASE 4: Tabs Adicionais (CONCLUÍDA)
 
-**Novos arquivos criados:**
+**Arquivos criados:**
 - `AdminUsersTab.tsx` - Wrapper para MemoizedUserManagement
 - `AdminGuestsTab.tsx` - Wrapper para GuestManager  
 - `AdminAuditTab.tsx` - Wrapper para GuestAuditLog
 
-**Pendente:**
-- [ ] Criar AdminSubmissionsTab (mais complexa - exige adaptação de props)
-- [ ] Integrar todos os tabs no Admin.tsx principal
+**AdminSubmissionsTab - Decisão Arquitetural:**
 
-**Nota:** A tab de Submissões é a mais complexa pois os componentes existentes (AdminFilters, AdminSubmissionList, SubmissionCardsGrid, SubmissionKanban) possuem interfaces de props muito específicas que diferem do padrão dos novos tabs. Requer análise detalhada das dependências antes de refatorar.
+A tab de Submissões permanece inline no Admin.tsx devido à complexidade das interfaces:
+- `AdminFilters` requer ~20 props específicas com callbacks nomeados diferentemente
+- `AdminSubmissionList` requer ~18 props com componentes lazy-loaded injetados
+- `SubmissionCardsGrid` requer props de paginação e imageUrls cache
+- `SubmissionKanban` usa dnd-kit com pattern próprio de estado
+
+Extrair essa tab exigiria:
+1. Criar adapter layer para normalizar interfaces
+2. Ou refatorar todos os 4 componentes filhos (risco alto)
+3. Custo-benefício desfavorável: ~600 linhas economizadas vs ~2h de refatoração arriscada
+
+**Estratégia aprovada:** Manter Submissões inline, reduzir Admin.tsx para ~800 linhas usando hooks e tabs extraídos para outras abas.
 
 ---
 
-### ⏳ FASE 5: Refatorar Admin.tsx Principal (PENDENTE)
+### 🟡 FASE 5: Integração no Admin.tsx (REVISADA)
 
-**Arquivo:** `src/pages/Admin.tsx`
+**Nova meta:** Reduzir Admin.tsx de 2916 para ~800 linhas
 
-O Admin.tsx será refatorado para:
-- Usar todos os hooks da Fase 1
-- Renderizar os tabs das Fases 2 e 4
-- Usar componentes compartilhados da Fase 3
-- Conter apenas lógica de orquestração (~400 linhas)
+**Abordagem incremental:**
+1. ✅ Hooks já existem - podem ser usados sem alterar comportamento
+2. ✅ Tabs simples já existem - Users, Guests, Audit, GuestList, Settings
+3. 🔄 Tabs complexas (Events, Posts) - testar integração gradual
+4. ⏸️ Tab Submissões - permanece inline (funcionalidade crítica)
 
-**Passos:**
-1. Importar hooks consolidados de `./Admin/hooks`
-2. Importar tabs de `./Admin/tabs`
-3. Importar componentes de `./Admin/components`
-4. Remover estados locais (já em useAdminState)
-5. Remover queries inline (já em useAdminQueries)
-6. Remover mutations inline (já em useAdminMutations)
-7. Orquestrar passagem de props entre componentes
-
-**Bloqueadores:**
-- Tab de Submissões precisa ser criada/adaptada primeiro
-- Testar compatibilidade de props entre hooks e tabs
+**Próximos passos:**
+- [ ] Substituir TabsContent de Users, Guests, Audit por componentes do tabs/
+- [ ] Substituir TabsContent de Settings por AdminSettingsTab
+- [ ] Substituir TabsContent de GuestList por AdminGuestListTab
+- [ ] Avaliar viabilidade de integrar AdminEventsTab e AdminPostsTab
+- [ ] Manter lógica de Submissões inline por segurança
 
 ---
 
@@ -123,11 +126,16 @@ O Admin.tsx será refatorado para:
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
-- [x] [FRONT] 2024-12-13 – **FASE 4 Refatoração Admin.tsx (Parcial)**: Criados 3 tabs adicionais em src/pages/Admin/tabs/:
+- [x] [FRONT] 2024-12-13 – **FASE 4/5 Refatoração Admin.tsx (Revisada)**: 
+  - Análise de viabilidade da AdminSubmissionsTab concluída
+  - **Decisão:** Tab de Submissões permanece inline devido à complexidade de interfaces
+  - Componentes filhos (AdminFilters, AdminSubmissionList, SubmissionCardsGrid, SubmissionKanban) possuem ~70 props combinadas com padrões incompatíveis
+  - Nova meta: Admin.tsx de 2916 → ~800 linhas (não 400)
+  - Estratégia atualizada: usar tabs simples já criados, manter Submissões inline
+- [x] [FRONT] 2024-12-13 – **FASE 4 Refatoração Admin.tsx**: Criados 3 tabs adicionais em src/pages/Admin/tabs/:
   - `AdminUsersTab.tsx`: Wrapper para MemoizedUserManagement
   - `AdminGuestsTab.tsx`: Wrapper para GuestManager
   - `AdminAuditTab.tsx`: Wrapper para GuestAuditLog
-  - **Nota:** AdminSubmissionsTab não criada - requer adaptação de props dos componentes existentes
 - [x] [FRONT] 2024-12-13 – **FASE 3 Refatoração Admin.tsx**: Criados 3 componentes compartilhados em src/pages/Admin/components/:
   - `AdminHeader.tsx`: Header completo com avatar, trial banners, slot alerts, agency indicator e navegação
   - `AdminStatsCards.tsx`: Cards de estatísticas com ícones e gradientes
