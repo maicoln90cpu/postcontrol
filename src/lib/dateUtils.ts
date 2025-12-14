@@ -64,6 +64,17 @@ export function getTodayBRT(): string {
 }
 
 /**
+ * Retorna a data de ontem no formato YYYY-MM-DD no timezone configurado
+ * Usado para incluir eventos que cruzam meia-noite (ex: início 23:50, fim 12:00 do dia seguinte)
+ */
+export function getYesterdayBRT(): string {
+  const timezone = getTimezone();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return yesterday.toLocaleDateString('en-CA', { timeZone: timezone });
+}
+
+/**
  * Retorna o timestamp atual no timezone configurado
  */
 export function getNowBRT(): Date {

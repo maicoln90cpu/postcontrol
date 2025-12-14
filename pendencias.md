@@ -115,6 +115,11 @@ Para de fato reduzir Admin.tsx de 2902 para ~800 linhas:
 
 ## 📝 HISTÓRICO DE MUDANÇAS RECENTES
 
+- [x] [FRONT] 2024-12-14 – **Correção Bug Guest List Meia-noite**:
+  - Adicionada função `getYesterdayBRT()` em `dateUtils.ts`
+  - Alterado filtro em `GuestListRegister.tsx` de `getTodayBRT()` para `getYesterdayBRT()`
+  - Eventos que cruzam meia-noite (ex: 23:50-12:00) agora aparecem corretamente com links alternativos
+  - Resolvido problema da festa "Nave" não aparecer após 00:00
 - [x] [FRONT] 2024-12-13 – **FASE 6.2 useAdminMutations Integrado**:
   - Substituídas ~180 linhas de handlers duplicados por `useAdminMutations` hook
   - Consolidou handleApproveSubmission, handleBulkApprove, handleDeleteEvent, handleDuplicateEvent, handleDeletePost, handleDeleteSubmission
