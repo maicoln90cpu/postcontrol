@@ -49,6 +49,9 @@ import { useAdminQueries } from "./Admin/hooks/useAdminQueries";
 // ✅ FASE 6.2: Importar hook de mutations consolidado
 import { useAdminMutations } from "./Admin/hooks/useAdminMutations";
 
+// ✅ FASE 6.3: Importar hook de agency consolidado
+import { useAdminAgency } from "./Admin/hooks/useAdminAgency";
+
 // ✅ FASE 6.2: Mutations agora vêm do useAdminMutations
 import { useQueryClient } from "@tanstack/react-query";
 import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon, Loader2 } from "lucide-react";
@@ -227,13 +230,34 @@ const Admin = () => {
     },
   } = adminState;
 
-  // Estados que permanecem locais (específicos de dados/UI não consolidáveis)
-  const [currentAgency, setCurrentAgency] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [agencySlug, setAgencySlug] = useState<string>("");
-  const [rejectionTemplatesFromDB, setRejectionTemplatesFromDB] = useState<any[]>([]);
-  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-  const [usersCount, setUsersCount] = useState(0);
+  // ✅ FASE 6.3: Hook consolidado de agency (substitui ~200 linhas de código)
+  const adminAgency = useAdminAgency({
+    userId: user?.id,
+    isMasterAdmin,
+    isAgencyAdmin,
+  });
+
+  const {
+    currentAgency,
+    setCurrentAgency,
+    profile,
+    agencySlug,
+    trialInfo,
+    usersCount,
+    rejectionTemplatesFromDB,
+    imageUrls,
+    setImageUrls,
+    isReadOnly,
+    hasLoadedInitialData,
+    setHasLoadedInitialData,
+    hasLoadedSubmissions,
+    setHasLoadedSubmissions,
+    lastSubmissionFilter,
+    setLastSubmissionFilter,
+    loadUsersCount,
+    copySlugUrl,
+    copyEventUrl,
+  } = adminAgency;
 
   // ✅ SPRINT 1: Persistir índice de zoom entre filtros
   useEffect(() => {
@@ -373,16 +397,6 @@ const Admin = () => {
     isDeletingSubmission,
   } = adminMutations;
 
-  // Trial state management
-  const [trialInfo, setTrialInfo] = useState<{
-    inTrial: boolean;
-    expired: boolean;
-    daysRemaining: number;
-  } | null>(null);
-
-  // Compute read-only mode based on trial expiration
-  const isReadOnly = trialInfo?.expired || false;
-
   // Debounce para busca
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -390,34 +404,6 @@ const Admin = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
-
-  // ✅ FASE 1: Consolidação de useEffects para evitar múltiplas chamadas
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const agencySlug = urlParams.get("agency");
-    const agencyId = urlParams.get("agencyId");
-    const initializeData = async () => {
-      if (!user || !isAgencyAdmin && !isMasterAdmin) return;
-      logger.info("🚀 [Admin] Inicializando dados...");
-
-      // 1. Carregar agência se houver slug/id na URL
-      if (agencyId && isMasterAdmin) {
-        await loadAgencyById(agencyId);
-      } else if (agencySlug && (isAgencyAdmin || isMasterAdmin)) {
-        await loadAgencyBySlug(agencySlug);
-      } else {
-        await loadCurrentAgency();
-      }
-
-      // 2. Carregar dados complementares
-      loadRejectionTemplates();
-      loadUsersCount();
-    };
-    initializeData();
-  }, [user, isAgencyAdmin, isMasterAdmin]);
-
-  // Estado para prevenir refetch duplicado
-  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
 
   // ✅ ITEM 5: Resetar filtro de evento quando mudar status ativo/inativo
   useEffect(() => {
@@ -431,54 +417,10 @@ const Admin = () => {
       refetchEvents();
       loadUsersCount();
       setHasLoadedInitialData(true);
-
-      // Check trial status
-      if (currentAgency.subscription_status === "trial") {
-        const now = new Date();
-        const startDate = currentAgency.trial_start_date ? new Date(currentAgency.trial_start_date) : null;
-        const endDate = currentAgency.trial_end_date ? new Date(currentAgency.trial_end_date) : null;
-        if (endDate) {
-          const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-          setTrialInfo({
-            inTrial: daysRemaining > 0,
-            expired: daysRemaining <= 0,
-            daysRemaining: Math.max(0, daysRemaining)
-          });
-        }
-      } else {
-        setTrialInfo(null);
-      }
     }
   }, [currentAgency]);
 
-  // ✅ CORREÇÃO 5: Adicionar Realtime listener para atualizar logo automaticamente
-  useEffect(() => {
-    if (!currentAgency?.id) return;
-    const channel = sb.channel("agency-logo-updates").on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "agencies",
-      filter: `id=eq.${currentAgency.id}`
-    }, (payload: any) => {
-      logger.info("🔄 [Realtime] Agência atualizada:", payload.new);
-      if (payload.new.logo_url !== currentAgency.logo_url) {
-        logger.info("🖼️ [Realtime] Logo atualizado:", payload.new.logo_url);
-        setCurrentAgency((prev: any) => ({
-          ...prev,
-          logo_url: payload.new.logo_url
-        }));
-        toast.success("Logo atualizado!");
-      }
-    }).subscribe();
-    return () => {
-      sb.removeChannel(channel);
-    };
-  }, [currentAgency?.id]);
-
   // Carregar submissions apenas quando filtro ou agência mudarem
-  // 🔴 CORREÇÃO 4: Proteção contra refetch duplicado
-  const [hasLoadedSubmissions, setHasLoadedSubmissions] = useState(false);
-  const [lastSubmissionFilter, setLastSubmissionFilter] = useState("");
   useEffect(() => {
     if (user && (isAgencyAdmin || isMasterAdmin) && currentAgency) {
       const filterKey = `${submissionEventFilter}-${currentAgency.id}`;
@@ -496,164 +438,6 @@ const Admin = () => {
     }
   }, [submissionEventFilter, currentAgency?.id]);
 
-  // ✅ CORREÇÃO #3+4: Invalidar todos os caches quando agência mudar
-  useEffect(() => {
-    if (currentAgency?.id) {
-      logger.info("🔄 [Admin] Invalidando caches para agência:", currentAgency.id);
-      queryClient.invalidateQueries({
-        queryKey: ["events"]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["submission-counters"]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["submissions"]
-      });
-    }
-  }, [currentAgency?.id, queryClient]);
-  const loadAgencyById = async (id: string) => {
-    const {
-      data
-    } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", id).maybeSingle();
-    if (data) {
-      setCurrentAgency(data);
-      logger.info("🏢 Master Admin visualizando agência:", data.name);
-    }
-  };
-  const loadCurrentAgency = async () => {
-    if (!user) return;
-    logger.info("🔍 [loadCurrentAgency] Iniciando...");
-
-    // Load user profile
-    const {
-      data: profileData,
-      error: profileError
-    } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
-    if (profileError) {
-      logger.error("❌ Erro ao carregar profile:", profileError);
-      return;
-    }
-    logger.info("✅ Profile carregado:", {
-      id: profileData?.id,
-      email: profileData?.email,
-      agency_id: profileData?.agency_id
-    });
-    setProfile(profileData);
-
-    // If master admin and viewing specific agency, use query param
-    const urlParams = new URLSearchParams(window.location.search);
-    const agencySlug = urlParams.get("agency");
-    const agencyId = urlParams.get("agencyId");
-    if (agencySlug) {
-      const {
-        data,
-        error
-      } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("slug", agencySlug).maybeSingle();
-      if (error) {
-        logger.error("❌ Erro ao carregar agência por slug:", error);
-        return;
-      }
-      logger.info("🏢 Loaded agency from URL (slug):", data);
-      setCurrentAgency(data);
-      setAgencySlug(data?.slug || "");
-      return;
-    }
-    if (agencyId && isMasterAdmin) {
-      const {
-        data,
-        error
-      } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", agencyId).maybeSingle();
-      if (error) {
-        logger.error("❌ Erro ao carregar agência por ID:", error);
-        return;
-      }
-      logger.info("🏢 Loaded agency from URL (id):", data);
-      setCurrentAgency(data);
-      setAgencySlug(data?.slug || "");
-      return;
-    }
-
-    // If agency admin, load their own agency
-    if (isAgencyAdmin && !isMasterAdmin && profileData?.agency_id) {
-      logger.info("👤 Agency Admin detectado, carregando agência:", profileData.agency_id);
-      const {
-        data: agencyData,
-        error: agencyError
-      } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("id", profileData.agency_id).maybeSingle();
-      if (agencyError) {
-        logger.error("❌ Erro ao carregar agência:", agencyError);
-        toast.error("Erro ao carregar dados da agência");
-        return;
-      }
-      if (!agencyData) {
-        logger.error("❌ Agência não encontrada para ID:", profileData.agency_id);
-        toast.error("Agência não encontrada");
-        return;
-      }
-      logger.info("✅ Agência carregada:", agencyData);
-      setCurrentAgency(agencyData);
-      setAgencySlug(agencyData?.slug || "");
-    } else if (isMasterAdmin && !agencySlug && !agencyId) {
-      logger.info("👑 Master Admin sem filtro de agência - visualizando todos os dados");
-    }
-  };
-  const loadAgencyBySlug = async (slug: string) => {
-    const {
-      data
-    } = await sb.from("agencies").select("id, name, slug, logo_url, subscription_plan, subscription_status, trial_start_date, trial_end_date").eq("slug", slug).maybeSingle();
-    setCurrentAgency(data);
-  };
-  const loadRejectionTemplates = async () => {
-    const {
-      data
-    } = await sb.from("rejection_templates").select("*").order("title");
-    setRejectionTemplatesFromDB(data || []);
-  };
-  const loadUsersCount = async () => {
-    if (!user) return;
-    let agencyIdFilter = null;
-    const urlParams = new URLSearchParams(window.location.search);
-    const queryAgencyId = urlParams.get("agencyId");
-    if (queryAgencyId && isMasterAdmin) {
-      agencyIdFilter = queryAgencyId;
-    } else if (isMasterAdmin && !currentAgency) {
-      agencyIdFilter = null;
-    } else if (currentAgency) {
-      agencyIdFilter = currentAgency.id;
-    } else if (isAgencyAdmin) {
-      const {
-        data: profileData
-      } = await sb.from("profiles").select("agency_id").eq("id", user.id).maybeSingle();
-      agencyIdFilter = profileData?.agency_id;
-    }
-    let countQuery = sb.from("profiles").select("*", {
-      count: "exact",
-      head: true
-    });
-    if (agencyIdFilter) {
-      countQuery = countQuery.eq("agency_id", agencyIdFilter);
-    }
-    const {
-      count
-    } = await countQuery;
-    setUsersCount(count || 0);
-  };
-
-  // ✅ ITEM 10: useCallback para evitar re-criação da função
-  const copySlugUrl = useCallback(() => {
-    const url = `${window.location.origin}/agencia/${agencySlug}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copiado!", {
-      description: "URL de cadastro copiada para a área de transferência"
-    });
-  }, [agencySlug]);
-  const copyEventUrl = useCallback((agencySlug: string, eventSlug: string) => {
-    const url = `${window.location.origin}/agencia/${agencySlug}/evento/${eventSlug}`;
-    navigator.clipboard.writeText(url);
-    toast.success("URL do Evento Copiada!", {
-      description: "A URL pública do evento foi copiada para a área de transferência."
-    });
-  }, []);
 
   // ✅ FASE 6.2: handleApproveSubmission vem do useAdminMutations
   const handleRejectSubmission = async (submissionId: string) => {
@@ -1337,7 +1121,7 @@ const Admin = () => {
             }}
             onDuplicateEvent={handleDuplicateEvent}
             onDeleteEvent={setEventToDelete}
-            onCopyEventUrl={copyEventUrl}
+            onCopyEventUrl={(_agencySlug, eventSlug) => copyEventUrl(eventSlug)}
           />
 
           {/* ✅ FASE 5.2: Tab de Postagens integrada */}

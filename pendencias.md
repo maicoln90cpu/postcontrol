@@ -13,8 +13,8 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 
 | Métrica | Antes | Depois | Diferença |
 |---------|-------|--------|-----------|
-| **Admin.tsx** | 2916 linhas | ~1853 linhas | -1063 linhas |
-| **useState no Admin** | ~50 useState | ~6 useState | -44 useState |
+| **Admin.tsx** | 2916 linhas | ~1637 linhas | -1279 linhas |
+| **useState no Admin** | ~50 useState | ~4 useState | -46 useState |
 | **Arquivos criados** | 0 | 19 arquivos | +19 novos |
 | **Estrutura** | Monolítico | Organizado em pastas | ✅ Melhor |
 
@@ -36,12 +36,12 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ✅ `useAdminState` - criado e INTEGRADO (Fase 5.4) - substituiu ~30 useState
 - ✅ `useAdminQueries` - criado e INTEGRADO (Fase 6.1) - substituiu ~50 linhas de queries
 - ✅ `useAdminMutations` - criado e INTEGRADO (Fase 6.2) - substituiu ~180 linhas de handlers
+- ✅ `useAdminAgency` - criado e INTEGRADO (Fase 6.3) - substituiu ~216 linhas de lógica de agência
 
-**Próximos passos (Fase 6.3+):**
-- ❌ `useAdminAgency` - criado mas NÃO conectado
-- ❌ `useAdminHandlers` - criado mas NÃO conectado
+**Próximos passos (Fase 6.4+):**
+- ❌ `useAdminHandlers` - criado mas NÃO conectado (zoom, export, helpers)
 
-**Conclusão:** Fase 6.2 concluída! Admin.tsx reduzido de 2916 para ~1853 linhas (-36.5%). Restam otimizações de hooks adicionais (Fase 6.3+).
+**Conclusão:** Fase 6.3 concluída! Admin.tsx reduzido de 2916 para ~1637 linhas (-43.9%). Restam otimizações de handlers adicionais (Fase 6.4).
 
 ---
 
@@ -64,7 +64,8 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **6** | Testes e Validação | ✅ Concluída | Funcionando |
 | **6.1** | Integrar useAdminQueries | ✅ Concluída | -50 linhas (queries) |
 | **6.2** | Integrar useAdminMutations | ✅ Concluída | -180 linhas (handlers) |
-| **6.3** | Integrar useAdminAgency | 🔲 Pendente | ~80 linhas estimadas |
+| **6.3** | Integrar useAdminAgency | ✅ Concluída | -216 linhas (agência/trial) |
+| **6.4** | Integrar useAdminHandlers | 🔲 Pendente | ~40 linhas estimadas |
 
 ---
 
