@@ -13,7 +13,7 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 
 | Métrica | Antes | Depois | Diferença |
 |---------|-------|--------|-----------|
-| **Admin.tsx** | 2916 linhas | ~1637 linhas | -1279 linhas |
+| **Admin.tsx** | 2916 linhas | ~1580 linhas | -1336 linhas |
 | **useState no Admin** | ~50 useState | ~4 useState | -46 useState |
 | **Arquivos criados** | 0 | 19 arquivos | +19 novos |
 | **Estrutura** | Monolítico | Organizado em pastas | ✅ Melhor |
@@ -37,11 +37,9 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 - ✅ `useAdminQueries` - criado e INTEGRADO (Fase 6.1) - substituiu ~50 linhas de queries
 - ✅ `useAdminMutations` - criado e INTEGRADO (Fase 6.2) - substituiu ~180 linhas de handlers
 - ✅ `useAdminAgency` - criado e INTEGRADO (Fase 6.3) - substituiu ~216 linhas de lógica de agência
+- ✅ `useAdminHandlers` - constantes INTEGRADAS (Fase 6.4) - substituiu ~50 linhas de constantes (REJECTION_TEMPLATES, AVAILABLE_EXPORT_COLUMNS)
 
-**Próximos passos (Fase 6.4+):**
-- ❌ `useAdminHandlers` - criado mas NÃO conectado (zoom, export, helpers)
-
-**Conclusão:** Fase 6.3 concluída! Admin.tsx reduzido de 2916 para ~1637 linhas (-43.9%). Restam otimizações de handlers adicionais (Fase 6.4).
+**Conclusão:** Fase 6 concluída! Admin.tsx reduzido de 2916 para ~1580 linhas (-45.8%). Refatoração completa!
 
 ---
 
@@ -61,11 +59,11 @@ Reduzir Admin.tsx de **2916 linhas** para **~800 linhas** (orquestrador com tab 
 | **5.5** | Integrar AdminDialogs | ✅ Concluída | -127 linhas (diálogos) |
 | **5.6** | Integrar AdminHeader | ✅ Concluída | -167 linhas (header) |
 | **5.7** | Integrar AdminStatsCards | ✅ Concluída | -58 linhas (stats cards) |
-| **6** | Testes e Validação | ✅ Concluída | Funcionando |
+| **6** | Integração de Hooks | ✅ Concluída | Todos hooks conectados |
 | **6.1** | Integrar useAdminQueries | ✅ Concluída | -50 linhas (queries) |
 | **6.2** | Integrar useAdminMutations | ✅ Concluída | -180 linhas (handlers) |
 | **6.3** | Integrar useAdminAgency | ✅ Concluída | -216 linhas (agência/trial) |
-| **6.4** | Integrar useAdminHandlers | 🔲 Pendente | ~40 linhas estimadas |
+| **6.4** | Integrar useAdminHandlers | ✅ Concluída | -50 linhas (constantes) |
 
 ---
 
