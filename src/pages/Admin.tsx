@@ -52,6 +52,9 @@ import { useAdminMutations } from "./Admin/hooks/useAdminMutations";
 // ✅ FASE 6.3: Importar hook de agency consolidado
 import { useAdminAgency } from "./Admin/hooks/useAdminAgency";
 
+// ✅ FASE 6.4: Importar constantes do hook de handlers
+import { REJECTION_TEMPLATES, AVAILABLE_EXPORT_COLUMNS } from "./Admin/hooks/useAdminHandlers";
+
 // ✅ FASE 6.2: Mutations agora vêm do useAdminMutations
 import { useQueryClient } from "@tanstack/react-query";
 import { Calendar, Users, Trophy, Plus, Send, Pencil, Check, X, CheckCheck, Trash2, Copy, Columns3, Building2, ArrowLeft, Download, User, Clock, XCircle, MessageSquare, Lightbulb, CreditCard, Link as LinkIcon, Loader2 } from "lucide-react";
@@ -472,40 +475,6 @@ const Admin = () => {
     }
   };
 
-  // Funções de navegação do zoom
-  const handleOpenZoom = (submissionId: string) => {
-    const index = getFilteredSubmissions.findIndex(s => s.id === submissionId);
-    if (index !== -1) {
-      setZoomSubmissionIndex(index);
-      setZoomDialogOpen(true);
-    }
-  };
-  const handleZoomNext = () => {
-    if (zoomSubmissionIndex < getPaginatedSubmissions.length - 1) {
-      setZoomSubmissionIndex(prev => prev + 1);
-    }
-  };
-  const handleZoomPrevious = () => {
-    if (zoomSubmissionIndex > 0) {
-      setZoomSubmissionIndex(prev => prev - 1);
-    }
-  };
-  const rejectionTemplates = [{
-    value: "formato",
-    label: "Imagem fora do padrão"
-  }, {
-    value: "conteudo",
-    label: "Post não relacionado ao evento"
-  }, {
-    value: "prazo",
-    label: "Prazo expirado"
-  }, {
-    value: "qualidade",
-    label: "Qualidade da imagem inadequada"
-  }, {
-    value: "outro",
-    label: "Outro (especificar abaixo)"
-  }];
   // ✅ FASE 6.2: handleStatusChange vem do useAdminMutations (com wrapper para compatibilidade)
   const handleStatusChangeWrapper = (submissionId: string, newStatus: string) => {
     handleStatusChange(submissionId, newStatus as "approved" | "rejected" | "pending");
@@ -553,6 +522,30 @@ const Admin = () => {
   const getPaginatedSubmissions = useMemo(() => {
     return getFilteredSubmissions;
   }, [getFilteredSubmissions]);
+
+  // ✅ FASE 6.4: Funções de navegação do zoom
+  const handleOpenZoom = useCallback((submissionId: string) => {
+    const index = getFilteredSubmissions.findIndex((s: any) => s.id === submissionId);
+    if (index !== -1) {
+      setZoomSubmissionIndex(index);
+      setZoomDialogOpen(true);
+    }
+  }, [getFilteredSubmissions, setZoomSubmissionIndex, setZoomDialogOpen]);
+
+  const handleZoomNext = useCallback(() => {
+    if (zoomSubmissionIndex < getPaginatedSubmissions.length - 1) {
+      setZoomSubmissionIndex(prev => prev + 1);
+    }
+  }, [zoomSubmissionIndex, getPaginatedSubmissions.length, setZoomSubmissionIndex]);
+
+  const handleZoomPrevious = useCallback(() => {
+    if (zoomSubmissionIndex > 0) {
+      setZoomSubmissionIndex(prev => prev - 1);
+    }
+  }, [zoomSubmissionIndex, setZoomSubmissionIndex]);
+
+  // ✅ FASE 6.4: Templates de rejeição vêm de constante externa
+  const rejectionTemplates = REJECTION_TEMPLATES;
 
   // ✅ FASE 6.1: totalPages e pendingCount já vêm do useAdminQueries
 
@@ -667,58 +660,8 @@ const Admin = () => {
 
   // ✅ FASE 6.1: getAvailablePostNumbers já vem do useAdminQueries
 
-  // ✅ ITEM 1: Definir colunas disponíveis para exportação
-  const availableExportColumns = [{
-    key: "tipo",
-    label: "Tipo"
-  }, {
-    key: "evento",
-    label: "Evento"
-  }, {
-    key: "numero_postagem",
-    label: "Número da Postagem"
-  }, {
-    key: "nome",
-    label: "Nome"
-  }, {
-    key: "instagram",
-    label: "Instagram"
-  }, {
-    key: "email",
-    label: "Email"
-  }, {
-    key: "telefone",
-    label: "Telefone"
-  }, {
-    key: "genero",
-    label: "Gênero"
-  }, {
-    key: "seguidores",
-    label: "Seguidores"
-  }, {
-    key: "status",
-    label: "Status"
-  }, {
-    key: "data_envio",
-    label: "Data de Envio"
-  }, {
-    key: "total_submissoes_aprovadas",
-    label: "Total de Submissões Aprovadas"
-  }, {
-    key: "vendas_aprovadas_evento",
-    label: "Vendas Aprovadas no Evento"
-  },
-  // ✅ ITEM 1: Nova coluna
-  {
-    key: "email_ticketeira",
-    label: "E-mail da Ticketeira"
-  }, {
-    key: "motivo_rejeicao",
-    label: "Motivo Rejeição"
-  }, {
-    key: "status_participante",
-    label: "Status do Participante"
-  }];
+  // ✅ FASE 6.4: Colunas de exportação vêm de constante externa
+  const availableExportColumns = AVAILABLE_EXPORT_COLUMNS;
 
   // ✅ ITEM 1: Abrir popup de seleção de colunas
   const handleExportToExcel = useCallback(() => {
@@ -731,7 +674,7 @@ const Admin = () => {
     // Selecionar todas as colunas por padrão
     setSelectedExportColumns(availableExportColumns.map(col => col.key));
     setShowColumnSelectionDialog(true);
-  }, [submissionEventFilter]);
+  }, [submissionEventFilter, availableExportColumns]);
 
   // ✅ ITEM 1: Executar exportação após seleção de colunas
   const executeExport = useCallback(async () => {
